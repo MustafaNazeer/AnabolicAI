@@ -1,9 +1,9 @@
-export default function HomePage() {
+export default function ProgressPage() {
   return (
     <main className="px-5 pt-12 pb-24">
-      <h1 className="text-2xl font-bold">Onyx</h1>
+      <h1 className="text-2xl font-bold">Progress</h1>
       <p style={{ color: "var(--text-dim)" }} className="mt-2">
-        Your strength dashboard lands here.
+        Coming soon.
       </p>
     </main>
   );

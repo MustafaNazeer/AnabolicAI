@@ -7,6 +7,7 @@ import {
   updateNotificationSettings,
 } from "@/lib/notifications/actions";
 import { enablePush, disablePush } from "@/lib/notifications/subscribe";
+import { DAY_SHORT } from "@/lib/notifications/schedule";
 import type { NotificationSettings as Settings } from "@/lib/notifications/types";
 
 type ToggleKey =
@@ -19,9 +20,9 @@ type ToggleKey =
 const TOGGLES: { key: ToggleKey; label: string; note?: string }[] = [
   { key: "notif_pr", label: "Personal record celebration" },
   { key: "notif_rest_timer", label: "Rest timer", note: "Foreground only for now" },
-  { key: "notif_reminder", label: "Workout reminder", note: "Coming soon" },
-  { key: "notif_streak", label: "Streak protection", note: "Coming soon" },
-  { key: "notif_weekly", label: "Weekly recap", note: "Coming soon" },
+  { key: "notif_reminder", label: "Workout reminder" },
+  { key: "notif_streak", label: "Streak protection" },
+  { key: "notif_weekly", label: "Weekly recap" },
 ];
 
 function Row({
@@ -85,6 +86,21 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
     });
   }
 
+  const selectedDays = new Set(
+    (s.reminder_days ?? "")
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean),
+  );
+
+  function toggleDay(day: string) {
+    const next = new Set(selectedDays);
+    if (next.has(day)) next.delete(day);
+    else next.add(day);
+    const ordered = DAY_SHORT.filter((d) => next.has(d)).join(",");
+    persist({ ...s, reminder_days: ordered || null });
+  }
+
   function onMasterChange(on: boolean) {
     setError(null);
     if (on) {
@@ -136,6 +152,39 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
           />
         ))}
       </div>
+
+      {s.notif_master && s.notif_reminder ? (
+        <div className="mt-3">
+          <p className="text-xs mb-2" style={{ color: "var(--text-dim)" }}>
+            Reminder days
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {DAY_SHORT.map((d) => {
+              const on = selectedDays.has(d);
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => toggleDay(d)}
+                  disabled={pending}
+                  className="rounded-lg px-3 capitalize"
+                  style={{
+                    minHeight: 44,
+                    minWidth: 44,
+                    background: on ? "var(--accent)" : "var(--surface-2)",
+                    color: on ? "var(--bg)" : "var(--text)",
+                  }}
+                >
+                  {d}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs mt-2" style={{ color: "var(--text-dim)" }}>
+            Reminders arrive each morning on the days you pick.
+          </p>
+        </div>
+      ) : null}
 
       <label className="block text-xs mt-4" style={{ color: "var(--text-dim)" }}>
         Default rest timer (seconds)

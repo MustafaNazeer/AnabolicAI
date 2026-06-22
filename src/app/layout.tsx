@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabs } from "@/components/BottomTabs";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +18,17 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Onyx",
   description: "Strength progress tracker",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Onyx",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#08090b",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -34,6 +46,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <BottomTabs />
+          <ServiceWorkerRegister />
         </ThemeProvider>
       </body>
     </html>

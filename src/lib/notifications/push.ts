@@ -1,5 +1,6 @@
 import "server-only";
 import webpush from "web-push";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { PushPayload } from "@/lib/notifications/payloads";
 
@@ -22,13 +23,13 @@ function ensureConfigured(): boolean {
 
 type SubRow = { endpoint: string; p256dh: string; auth: string };
 
-export async function sendToUser(
+export async function sendToUserWith(
+  supabase: SupabaseClient,
   userId: string,
   payload: PushPayload,
 ): Promise<void> {
   if (!ensureConfigured()) return;
 
-  const supabase = await createClient();
   const { data } = await supabase
     .from("push_subscriptions")
     .select("endpoint, p256dh, auth")
@@ -56,4 +57,12 @@ export async function sendToUser(
       }
     }),
   );
+}
+
+export async function sendToUser(
+  userId: string,
+  payload: PushPayload,
+): Promise<void> {
+  const supabase = await createClient();
+  await sendToUserWith(supabase, userId, payload);
 }

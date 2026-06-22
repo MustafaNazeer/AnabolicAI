@@ -1,26 +1,39 @@
 @import "tailwindcss";
 
+/* Dark base, shared by every theme. Only the accent changes per data-theme. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #08090b;
+  --surface: #16181d;
+  --surface-2: #1f232a;
+  --text: #eef2f7;
+  --text-dim: #9aa3ad;
+  --border: #262b33;
+  /* default accent: cobalt */
+  --accent: #3b82f6;
+  --accent-dim: #1e2f4d;
 }
 
+[data-theme="magenta"] { --accent: #f0457e; --accent-dim: #3a1622; }
+[data-theme="emerald"] { --accent: #34d399; --accent-dim: #123026; }
+[data-theme="crimson"] { --accent: #ef4444; --accent-dim: #3a1a1a; }
+[data-theme="rose"]    { --accent: #fb7185; --accent-dim: #3a1c22; }
+
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  color-scheme: dark;
 }

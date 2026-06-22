@@ -8,6 +8,10 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/auth/confirm")).toBe(true);
   });
 
+  it("treats the bearer-authenticated cron route as public to the session middleware", () => {
+    expect(isPublicPath("/api/cron/daily")).toBe(true);
+  });
+
   it("treats the app tabs as protected", () => {
     expect(isPublicPath("/")).toBe(false);
     expect(isPublicPath("/routines")).toBe(false);

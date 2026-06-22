@@ -1,26 +1,48 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useSyncExternalStore,
+} from "react";
 import { type Theme, DEFAULT_THEME, resolveTheme } from "@/lib/theme";
 
 type ThemeContextValue = { theme: Theme; setTheme: (t: Theme) => void };
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 const STORAGE_KEY = "onyx-theme";
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
+const listeners = new Set<() => void>();
 
-  useEffect(() => {
-    const stored = resolveTheme(localStorage.getItem(STORAGE_KEY));
-    setThemeState(stored);
-    document.documentElement.setAttribute("data-theme", stored);
+function subscribe(callback: () => void) {
+  listeners.add(callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    listeners.delete(callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function getSnapshot(): Theme {
+  return resolveTheme(localStorage.getItem(STORAGE_KEY));
+}
+
+function getServerSnapshot(): Theme {
+  return DEFAULT_THEME;
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  const setTheme = useCallback((t: Theme) => {
+    localStorage.setItem(STORAGE_KEY, t);
+    listeners.forEach((l) => l());
   }, []);
 
-  const setTheme = (t: Theme) => {
-    setThemeState(t);
-    localStorage.setItem(STORAGE_KEY, t);
-    document.documentElement.setAttribute("data-theme", t);
-  };
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

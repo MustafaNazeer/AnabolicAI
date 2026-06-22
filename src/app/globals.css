@@ -11,6 +11,10 @@
   /* default accent: cobalt */
   --accent: #3b82f6;
   --accent-dim: #1e2f4d;
+  /* trend indicator: fixed semantics, not accent-themed, so good/neutral/bad always read correctly */
+  --trend-up: #34d399;
+  --trend-flat: #fbbf24;
+  --trend-down: #f87171;
 }
 
 [data-theme="magenta"] { --accent: #f0457e; --accent-dim: #3a1622; }

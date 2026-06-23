@@ -1,4 +1,4 @@
-import { setVolume } from "@/lib/progress/strength";
+import { setVolume, formatCompact } from "@/lib/progress/strength";
 import { startOfWeek } from "@/lib/progress/week";
 import { zonedNow } from "@/lib/notifications/schedule";
 
@@ -11,6 +11,7 @@ export type MatrixDay = {
   prCount: number;
 };
 
+// Caller is responsible for passing a Date whose local fields are already in the target timezone.
 export function dayKey(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -77,4 +78,51 @@ export function buildMatrix(
     volume: volumeByDay.get(k) ?? 0,
     prCount: prByDay.get(k) ?? 0,
   }));
+}
+
+export type CellState = "off" | "faint" | "on";
+
+export function cellState(day: MatrixDay, metric: MatrixMetric): CellState {
+  if (metric === "gym") return day.trained ? "on" : "off";
+  if (metric === "volume") return day.volume > 0 ? "on" : "off";
+  return day.prCount > 0 ? "on" : day.trained ? "faint" : "off";
+}
+
+export function maxVolume(days: MatrixDay[]): number {
+  return days.reduce((m, d) => (d.volume > m ? d.volume : m), 0);
+}
+
+export function cellIntensity(
+  day: MatrixDay,
+  metric: MatrixMetric,
+  max: number,
+): number {
+  const state = cellState(day, metric);
+  if (state === "off") return 0;
+  if (state === "faint") return 0.18;
+  if (metric === "volume") return max > 0 ? 0.22 + 0.78 * (day.volume / max) : 0.22;
+  return 0.95;
+}
+
+export type HeroSummary = { value: string; unit: string; caption: string };
+
+export function matrixHeroSummary(
+  days: MatrixDay[],
+  metric: MatrixMetric,
+): HeroSummary {
+  const week = days.slice(-7);
+  if (metric === "gym") {
+    const n = week.filter((d) => d.trained).length;
+    return { value: String(n), unit: "of 7 days", caption: "Training days, last 5 weeks" };
+  }
+  if (metric === "volume") {
+    const v = week.reduce((a, d) => a + d.volume, 0);
+    return { value: formatCompact(v), unit: "lbs", caption: "Daily volume, last 5 weeks" };
+  }
+  const p = week.reduce((a, d) => a + d.prCount, 0);
+  return {
+    value: String(p),
+    unit: p === 1 ? "new best" : "new bests",
+    caption: "Days with a PR, last 5 weeks",
+  };
 }

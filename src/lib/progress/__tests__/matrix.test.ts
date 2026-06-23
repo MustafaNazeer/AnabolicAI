@@ -56,3 +56,54 @@ describe("dateKeyInZone", () => {
     expect(dateKeyInZone("2026-06-23T02:00:00Z", TZ)).toBe("2026-06-22");
   });
 });
+
+import {
+  cellState,
+  cellIntensity,
+  maxVolume,
+  matrixHeroSummary,
+  type MatrixDay,
+} from "@/lib/progress/matrix";
+
+function day(p: Partial<MatrixDay>): MatrixDay {
+  return { dateKey: "2026-06-22", trained: false, volume: 0, prCount: 0, ...p };
+}
+
+describe("cellState", () => {
+  it("gym is on only when trained", () => {
+    expect(cellState(day({ trained: true }), "gym")).toBe("on");
+    expect(cellState(day({ trained: false }), "gym")).toBe("off");
+  });
+  it("prs is on for a PR day, faint for a trained day, off otherwise", () => {
+    expect(cellState(day({ trained: true, prCount: 1 }), "prs")).toBe("on");
+    expect(cellState(day({ trained: true, prCount: 0 }), "prs")).toBe("faint");
+    expect(cellState(day({ trained: false }), "prs")).toBe("off");
+  });
+});
+
+describe("cellIntensity", () => {
+  it("scales volume against the window max", () => {
+    const days = [day({ volume: 1000 }), day({ volume: 500, dateKey: "x" })];
+    const max = maxVolume(days);
+    expect(max).toBe(1000);
+    expect(cellIntensity(days[0], "volume", max)).toBeCloseTo(1.0);
+    expect(cellIntensity(days[1], "volume", max)).toBeGreaterThan(0.5);
+    expect(cellIntensity(day({ volume: 0 }), "volume", max)).toBe(0);
+  });
+});
+
+describe("matrixHeroSummary", () => {
+  it("summarises the most recent week per metric", () => {
+    const days: MatrixDay[] = Array.from({ length: 35 }, (_, i) =>
+      day({ dateKey: `d${i}` }),
+    );
+    // last 7 days: 3 trained, total volume 9000, 2 PRs
+    days[28] = day({ dateKey: "d28", trained: true, volume: 3000, prCount: 1 });
+    days[30] = day({ dateKey: "d30", trained: true, volume: 4000, prCount: 1 });
+    days[32] = day({ dateKey: "d32", trained: true, volume: 2000 });
+    expect(matrixHeroSummary(days, "gym").value).toBe("3");
+    expect(matrixHeroSummary(days, "gym").unit).toBe("of 7 days");
+    expect(matrixHeroSummary(days, "prs").value).toBe("2");
+    expect(matrixHeroSummary(days, "volume").unit).toBe("lbs");
+  });
+});

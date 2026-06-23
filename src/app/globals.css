@@ -29,7 +29,7 @@
   --accent-dim: #123026;
   --bg-gradient: radial-gradient(120% 90% at 50% 0%, #18271f 0%, #070c09 62%);
   --text: #e7efeb;
-  --text-dim: #86988f;
+  --text-dim: #889a92;
 }
 [data-theme="magenta"] {
   --accent: #f0457e;

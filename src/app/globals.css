@@ -80,3 +80,15 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --surface: rgba(20, 24, 33, 0.92);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --surface: rgba(20, 24, 33, 0.92);
+  }
+}

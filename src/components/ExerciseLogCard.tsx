@@ -101,7 +101,7 @@ export function ExerciseLogCard({
             inputMode="decimal"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
-            className="w-full px-3 py-2 mt-1 outline-none"
+            className="w-full px-3 py-2 mt-1"
             style={fieldStyle}
           />
         </label>
@@ -111,7 +111,7 @@ export function ExerciseLogCard({
             inputMode="numeric"
             value={reps}
             onChange={(e) => setReps(e.target.value)}
-            className="w-full px-3 py-2 mt-1 outline-none"
+            className="w-full px-3 py-2 mt-1"
             style={fieldStyle}
           />
         </label>
@@ -137,7 +137,7 @@ export function ExerciseLogCard({
         <select
           value={rir}
           onChange={(e) => setRir(Number(e.target.value))}
-          className="w-full px-3 py-2 mt-1 outline-none"
+          className="w-full px-3 py-2 mt-1"
           style={fieldStyle}
         >
           {RIR_OPTIONS.map((o) => (

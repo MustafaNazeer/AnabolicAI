@@ -209,7 +209,7 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
           onChange={(e) =>
             persist({ ...s, rest_timer_seconds: Number(e.target.value) })
           }
-          className="w-full px-3 py-2 mt-1 outline-none"
+          className="w-full px-3 py-2 mt-1"
           style={{
             background: "var(--surface-sunken)",
             border: "1px solid var(--surface-border)",

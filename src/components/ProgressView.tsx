@@ -87,7 +87,7 @@ export function ProgressView({ data }: { data: ProgressData }) {
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="w-full px-3 py-2 mt-1 outline-none"
+          className="w-full px-3 py-2 mt-1"
           style={{
             background: "var(--surface-sunken)",
             border: "1px solid var(--surface-border)",

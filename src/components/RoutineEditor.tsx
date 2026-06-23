@@ -91,7 +91,7 @@ export function RoutineEditor({
           setSaved(false);
         }}
         aria-label="Routine name"
-        className="w-full text-[26px] font-semibold bg-transparent outline-none mb-6"
+        className="w-full text-[26px] font-semibold bg-transparent mb-6"
         style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
       />
 

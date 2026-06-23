@@ -85,7 +85,7 @@ export function AuthForm({
           autoComplete="email"
           placeholder="Email"
           required
-          className="px-4 py-3 outline-none"
+          className="px-4 py-3"
           style={inputStyle}
         />
         <input
@@ -94,7 +94,7 @@ export function AuthForm({
           autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
           placeholder="Password"
           required
-          className="px-4 py-3 outline-none"
+          className="px-4 py-3"
           style={inputStyle}
         />
         {error ? (

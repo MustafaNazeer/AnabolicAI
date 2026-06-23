@@ -44,7 +44,7 @@ export function ExercisePicker({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search or add an exercise"
-        className="w-full px-3 py-2 outline-none mb-2"
+        className="w-full px-3 py-2 mb-2"
         style={{
           background: "var(--surface-sunken)",
           border: "1px solid var(--surface-border)",

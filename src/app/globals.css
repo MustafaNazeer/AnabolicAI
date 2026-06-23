@@ -72,3 +72,11 @@ body {
   color-scheme: dark;
   min-height: 100%;
 }
+
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

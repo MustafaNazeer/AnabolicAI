@@ -29,6 +29,7 @@ export function ThemePicker() {
             className="flex flex-col items-center gap-1.5 p-2"
             style={{
               minHeight: 44,
+              minWidth: 44,
               borderRadius: "var(--radius-tile)",
               border: `2px solid ${active ? s.accent : "transparent"}`,
               background: "var(--surface)",

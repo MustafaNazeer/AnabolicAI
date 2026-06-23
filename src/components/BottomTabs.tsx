@@ -17,6 +17,7 @@ export function BottomTabs() {
   const pathname = usePathname();
   return (
     <nav
+      aria-label="Primary"
       className="fixed flex items-center justify-around border"
       style={{
         left: 14,
@@ -38,6 +39,7 @@ export function BottomTabs() {
               key={href}
               href={href}
               aria-label={label}
+              aria-current={active ? "page" : undefined}
               data-cta="true"
               className="flex items-center justify-center"
               style={{
@@ -58,6 +60,7 @@ export function BottomTabs() {
             key={href}
             href={href}
             aria-label={label}
+            aria-current={active ? "page" : undefined}
             data-cta="false"
             className="flex flex-1 flex-col items-center justify-center gap-1"
             style={{ minHeight: 44, color: active ? "var(--text)" : "var(--text-dim)" }}

@@ -4,14 +4,17 @@ export function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
+  label,
 }: {
   options: { value: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
+  label?: string;
 }) {
   return (
     <div
       role="tablist"
+      aria-label={label}
       className="flex gap-[5px] p-1"
       style={{ background: "rgba(0,0,0,0.25)", borderRadius: 12 }}
     >

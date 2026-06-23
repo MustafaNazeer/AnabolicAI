@@ -35,7 +35,7 @@ export function MatrixCard({ days }: { days: MatrixDay[] }) {
         {LABELS[metric]}
       </div>
       <div className="mt-3">
-        <SegmentedControl options={OPTIONS} value={metric} onChange={setMetric} />
+        <SegmentedControl label="Activity metric" options={OPTIONS} value={metric} onChange={setMetric} />
       </div>
       <div className="mt-3.5">
         <span

@@ -40,11 +40,20 @@ function Row({
 }) {
   return (
     <label
-      className="flex items-center justify-between rounded-xl px-4 py-3"
-      style={{ background: "var(--surface)", opacity: disabled ? 0.5 : 1 }}
+      className="flex items-center justify-between px-4 py-3"
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--surface-border)",
+        borderRadius: "var(--radius-tile)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        opacity: disabled ? 0.5 : 1,
+      }}
     >
       <span>
-        <span className="font-medium">{label}</span>
+        <span className="font-medium" style={{ color: "var(--text)" }}>
+          {label}
+        </span>
         {note ? (
           <span className="block text-xs" style={{ color: "var(--text-dim)" }}>
             {note}
@@ -130,7 +139,9 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
 
   return (
     <section>
-      <h2 className="text-lg font-semibold mb-3">Notifications</h2>
+      <h2 className="text-lg font-semibold mb-3" style={{ color: "var(--text)" }}>
+        Notifications
+      </h2>
 
       <Row
         label="Enable notifications"
@@ -167,12 +178,14 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
                   type="button"
                   onClick={() => toggleDay(d)}
                   disabled={pending}
-                  className="rounded-lg px-3 capitalize"
+                  className="px-3 capitalize"
                   style={{
                     minHeight: 44,
                     minWidth: 44,
-                    background: on ? "var(--accent)" : "var(--surface-2)",
-                    color: on ? "var(--bg)" : "var(--text)",
+                    borderRadius: "var(--radius-square)",
+                    border: "1px solid var(--surface-border)",
+                    background: on ? "var(--accent)" : "var(--surface-sunken)",
+                    color: on ? "var(--on-accent)" : "var(--text)",
                   }}
                 >
                   {d}
@@ -196,8 +209,14 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
           onChange={(e) =>
             persist({ ...s, rest_timer_seconds: Number(e.target.value) })
           }
-          className="w-full rounded-lg px-3 py-2 mt-1 outline-none"
-          style={{ background: "var(--surface-2)", color: "var(--text)", minHeight: 44 }}
+          className="w-full px-3 py-2 mt-1 outline-none"
+          style={{
+            background: "var(--surface-sunken)",
+            border: "1px solid var(--surface-border)",
+            borderRadius: "var(--radius-square)",
+            color: "var(--text)",
+            minHeight: 44,
+          }}
         />
       </label>
 

@@ -13,7 +13,12 @@ export default async function SettingsPage() {
 
   return (
     <main className="px-5 pt-12 pb-24">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1
+        className="text-[26px] font-semibold"
+        style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
+      >
+        Settings
+      </h1>
       <p style={{ color: "var(--text-dim)" }} className="mt-2 mb-8">
         Signed in as {user?.email ?? "unknown"}
       </p>

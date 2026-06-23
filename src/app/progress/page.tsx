@@ -5,7 +5,12 @@ export default async function ProgressPage() {
   const data = await getProgressData();
   return (
     <main className="px-5 pt-12 pb-24">
-      <h1 className="text-2xl font-bold mb-6">Progress</h1>
+      <h1
+        className="text-[26px] font-semibold mb-6"
+        style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
+      >
+        Progress
+      </h1>
       <ProgressView data={data} />
     </main>
   );

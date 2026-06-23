@@ -29,21 +29,21 @@ function Chart({
     <div style={{ width: "100%", height: 200 }}>
       <ResponsiveContainer>
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-          <CartesianGrid stroke="var(--border)" vertical={false} />
+          <CartesianGrid stroke="var(--surface-border)" vertical={false} />
           <XAxis
             dataKey="label"
             tick={{ fill: "var(--text-dim)", fontSize: 11 }}
-            stroke="var(--border)"
+            stroke="var(--surface-border)"
           />
           <YAxis
             tick={{ fill: "var(--text-dim)", fontSize: 11 }}
-            stroke="var(--border)"
+            stroke="var(--surface-border)"
             width={40}
           />
           <Tooltip
             contentStyle={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
+              background: "var(--surface-sunken)",
+              border: "1px solid var(--surface-border)",
               borderRadius: 8,
               color: "var(--text)",
             }}
@@ -87,8 +87,14 @@ export function ProgressView({ data }: { data: ProgressData }) {
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="w-full rounded-lg px-3 py-2 mt-1 outline-none"
-          style={{ background: "var(--surface-2)", color: "var(--text)", minHeight: 44 }}
+          className="w-full px-3 py-2 mt-1 outline-none"
+          style={{
+            background: "var(--surface-sunken)",
+            border: "1px solid var(--surface-border)",
+            borderRadius: "var(--radius-square)",
+            color: "var(--text)",
+            minHeight: 44,
+          }}
         >
           {data.exercises.map((ex) => (
             <option key={ex.id} value={ex.id}>

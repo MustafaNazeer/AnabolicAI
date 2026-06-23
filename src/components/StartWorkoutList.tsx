@@ -22,8 +22,16 @@ export function StartWorkoutList({ routines }: { routines: Routine[] }) {
           <form action={startSession.bind(null, r.id)}>
             <button
               type="submit"
-              className="flex w-full items-center justify-between rounded-xl px-4 py-4 font-medium"
-              style={{ background: "var(--surface)", color: "var(--text)", minHeight: 56 }}
+              className="flex w-full items-center justify-between px-4 py-4 font-medium"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--surface-border)",
+                borderRadius: "var(--radius-tile)",
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
+                color: "var(--text)",
+                minHeight: 56,
+              }}
             >
               {r.name}
               <Play size={18} aria-hidden style={{ color: "var(--accent)" }} />

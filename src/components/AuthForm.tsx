@@ -6,6 +6,16 @@ import Link from "next/link";
 type Mode = "sign-in" | "sign-up";
 type Result = { error?: string; ok?: boolean } | void;
 
+const inputStyle = {
+  background: "var(--surface)",
+  border: "1px solid var(--surface-border)",
+  borderRadius: "var(--radius-tile)",
+  color: "var(--text)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  minHeight: 48,
+} as const;
+
 export function AuthForm({
   mode,
   action,
@@ -37,7 +47,12 @@ export function AuthForm({
   if (sent) {
     return (
       <main className="px-5 pt-16 pb-24 max-w-sm mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Onyx</h1>
+        <h1
+          className="text-4xl font-semibold mb-2"
+          style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
+        >
+          Onyx
+        </h1>
         <p style={{ color: "var(--text-dim)" }}>
           Check your email for a confirmation link, then sign in.
         </p>
@@ -54,7 +69,12 @@ export function AuthForm({
 
   return (
     <main className="px-5 pt-16 pb-24 max-w-sm mx-auto">
-      <h1 className="text-3xl font-bold mb-1">Onyx</h1>
+      <h1
+        className="text-4xl font-semibold mb-1"
+        style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
+      >
+        Onyx
+      </h1>
       <p style={{ color: "var(--text-dim)" }} className="mb-8">
         {title}
       </p>
@@ -65,8 +85,8 @@ export function AuthForm({
           autoComplete="email"
           placeholder="Email"
           required
-          className="rounded-xl px-4 py-3 outline-none"
-          style={{ background: "var(--surface)", color: "var(--text)", minHeight: 48 }}
+          className="px-4 py-3 outline-none"
+          style={inputStyle}
         />
         <input
           name="password"
@@ -74,8 +94,8 @@ export function AuthForm({
           autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
           placeholder="Password"
           required
-          className="rounded-xl px-4 py-3 outline-none"
-          style={{ background: "var(--surface)", color: "var(--text)", minHeight: 48 }}
+          className="px-4 py-3 outline-none"
+          style={inputStyle}
         />
         {error ? (
           <p role="alert" style={{ color: "var(--accent)" }} className="text-sm">
@@ -85,8 +105,13 @@ export function AuthForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl font-semibold py-3 disabled:opacity-60"
-          style={{ background: "var(--accent)", color: "#08090b", minHeight: 48 }}
+          className="font-semibold py-3 disabled:opacity-60"
+          style={{
+            background: "var(--accent)",
+            color: "var(--on-accent)",
+            borderRadius: "var(--radius-tile)",
+            minHeight: 48,
+          }}
         >
           {pending ? "Please wait" : title}
         </button>

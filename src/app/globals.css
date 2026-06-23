@@ -116,3 +116,17 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Press feedback on primary interactive controls (transform/opacity only) */
+button,
+a[data-cta],
+a[aria-current] {
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+button:active,
+a[data-cta]:active {
+  transform: scale(0.97);
+}
+button:disabled:active {
+  transform: none;
+}

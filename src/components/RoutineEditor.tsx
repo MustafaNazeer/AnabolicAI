@@ -10,6 +10,14 @@ import type { Exercise, RoutineDetail } from "@/lib/data/types";
 
 type DraftItem = { exercise: Exercise; defaultSets: number };
 
+const stepperStyle = {
+  background: "var(--surface-sunken)",
+  border: "1px solid var(--surface-border)",
+  borderRadius: "var(--radius-square)",
+  minWidth: 44,
+  minHeight: 44,
+} as const;
+
 export function RoutineEditor({
   routine,
   library,
@@ -83,19 +91,27 @@ export function RoutineEditor({
           setSaved(false);
         }}
         aria-label="Routine name"
-        className="w-full text-2xl font-bold bg-transparent outline-none mb-6"
-        style={{ color: "var(--text)" }}
+        className="w-full text-[26px] font-semibold bg-transparent outline-none mb-6"
+        style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
       />
 
       <ul className="flex flex-col gap-2 mb-6">
         {items.map((it, i) => (
           <li
             key={it.exercise.id}
-            className="rounded-xl px-3 py-3"
-            style={{ background: "var(--surface)" }}
+            className="px-3 py-3"
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--surface-border)",
+              borderRadius: "var(--radius-tile)",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+            }}
           >
             <div className="flex items-center justify-between">
-              <span className="font-medium">{it.exercise.name}</span>
+              <span className="font-medium" style={{ color: "var(--text)" }}>
+                {it.exercise.name}
+              </span>
               <button
                 type="button"
                 onClick={() => remove(i)}
@@ -112,8 +128,8 @@ export function RoutineEditor({
                   type="button"
                   onClick={() => setSets(i, it.defaultSets - 1)}
                   aria-label="Fewer sets"
-                  style={{ background: "var(--surface-2)", minWidth: 44, minHeight: 44 }}
-                  className="flex items-center justify-center rounded-lg"
+                  style={stepperStyle}
+                  className="flex items-center justify-center"
                 >
                   <Minus size={16} aria-hidden />
                 </button>
@@ -127,8 +143,8 @@ export function RoutineEditor({
                   type="button"
                   onClick={() => setSets(i, it.defaultSets + 1)}
                   aria-label="More sets"
-                  style={{ background: "var(--surface-2)", minWidth: 44, minHeight: 44 }}
-                  className="flex items-center justify-center rounded-lg"
+                  style={stepperStyle}
+                  className="flex items-center justify-center"
                 >
                   <Plus size={16} aria-hidden />
                 </button>
@@ -180,8 +196,13 @@ export function RoutineEditor({
         type="button"
         onClick={save}
         disabled={pending}
-        className="rounded-xl font-semibold py-3 w-full disabled:opacity-60"
-        style={{ background: "var(--accent)", color: "#08090b", minHeight: 48 }}
+        className="font-semibold py-3 w-full disabled:opacity-60"
+        style={{
+          background: "var(--accent)",
+          color: "var(--on-accent)",
+          borderRadius: "var(--radius-tile)",
+          minHeight: 48,
+        }}
       >
         {pending ? "Saving" : saved ? "Saved" : "Save"}
       </button>

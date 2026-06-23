@@ -5,6 +5,7 @@ import { filterExercises } from "@/lib/routines/edit";
 import { createExercise } from "@/lib/data/actions";
 import type { Exercise } from "@/lib/data/types";
 import { Plus } from "lucide-react";
+import { Card } from "@/components/ui/Card";
 
 export function ExercisePicker({
   library,
@@ -38,13 +39,19 @@ export function ExercisePicker({
   }
 
   return (
-    <div className="rounded-xl p-3" style={{ background: "var(--surface)" }}>
+    <Card className="p-3" style={{ borderRadius: "var(--radius-tile)" }}>
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search or add an exercise"
-        className="w-full rounded-lg px-3 py-2 outline-none mb-2"
-        style={{ background: "var(--surface-2)", color: "var(--text)", minHeight: 44 }}
+        className="w-full px-3 py-2 outline-none mb-2"
+        style={{
+          background: "var(--surface-sunken)",
+          border: "1px solid var(--surface-border)",
+          borderRadius: "var(--radius-square)",
+          color: "var(--text)",
+          minHeight: 44,
+        }}
       />
       <ul className="flex flex-col gap-1 max-h-60 overflow-y-auto">
         {results.map((e) => (
@@ -75,6 +82,6 @@ export function ExercisePicker({
           </li>
         ) : null}
       </ul>
-    </div>
+    </Card>
   );
 }

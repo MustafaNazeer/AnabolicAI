@@ -4,6 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import { formatDuration } from "@/lib/workout/timer";
 
+const ctrlStyle = {
+  background: "var(--surface-sunken)",
+  border: "1px solid var(--surface-border)",
+  borderRadius: "var(--radius-square)",
+  color: "var(--text-dim)",
+  minWidth: 44,
+  minHeight: 44,
+} as const;
+
 export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
   const [remaining, setRemaining] = useState(defaultSeconds);
   const [running, setRunning] = useState(false);
@@ -44,10 +53,19 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
 
   return (
     <div
-      className="flex items-center gap-3 rounded-xl px-4 py-3"
-      style={{ background: "var(--surface)" }}
+      className="flex items-center gap-3 px-4 py-3"
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--surface-border)",
+        borderRadius: "var(--radius-tile)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+      }}
     >
-      <span className="text-2xl font-bold tabular-nums" style={{ color: "var(--accent)" }}>
+      <span
+        className="text-2xl font-semibold tabular-nums"
+        style={{ fontFamily: "var(--font-spectral)", color: "var(--accent)" }}
+      >
         {formatDuration(remaining)}
       </span>
       <div className="ml-auto flex items-center gap-2">
@@ -55,8 +73,8 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
           type="button"
           onClick={() => reset(Math.max(0, remaining - 15))}
           aria-label="Minus 15 seconds"
-          className="rounded-lg px-2 text-sm"
-          style={{ background: "var(--surface-2)", color: "var(--text-dim)", minWidth: 44, minHeight: 44 }}
+          className="px-2 text-sm"
+          style={ctrlStyle}
         >
           -15
         </button>
@@ -64,8 +82,8 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
           type="button"
           onClick={() => reset(remaining + 15)}
           aria-label="Plus 15 seconds"
-          className="rounded-lg px-2 text-sm"
-          style={{ background: "var(--surface-2)", color: "var(--text-dim)", minWidth: 44, minHeight: 44 }}
+          className="px-2 text-sm"
+          style={ctrlStyle}
         >
           +15
         </button>
@@ -76,8 +94,14 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
             setRunning((r) => !r);
           }}
           aria-label={running ? "Pause timer" : "Start timer"}
-          className="flex items-center justify-center rounded-lg"
-          style={{ background: "var(--accent)", color: "#08090b", minWidth: 44, minHeight: 44 }}
+          className="flex items-center justify-center"
+          style={{
+            background: "var(--accent)",
+            color: "var(--on-accent)",
+            borderRadius: "var(--radius-square)",
+            minWidth: 44,
+            minHeight: 44,
+          }}
         >
           {running ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
         </button>
@@ -88,8 +112,8 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
             reset(defaultSeconds);
           }}
           aria-label="Reset timer"
-          className="flex items-center justify-center rounded-lg"
-          style={{ background: "var(--surface-2)", color: "var(--text-dim)", minWidth: 44, minHeight: 44 }}
+          className="flex items-center justify-center"
+          style={ctrlStyle}
         >
           <RotateCcw size={18} aria-hidden />
         </button>

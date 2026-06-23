@@ -4,7 +4,10 @@ import { describe, it, expect, vi } from "vitest";
 import { BottomTabs } from "@/components/BottomTabs";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/",
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 describe("navigation semantics", () => {
   it("labels the bottom nav and marks the active tab", () => {

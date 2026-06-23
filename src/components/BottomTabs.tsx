@@ -2,8 +2,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, Dumbbell, Plus, TrendingUp, Settings } from "lucide-react";
+import { runViewTransition } from "@/lib/motion/viewTransition";
 
 const TABS = [
   { href: "/", label: "Home", Icon: Home, cta: false },
@@ -15,6 +16,18 @@ const TABS = [
 
 export function BottomTabs() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  function handleNav(
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) {
+    // Let the browser handle modifier-clicks (open in new tab, etc.)
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    runViewTransition(() => router.push(href));
+  }
+
   return (
     <nav
       aria-label="Primary"
@@ -40,6 +53,7 @@ export function BottomTabs() {
               href={href}
               aria-label={label}
               aria-current={active ? "page" : undefined}
+              onClick={(e) => handleNav(e, href)}
               data-cta="true"
               className="flex items-center justify-center"
               style={{
@@ -61,6 +75,7 @@ export function BottomTabs() {
             href={href}
             aria-label={label}
             aria-current={active ? "page" : undefined}
+            onClick={(e) => handleNav(e, href)}
             data-cta="false"
             className="flex flex-1 flex-col items-center justify-center gap-1"
             style={{ minHeight: 44, color: active ? "var(--text)" : "var(--text-dim)" }}

@@ -46,6 +46,7 @@ next-env.d.ts
 CLAUDE.md
 future-ideas.md
 salvage/
+ui-references/
 
 # Local-only project scaffolding (workflow tells, never shipped publicly)
 agents/

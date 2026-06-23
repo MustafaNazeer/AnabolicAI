@@ -77,6 +77,7 @@ Logged per set: set number, reps, weight (lbs), and RIR (Reps In Reserve, 0 to 5
 - Streak counter: consecutive weeks with at least one workout.
 - Recent workouts: the last few sessions with routine name, date, and quick stats.
 - PR highlights: automatically detected personal records, stated plainly, for example "New best: Bench Press 185 lbs x 5".
+- Activity matrix: a five week heatmap of daily activity whose metric the user chooses (Gym days, Volume, or personal records), defaulting to Gym days. The choice persists per device.
 
 ### 7. Progress
 
@@ -129,7 +130,7 @@ The app must install to the iPhone home screen for free and behave like a native
 - The app is dark only in v1. Light mode is deferred (see Deferred to v2).
 - The accent color is themeable through design tokens. The default is Cobalt.
 - v1 ships five selectable accents: Cobalt (default), Magenta, Emerald, Crimson, Rose.
-- Switching theme changes only the accent, not the dark base.
+- Switching theme changes both the accent and the dark base. Each theme is an accent paired with a matching tinted base gradient. The default theme is Cobalt.
 
 ## Data model
 
@@ -185,6 +186,7 @@ Derived values (estimated 1RM, volume, PR detection, trend direction) are comput
 | Notifications | Service worker + Web Push (VAPID) | Free push on installed iOS PWAs |
 | Hosting | Vercel | Free, global CDN, zero config deploys |
 | Icons | Lucide React | Clean icon set, no emojis |
+| Typography | Spectral (serif) for display headings and hero numbers, Geist for body | Contrast between expressive display face and clean body type |
 
 ## UI and UX guidelines
 
@@ -205,7 +207,7 @@ These are deliberately excluded from v1 but are real planned next steps. They de
 - Goals feature: set per lift targets, track progress toward them, and the goal proximity notification ("You're 5 lbs from your bench goal"). This is the first planned v2 feature.
 - Offline sync: full workout logging with no connection, with background sync on reconnect (IndexedDB). Note that mid workout local persistence is in v1; full offline sync is not.
 - Light mode (the theme picker stays accent only in v1).
-- Secondary charts: volume over time, rep progression, session frequency calendar heatmap, per routine stacked volume.
+- Secondary charts: volume over time, rep progression, per routine stacked volume.
 - Routine duplicate.
 - Quick fill: one tap copy of last session's weight and reps.
 - Additional notifications: unfinished workout reminder.

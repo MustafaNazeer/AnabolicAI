@@ -11,4 +11,9 @@ describe("BottomTabs", () => {
       expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
     }
   });
+
+  it("renders the Log destination as the accent CTA", () => {
+    render(<BottomTabs />);
+    expect(screen.getByRole("link", { name: "Log" })).toHaveAttribute("data-cta", "true");
+  });
 });

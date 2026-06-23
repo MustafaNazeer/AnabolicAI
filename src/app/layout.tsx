@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Spectral } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabs } from "@/components/BottomTabs";
@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const spectral = Spectral({
+  variable: "--font-spectral",
+  weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Onyx",
   description: "Strength progress tracker",
@@ -27,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#08090b",
+  themeColor: "#070a10",
   viewportFit: "cover",
 };
 
@@ -40,7 +46,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="cobalt"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${spectral.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>

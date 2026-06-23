@@ -1,43 +1,72 @@
 @import "tailwindcss";
 
-/* Dark base, shared by every theme. Only the accent changes per data-theme. */
+/* Emerald Field tokens. Each theme is an accent plus a matching tinted base. */
 :root {
-  --bg: #08090b;
-  --surface: #16181d;
-  --surface-2: #1f232a;
-  --text: #eef2f7;
-  --text-dim: #9aa3ad;
-  --border: #262b33;
-  /* default accent: cobalt */
+  /* default theme: cobalt */
   --accent: #3b82f6;
   --accent-dim: #1e2f4d;
-  /* trend indicator: fixed semantics, not accent-themed, so good/neutral/bad always read correctly */
+  --bg-gradient: radial-gradient(120% 90% at 50% 0%, #111a2c 0%, #070a10 62%);
+  --text: #e8eef7;
+  --text-dim: #93a0b3;
+
+  /* shared, theme-independent */
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-border: rgba(255, 255, 255, 0.10);
+  --on-accent: #0a0b0c;
+  --radius-card: 22px;
+  --radius-tile: 16px;
+  --radius-square: 10px;
+
+  /* trend semantics, never themed */
   --trend-up: #34d399;
   --trend-flat: #fbbf24;
   --trend-down: #f87171;
 }
 
-[data-theme="magenta"] { --accent: #f0457e; --accent-dim: #3a1622; }
-[data-theme="emerald"] { --accent: #34d399; --accent-dim: #123026; }
-[data-theme="crimson"] { --accent: #ef4444; --accent-dim: #3a1a1a; }
-[data-theme="rose"]    { --accent: #fb7185; --accent-dim: #3a1c22; }
+[data-theme="emerald"] {
+  --accent: #34d399;
+  --accent-dim: #123026;
+  --bg-gradient: radial-gradient(120% 90% at 50% 0%, #18271f 0%, #070c09 62%);
+  --text: #e7efeb;
+  --text-dim: #86988f;
+}
+[data-theme="magenta"] {
+  --accent: #f0457e;
+  --accent-dim: #3a1622;
+  --bg-gradient: radial-gradient(120% 90% at 50% 0%, #2a1320 0%, #0c060a 62%);
+  --text: #f3e6ee;
+  --text-dim: #ad94a2;
+}
+[data-theme="crimson"] {
+  --accent: #ef4444;
+  --accent-dim: #3a1a1a;
+  --bg-gradient: radial-gradient(120% 90% at 50% 0%, #251114 0%, #0a0708 62%);
+  --text: #f3e9ea;
+  --text-dim: #a8908f;
+}
+[data-theme="rose"] {
+  --accent: #fb7185;
+  --accent-dim: #3a1c22;
+  --bg-gradient: radial-gradient(120% 90% at 50% 0%, #241318 0%, #0b0709 62%);
+  --text: #f4e9ec;
+  --text-dim: #a8929a;
+}
 
 @theme inline {
-  --color-bg: var(--bg);
   --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
   --color-text: var(--text);
   --color-text-dim: var(--text-dim);
-  --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-dim: var(--accent-dim);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-spectral);
 }
 
 html,
 body {
-  background: var(--bg);
+  background: var(--bg-gradient) fixed;
   color: var(--text);
   color-scheme: dark;
+  min-height: 100%;
 }

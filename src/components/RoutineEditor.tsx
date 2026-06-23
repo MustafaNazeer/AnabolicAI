@@ -7,6 +7,7 @@ import { moveItem } from "@/lib/routines/edit";
 import { saveRoutine } from "@/lib/data/actions";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import type { Exercise, RoutineDetail } from "@/lib/data/types";
+import { ErrorRetry } from "@/components/ui/ErrorRetry";
 
 type DraftItem = { exercise: Exercise; defaultSets: number };
 
@@ -187,9 +188,9 @@ export function RoutineEditor({
       </div>
 
       {error ? (
-        <p role="alert" style={{ color: "var(--accent)" }} className="text-sm mb-3">
-          {error}
-        </p>
+        <div className="mb-3">
+          <ErrorRetry message={error} onRetry={save} pending={pending} />
+        </div>
       ) : null}
 
       <button

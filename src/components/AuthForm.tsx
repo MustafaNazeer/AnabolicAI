@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { ErrorRetry } from "@/components/ui/ErrorRetry";
 
 type Mode = "sign-in" | "sign-up";
 type Result = { error?: string; ok?: boolean } | void;
@@ -98,9 +99,14 @@ export function AuthForm({
           style={inputStyle}
         />
         {error ? (
-          <p role="alert" style={{ color: "var(--accent)" }} className="text-sm">
-            {error}
-          </p>
+          <ErrorRetry
+            message={error}
+            pending={pending}
+            onRetry={() => {
+              const form = document.querySelector("form");
+              if (form) onSubmit(new FormData(form));
+            }}
+          />
         ) : null}
         <button
           type="submit"

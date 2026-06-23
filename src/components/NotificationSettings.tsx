@@ -6,6 +6,7 @@ import {
   removeSubscription,
   updateNotificationSettings,
 } from "@/lib/notifications/actions";
+import { ErrorRetry } from "@/components/ui/ErrorRetry";
 import { enablePush, disablePush } from "@/lib/notifications/subscribe";
 import { DAY_SHORT } from "@/lib/notifications/schedule";
 import type { NotificationSettings as Settings } from "@/lib/notifications/types";
@@ -221,9 +222,11 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
       </label>
 
       {error ? (
-        <p role="alert" className="text-sm mt-3" style={{ color: "var(--accent)" }}>
-          {error}
-        </p>
+        <ErrorRetry
+          message={error}
+          pending={pending}
+          onRetry={() => onMasterChange(true)}
+        />
       ) : null}
     </section>
   );

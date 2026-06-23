@@ -6,6 +6,7 @@ import { RIR_OPTIONS } from "@/lib/workout/rir";
 import { logSet, deleteSet } from "@/lib/workout/actions";
 import type { LastSet, SessionExercise } from "@/lib/workout/types";
 import { Card } from "@/components/ui/Card";
+import { ErrorRetry } from "@/components/ui/ErrorRetry";
 
 const fieldStyle = {
   background: "var(--surface-sunken)",
@@ -149,9 +150,7 @@ export function ExerciseLogCard({
       </label>
 
       {error ? (
-        <p role="alert" className="text-sm mt-2" style={{ color: "var(--accent)" }}>
-          {error}
-        </p>
+        <ErrorRetry message={error} onRetry={log} pending={pending} />
       ) : null}
     </Card>
   );

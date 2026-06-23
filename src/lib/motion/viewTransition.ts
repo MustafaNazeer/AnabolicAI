@@ -2,7 +2,7 @@ import { flushSync } from "react-dom";
 import { prefersReducedMotion } from "./reducedMotion";
 
 type DocWithVT = Document & {
-  startViewTransition?: (callback: () => void) => unknown;
+  startViewTransition?: (callback: () => void) => { finished?: Promise<unknown> } | undefined;
 };
 
 /**
@@ -19,9 +19,14 @@ export function runViewTransition(update: () => void): void {
     return;
   }
 
-  doc.startViewTransition(() => {
+  const transition = doc.startViewTransition(() => {
     flushSync(() => {
       update();
     });
   });
+
+  // A transition interrupted mid-flight (for example rapid tab taps) rejects
+  // its finished promise; swallow it so it does not surface as an unhandled
+  // rejection. The DOM update has already committed inside the callback.
+  transition?.finished?.catch(() => {});
 }

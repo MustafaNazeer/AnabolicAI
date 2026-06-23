@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { estimatedOneRepMax, setVolume } from "@/lib/progress/strength";
 import { currentStreakWeeks, isInCurrentWeek } from "@/lib/progress/week";
 import { detectPrs, type PrInput } from "@/lib/progress/prs";
+import { APP_TIMEZONE } from "@/lib/notifications/schedule";
+import { buildMatrix, type MatrixDay } from "@/lib/progress/matrix";
 import type {
   DashboardData,
   ProgressData,
@@ -134,4 +136,36 @@ export async function getProgressData(): Promise<ProgressData> {
   });
 
   return { exercises, series };
+}
+
+export async function getMatrixData(
+  now: Date = new Date(),
+): Promise<MatrixDay[]> {
+  const sessions = await getCompletedSessions();
+
+  const sessionInputs = sessions
+    .filter((s) => s.completed_at)
+    .map((s) => ({ completedAt: s.completed_at as string }));
+
+  const setInputs: { weight: number; reps: number; loggedAt: string }[] = [];
+  const allSets: PrInput[] = [];
+  for (const s of sessions) {
+    for (const st of s.workout_sets ?? []) {
+      setInputs.push({ weight: st.weight, reps: st.reps, loggedAt: st.logged_at });
+      allSets.push({
+        exerciseId: st.exercise_id,
+        exerciseName: st.exercise?.name ?? "Exercise",
+        weight: st.weight,
+        reps: st.reps,
+        loggedAt: st.logged_at,
+      });
+    }
+  }
+  const prDates = detectPrs(allSets).map((p) => p.loggedAt);
+
+  return buildMatrix(
+    { sessions: sessionInputs, sets: setInputs, prDates },
+    now,
+    APP_TIMEZONE,
+  );
 }

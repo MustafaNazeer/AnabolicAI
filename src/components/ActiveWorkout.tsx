@@ -19,7 +19,12 @@ export function ActiveWorkout({
 
   return (
     <main className="px-5 pt-12 pb-28">
-      <h1 className="text-2xl font-bold mb-1">{session.routineName}</h1>
+      <h1
+        className="text-[26px] font-semibold mb-1"
+        style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
+      >
+        {session.routineName}
+      </h1>
       <p className="text-sm mb-4" style={{ color: "var(--text-dim)" }}>
         Tap the check to log each set.
       </p>
@@ -43,8 +48,16 @@ export function ActiveWorkout({
       <form action={finishSession.bind(null, session.id)} className="mt-6">
         <button
           type="submit"
-          className="rounded-xl font-semibold py-3 w-full"
-          style={{ background: "var(--surface-2)", color: "var(--text)", minHeight: 48 }}
+          className="font-semibold py-3 w-full"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--surface-border)",
+            borderRadius: "var(--radius-tile)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+            color: "var(--text)",
+            minHeight: 48,
+          }}
         >
           Finish workout
         </button>

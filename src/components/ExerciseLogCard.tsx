@@ -5,6 +5,15 @@ import { X, Check } from "lucide-react";
 import { RIR_OPTIONS } from "@/lib/workout/rir";
 import { logSet, deleteSet } from "@/lib/workout/actions";
 import type { LastSet, SessionExercise } from "@/lib/workout/types";
+import { Card } from "@/components/ui/Card";
+
+const fieldStyle = {
+  background: "var(--surface-sunken)",
+  border: "1px solid var(--surface-border)",
+  borderRadius: "var(--radius-square)",
+  color: "var(--text)",
+  minHeight: 44,
+} as const;
 
 export function ExerciseLogCard({
   sessionId,
@@ -43,9 +52,11 @@ export function ExerciseLogCard({
   }
 
   return (
-    <div className="rounded-xl p-4" style={{ background: "var(--surface)" }}>
+    <Card className="p-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">{item.exercise.name}</h3>
+        <h3 className="font-semibold" style={{ color: "var(--text)" }}>
+          {item.exercise.name}
+        </h3>
         <span className="text-xs" style={{ color: "var(--text-dim)" }}>
           {item.defaultSets} sets
         </span>
@@ -60,8 +71,11 @@ export function ExerciseLogCard({
         {item.loggedSets.map((s) => (
           <li
             key={s.id}
-            className="flex items-center justify-between rounded-lg px-3 py-2 text-sm"
-            style={{ background: "var(--surface-2)" }}
+            className="flex items-center justify-between px-3 py-2 text-sm"
+            style={{
+              background: "var(--surface-sunken)",
+              borderRadius: "var(--radius-square)",
+            }}
           >
             <span>
               Set {s.set_number}: {s.weight} x {s.reps}
@@ -87,8 +101,8 @@ export function ExerciseLogCard({
             inputMode="decimal"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
-            className="w-full rounded-lg px-3 py-2 mt-1 outline-none"
-            style={{ background: "var(--surface-2)", color: "var(--text)", minHeight: 44 }}
+            className="w-full px-3 py-2 mt-1 outline-none"
+            style={fieldStyle}
           />
         </label>
         <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
@@ -97,8 +111,8 @@ export function ExerciseLogCard({
             inputMode="numeric"
             value={reps}
             onChange={(e) => setReps(e.target.value)}
-            className="w-full rounded-lg px-3 py-2 mt-1 outline-none"
-            style={{ background: "var(--surface-2)", color: "var(--text)", minHeight: 44 }}
+            className="w-full px-3 py-2 mt-1 outline-none"
+            style={fieldStyle}
           />
         </label>
         <button
@@ -106,8 +120,14 @@ export function ExerciseLogCard({
           onClick={log}
           disabled={pending}
           aria-label="Log set"
-          className="flex items-center justify-center rounded-lg disabled:opacity-60"
-          style={{ background: "var(--accent)", color: "#08090b", minWidth: 48, minHeight: 44 }}
+          className="flex items-center justify-center disabled:opacity-60"
+          style={{
+            background: "var(--accent)",
+            color: "var(--on-accent)",
+            borderRadius: "var(--radius-square)",
+            minWidth: 48,
+            minHeight: 44,
+          }}
         >
           <Check size={18} aria-hidden />
         </button>
@@ -117,8 +137,8 @@ export function ExerciseLogCard({
         <select
           value={rir}
           onChange={(e) => setRir(Number(e.target.value))}
-          className="w-full rounded-lg px-3 py-2 mt-1 outline-none"
-          style={{ background: "var(--surface-2)", color: "var(--text)", minHeight: 44 }}
+          className="w-full px-3 py-2 mt-1 outline-none"
+          style={fieldStyle}
         >
           {RIR_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -133,6 +153,6 @@ export function ExerciseLogCard({
           {error}
         </p>
       ) : null}
-    </div>
+    </Card>
   );
 }

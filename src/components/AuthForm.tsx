@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ErrorRetry } from "@/components/ui/ErrorRetry";
+import { BrandMark } from "@/components/BrandMark";
 
 type Mode = "sign-in" | "sign-up";
 type Result = { error?: string; ok?: boolean } | void;
@@ -48,6 +49,9 @@ export function AuthForm({
   if (sent) {
     return (
       <main className="px-5 pt-16 pb-24 max-w-sm mx-auto">
+        <div className="flex justify-center mb-3">
+          <BrandMark size={56} />
+        </div>
         <h1
           className="text-4xl font-semibold mb-2"
           style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
@@ -70,6 +74,9 @@ export function AuthForm({
 
   return (
     <main className="px-5 pt-16 pb-24 max-w-sm mx-auto">
+      <div className="flex justify-center mb-3">
+        <BrandMark size={56} />
+      </div>
       <h1
         className="text-4xl font-semibold mb-1"
         style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}

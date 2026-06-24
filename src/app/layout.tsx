@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabs } from "@/components/BottomTabs";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { SplashLinks } from "@/components/SplashLinks";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,6 +49,7 @@ export default function RootLayout({
       data-theme="cobalt"
       className={`${geistSans.variable} ${geistMono.variable} ${spectral.variable} h-full antialiased`}
     >
+      <SplashLinks />
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           {children}

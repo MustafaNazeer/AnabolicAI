@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import sharp from "sharp";
 
-import { markSvg } from "../src/lib/brand/mark.ts";
+import { markSvg, MARK_VIEWBOX } from "../src/lib/brand/mark.ts";
 import { IPHONE_SPLASH, splashFile } from "../src/lib/brand/devices.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -13,7 +13,7 @@ const p = (...x) => path.join(ROOT, ...x);
 
 const BASE_TOP = "#111a2c";
 const BASE_BOT = "#070a10";
-const VBW = 120, VBH = 140;
+const [, , VBW, VBH] = MARK_VIEWBOX.split(" ").map(Number);
 
 // Compose an opaque square: cobalt radial base + optional rounded-square tile + centered stone.
 function iconSvg(px, { tile = true, stoneScale = 0.62 } = {}) {
@@ -66,7 +66,7 @@ async function main() {
   await png(iconSvg(180), p("src/app/apple-icon.png"), 180, 180);
 
   // Browser icon: ship the lit stone on a tile as a crisp SVG favicon.
-  await writeFile(p("src/app/icon.svg"), iconSvg(64), "utf8");
+  await writeFile(p("src/app/icon.svg"), iconSvg(64) + "\n", "utf8");
 
   // favicon.ico from 32 + 16 PNGs via ImageMagick.
   await png(iconSvg(32), p("public/_fav32.png"), 32, 32);

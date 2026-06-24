@@ -49,7 +49,7 @@ export function AuthForm({
   if (sent) {
     return (
       <main className="px-5 pt-16 pb-24 max-w-sm mx-auto">
-        <div className="flex justify-center mb-3">
+        <div aria-hidden="true" className="flex justify-center mb-3">
           <BrandMark size={56} />
         </div>
         <h1
@@ -74,7 +74,7 @@ export function AuthForm({
 
   return (
     <main className="px-5 pt-16 pb-24 max-w-sm mx-auto">
-      <div className="flex justify-center mb-3">
+      <div aria-hidden="true" className="flex justify-center mb-3">
         <BrandMark size={56} />
       </div>
       <h1

@@ -10,18 +10,22 @@ const noopAction = async () => {};
 
 describe("AuthForm brand", () => {
   it("shows the Onyx mark above the wordmark on sign-in", () => {
-    const { getAllByRole } = render(
+    const { container } = render(
       <AuthForm mode="sign-in" action={noopAction} />,
     );
-    const marks = getAllByRole("img", { name: "Onyx" });
-    expect(marks.length).toBeGreaterThanOrEqual(1);
+    // The mark is inside aria-hidden="true" so getByRole won't find it —
+    // query the DOM directly. The SVG must be present in the tree.
+    expect(container.querySelector("svg")).toBeTruthy();
+    expect(container.querySelector('[aria-hidden="true"] svg')).toBeTruthy();
   });
 
   it("shows the Onyx mark above the wordmark on sign-up", () => {
-    const { getAllByRole } = render(
+    const { container } = render(
       <AuthForm mode="sign-up" action={noopAction} />,
     );
-    const marks = getAllByRole("img", { name: "Onyx" });
-    expect(marks.length).toBeGreaterThanOrEqual(1);
+    // The mark is inside aria-hidden="true" so getByRole won't find it —
+    // query the DOM directly. The SVG must be present in the tree.
+    expect(container.querySelector("svg")).toBeTruthy();
+    expect(container.querySelector('[aria-hidden="true"] svg')).toBeTruthy();
   });
 });

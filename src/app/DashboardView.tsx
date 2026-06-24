@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { WeekStrip } from "@/components/dashboard/WeekStrip";
 import { MatrixCard } from "@/components/dashboard/MatrixCard";
 import { StatChip } from "@/components/dashboard/StatChip";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { formatCompact } from "@/lib/progress/strength";
 import type { MatrixDay } from "@/lib/progress/matrix";
 import type { WeekDay } from "@/lib/progress/weekstrip";
@@ -36,15 +37,7 @@ export function DashboardView({
 }) {
   return (
     <main className="px-4 pt-12 pb-28">
-      <p className="text-[12.5px]" style={{ color: "var(--text-dim)" }}>
-        Welcome back, {name}
-      </p>
-      <h1
-        className="text-[25px] font-semibold mt-0.5"
-        style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
-      >
-        Your week so far
-      </h1>
+      <DashboardHeader name={name} />
 
       <WeekStrip days={weekDays} />
 

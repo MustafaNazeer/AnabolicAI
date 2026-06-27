@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUp, ArrowDown, X, Minus, Plus } from "lucide-react";
 import { moveItem } from "@/lib/routines/edit";
 import { runViewTransition } from "@/lib/motion/viewTransition";
+import { viewTransitionName } from "@/lib/motion/viewTransitionName";
 import { saveRoutine } from "@/lib/data/actions";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import type { Exercise, RoutineDetail } from "@/lib/data/types";
@@ -114,7 +115,7 @@ export function RoutineEditor({
               borderRadius: "var(--radius-tile)",
               backdropFilter: "blur(14px)",
               WebkitBackdropFilter: "blur(14px)",
-              viewTransitionName: `routine-item-${it.exercise.id.replace(/[^a-zA-Z0-9_-]/g, "")}`,
+              viewTransitionName: viewTransitionName("routine-item", it.exercise.id),
             }}
           >
             <div className="flex items-center justify-between">

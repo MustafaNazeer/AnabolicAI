@@ -119,8 +119,7 @@ body {
 
 /* Press feedback on primary interactive controls (transform/opacity only) */
 button,
-a[data-cta],
-a[aria-current] {
+a[data-cta] {
   transition: transform 120ms ease, opacity 120ms ease;
 }
 button:active,

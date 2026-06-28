@@ -46,3 +46,29 @@ export function weeklyRecapPayload(workouts: number, volume: number): PushPayloa
     tag: "weekly",
   };
 }
+
+export function goalReachedPayload(
+  name: string,
+  weight: number,
+  reps: number,
+): PushPayload {
+  return {
+    title: "Goal reached",
+    body: `${name}: ${weight} lbs x ${reps}. Time to set a new one.`,
+    url: "/progress",
+    tag: "goal-reached",
+  };
+}
+
+export function goalProximityPayload(
+  name: string,
+  lbsToGo: number,
+  reps: number,
+): PushPayload {
+  return {
+    title: "Almost there",
+    body: `${name}: about ${lbsToGo} lbs to go at ${reps} reps.`,
+    url: "/progress",
+    tag: "goal-near",
+  };
+}

@@ -22,6 +22,7 @@ export function GoalCard(props: {
 }) {
   const { exerciseId, active, achieved } = props;
   const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [weight, setWeight] = useState(active ? String(active.targetWeight) : "");
   const [reps, setReps] = useState(active ? String(active.targetReps) : "");
   const [error, setError] = useState<string | null>(null);
@@ -179,6 +180,7 @@ export function GoalCard(props: {
               <button
                 type="button"
                 onClick={() => {
+                  setConfirmingDelete(false);
                   setWeight(String(active.targetWeight));
                   setReps(String(active.targetReps));
                   setEditing(true);
@@ -189,15 +191,38 @@ export function GoalCard(props: {
               >
                 Edit
               </button>
-              <button
-                type="button"
-                onClick={remove}
-                disabled={pending}
-                className="px-3 text-sm"
-                style={{ minHeight: 44, color: "var(--text-dim)" }}
-              >
-                Delete
-              </button>
+              {confirmingDelete ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={remove}
+                    disabled={pending}
+                    className="px-3 text-sm"
+                    style={{ minHeight: 44, color: "var(--text-dim)" }}
+                  >
+                    Confirm delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={pending}
+                    className="px-3 text-sm"
+                    style={{ minHeight: 44, color: "var(--text-dim)" }}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(true)}
+                  disabled={pending}
+                  className="px-3 text-sm"
+                  style={{ minHeight: 44, color: "var(--text-dim)" }}
+                >
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         ) : (

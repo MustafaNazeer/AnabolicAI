@@ -17,9 +17,10 @@ describe("decideGoalNotification", () => {
   });
 
   it("nudges once when within 5 lbs and not yet notified", () => {
-    const d = decideGoalNotification(base, goalTargetE1rm(221, 5));
-    expect(d.action).toBe("nudge");
-    if (d.action === "nudge") expect(d.lbsToGo).toBe(5);
+    expect(decideGoalNotification(base, goalTargetE1rm(221, 5))).toEqual({
+      action: "nudge",
+      lbsToGo: 5,
+    });
   });
 
   it("does not nudge again once proximity_notified is set", () => {

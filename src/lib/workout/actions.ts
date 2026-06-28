@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { celebrateIfPr } from "@/lib/notifications/pr";
+import { evaluateGoalOnLog } from "@/lib/notifications/goal";
 
 export async function startSession(routineId: string) {
   const supabase = await createClient();
@@ -76,6 +77,11 @@ export async function logSet(
     } catch {
       // A push failure must never break logging.
     }
+  }
+  try {
+    await evaluateGoalOnLog(exerciseId);
+  } catch {
+    // Goal evaluation must never break logging.
   }
   return { ok: true };
 }

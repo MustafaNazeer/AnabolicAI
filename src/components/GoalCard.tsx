@@ -17,7 +17,6 @@ function shortDate(iso: string): string {
 
 export function GoalCard(props: {
   exerciseId: string;
-  exerciseName: string;
   active: GoalWithProgress | null;
   achieved: GoalWithProgress[];
 }) {

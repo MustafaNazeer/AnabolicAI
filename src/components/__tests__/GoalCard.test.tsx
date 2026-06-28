@@ -14,7 +14,6 @@ describe("GoalCard", () => {
     render(
       <GoalCard
         exerciseId="ex1"
-        exerciseName="Bench Press"
         active={null}
         achieved={[]}
       />,
@@ -28,7 +27,6 @@ describe("GoalCard", () => {
     render(
       <GoalCard
         exerciseId="ex1"
-        exerciseName="Bench Press"
         active={{
           id: "g1",
           exerciseId: "ex1",
@@ -53,7 +51,6 @@ describe("GoalCard", () => {
     render(
       <GoalCard
         exerciseId="ex1"
-        exerciseName="Bench Press"
         active={null}
         achieved={[
           {
@@ -73,6 +70,11 @@ describe("GoalCard", () => {
       />,
     );
     expect(screen.getByText(/205 lbs x 5/i)).toBeInTheDocument();
-    expect(screen.getByText(/reached/i)).toBeInTheDocument();
+    const reachedEl = screen.getByText(/reached/i);
+    expect(reachedEl).toBeInTheDocument();
+    // Assert that a date (digit) was rendered alongside "Reached" — the exact
+    // day number depends on the runner's local timezone offset from UTC, so we
+    // match any digit rather than hardcoding "20".
+    expect(reachedEl.textContent).toMatch(/\d/);
   });
 });

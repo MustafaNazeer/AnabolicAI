@@ -236,8 +236,8 @@ export function ProgressView({
       </section>
 
       <GoalCard
+        key={selected}
         exerciseId={selected}
-        exerciseName={data.exercises.find((e) => e.id === selected)?.name ?? ""}
         active={goals[selected]?.active ?? null}
         achieved={goals[selected]?.achieved ?? []}
       />

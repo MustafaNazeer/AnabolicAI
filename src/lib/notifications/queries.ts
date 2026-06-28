@@ -9,7 +9,7 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
   const { data } = await supabase
     .from("user_settings")
     .select(
-      "notif_master, notif_rest_timer, notif_reminder, reminder_days, reminder_time, notif_streak, notif_pr, notif_weekly, rest_timer_seconds",
+      "notif_master, notif_rest_timer, notif_reminder, reminder_days, reminder_time, notif_streak, notif_pr, notif_weekly, notif_goal, rest_timer_seconds",
     )
     .maybeSingle();
   return { ...NOTIFICATION_DEFAULTS, ...(data ?? {}) };

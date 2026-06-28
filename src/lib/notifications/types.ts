@@ -7,6 +7,7 @@ export type NotificationSettings = {
   notif_streak: boolean;
   notif_pr: boolean;
   notif_weekly: boolean;
+  notif_goal: boolean;
   rest_timer_seconds: number;
 };
 
@@ -19,5 +20,6 @@ export const NOTIFICATION_DEFAULTS: NotificationSettings = {
   notif_streak: true,
   notif_pr: true,
   notif_weekly: true,
+  notif_goal: true,
   rest_timer_seconds: 120,
 };

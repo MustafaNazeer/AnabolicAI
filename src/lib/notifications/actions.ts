@@ -42,6 +42,7 @@ export async function updateNotificationSettings(values: {
   notif_streak: boolean;
   notif_pr: boolean;
   notif_weekly: boolean;
+  notif_goal: boolean;
   rest_timer_seconds: number;
 }) {
   const supabase = await createClient();

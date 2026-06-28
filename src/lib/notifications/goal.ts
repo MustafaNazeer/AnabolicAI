@@ -66,18 +66,22 @@ export async function evaluateGoalOnLog(exerciseId: string): Promise<void> {
   const name = (ex as { name: string } | null)?.name ?? "Exercise";
 
   if (decision.action === "reached") {
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from("goals")
       .update({ status: "achieved", achieved_at: new Date().toISOString() })
-      .eq("id", g.id);
-    if (updateError) return;
+      .eq("id", g.id)
+      .eq("status", "active")
+      .select("id");
+    if (updateError || !updated || updated.length === 0) return;
     await sendToUser(user.id, goalReachedPayload(name, g.target_weight, g.target_reps));
   } else {
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from("goals")
       .update({ proximity_notified: true })
-      .eq("id", g.id);
-    if (updateError) return;
+      .eq("id", g.id)
+      .eq("proximity_notified", false)
+      .select("id");
+    if (updateError || !updated || updated.length === 0) return;
     await sendToUser(user.id, goalProximityPayload(name, decision.lbsToGo, g.target_reps));
   }
 }

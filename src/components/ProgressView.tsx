@@ -20,7 +20,9 @@ import {
   type ProgressMetric,
 } from "@/lib/progress/progressMetric";
 import { RoutineVolumeChart } from "@/components/RoutineVolumeChart";
+import { GoalCard } from "@/components/GoalCard";
 import type { ProgressData, ProgressPoint, RoutineVolumeData } from "@/lib/progress/types";
+import type { GoalWithProgress } from "@/lib/goals/types";
 
 type MetricKey = "maxWeight" | "e1rm" | "volume" | "topSetReps";
 
@@ -120,9 +122,11 @@ function Chart({
 export function ProgressView({
   data,
   routineVolume,
+  goals,
 }: {
   data: ProgressData;
   routineVolume: RoutineVolumeData;
+  goals: Record<string, { active: GoalWithProgress | null; achieved: GoalWithProgress[] }>
 }) {
   const [selected, setSelected] = useState(data.exercises[0]?.id ?? "");
   const { metric, setMetric } = useProgressMetric();
@@ -230,6 +234,13 @@ export function ProgressView({
           </>
         )}
       </section>
+
+      <GoalCard
+        exerciseId={selected}
+        exerciseName={data.exercises.find((e) => e.id === selected)?.name ?? ""}
+        active={goals[selected]?.active ?? null}
+        achieved={goals[selected]?.achieved ?? []}
+      />
     </div>
   );
 }

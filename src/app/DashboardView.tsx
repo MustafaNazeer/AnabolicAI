@@ -6,12 +6,14 @@ import { Card } from "@/components/ui/Card";
 import { WeekStrip } from "@/components/dashboard/WeekStrip";
 import { MatrixCard } from "@/components/dashboard/MatrixCard";
 import { StatChip } from "@/components/dashboard/StatChip";
+import { GoalsSummary } from "@/components/dashboard/GoalsSummary";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { formatCompact } from "@/lib/progress/strength";
 import type { MatrixDay } from "@/lib/progress/matrix";
 import type { WeekDay } from "@/lib/progress/weekstrip";
 import type { PersonalRecord } from "@/lib/progress/prs";
 import type { RecentWorkout, WeeklySummary } from "@/lib/progress/types";
+import type { GoalWithProgress } from "@/lib/goals/types";
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -26,6 +28,7 @@ export function DashboardView({
   recent,
   weekDays,
   matrixDays,
+  goals = [],
 }: {
   name: string;
   weekly: WeeklySummary;
@@ -34,6 +37,7 @@ export function DashboardView({
   recent: RecentWorkout[];
   weekDays: WeekDay[];
   matrixDays: MatrixDay[];
+  goals?: GoalWithProgress[];
 }) {
   return (
     <main className="px-4 pt-12 pb-28">
@@ -48,6 +52,8 @@ export function DashboardView({
         <StatChip value={`${weekly.sets}`} label="Sets" />
         <StatChip value={`${streakWeeks}`} unit="wk" label="Streak" />
       </div>
+
+      <GoalsSummary goals={goals} />
 
       <section className="mt-[18px]">
         <h2

@@ -1,5 +1,6 @@
 // src/app/page.tsx
 import { getDashboardData, getMatrixData } from "@/lib/progress/queries";
+import { getActiveGoalsSummary } from "@/lib/goals/queries";
 import { weekStripDays } from "@/lib/progress/weekstrip";
 import { APP_TIMEZONE } from "@/lib/notifications/schedule";
 import { createClient } from "@/lib/supabase/server";
@@ -7,9 +8,10 @@ import { DashboardView } from "@/app/DashboardView";
 
 export default async function HomePage() {
   const now = new Date();
-  const [data, matrixDays] = await Promise.all([
+  const [data, matrixDays, goals] = await Promise.all([
     getDashboardData(now),
     getMatrixData(now),
+    getActiveGoalsSummary(),
   ]);
   const weekDays = weekStripDays(
     data.recent.map((w) => ({ completedAt: w.completedAt })),
@@ -32,6 +34,7 @@ export default async function HomePage() {
       recent={data.recent}
       weekDays={weekDays}
       matrixDays={matrixDays}
+      goals={goals}
     />
   );
 }

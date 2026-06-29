@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { X, Check } from "lucide-react";
+import { X, Check, Copy } from "lucide-react";
 import { RIR_OPTIONS } from "@/lib/workout/rir";
 import { logSet, deleteSet } from "@/lib/workout/actions";
+import { lastSetForNumber } from "@/lib/workout/quickfill";
 import type { LastSet, SessionExercise } from "@/lib/workout/types";
 import { Card } from "@/components/ui/Card";
 import { ErrorRetry } from "@/components/ui/ErrorRetry";
@@ -34,7 +35,13 @@ export function ExerciseLogCard({
   const [pending, startTransition] = useTransition();
 
   const nextSetNumber = item.loggedSets.length + 1;
-  const lastTop = lastSets[0];
+  const suggestion = lastSetForNumber(lastSets, nextSetNumber);
+
+  function fillFromLast() {
+    if (!suggestion) return;
+    setWeight((w) => (w === "" ? String(suggestion.weight) : w));
+    setReps((r) => (r === "" ? String(suggestion.reps) : r));
+  }
 
   function log() {
     setError(null);
@@ -62,11 +69,22 @@ export function ExerciseLogCard({
           {item.defaultSets} sets
         </span>
       </div>
-      <p className="text-xs mt-1" style={{ color: "var(--text-dim)" }}>
-        {lastTop
-          ? `Last time: ${lastTop.weight} lbs x ${lastTop.reps}`
-          : "No history yet"}
-      </p>
+      {suggestion ? (
+        <button
+          type="button"
+          onClick={fillFromLast}
+          aria-label={`Fill set ${nextSetNumber} with last time, ${suggestion.weight} pounds for ${suggestion.reps} reps`}
+          className="inline-flex items-center gap-1 text-xs mt-1 underline underline-offset-2"
+          style={{ color: "var(--text-dim)", minHeight: 44 }}
+        >
+          <Copy size={12} aria-hidden />
+          Last time: {suggestion.weight} lbs x {suggestion.reps}
+        </button>
+      ) : (
+        <p className="text-xs mt-1" style={{ color: "var(--text-dim)" }}>
+          No history yet
+        </p>
+      )}
 
       <ul className="flex flex-col gap-1 mt-3">
         {item.loggedSets.map((s) => (

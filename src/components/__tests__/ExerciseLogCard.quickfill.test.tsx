@@ -84,4 +84,19 @@ describe("ExerciseLogCard quick fill", () => {
       }),
     ).toBeInTheDocument();
   });
+
+  it("does not change either field when both are already filled", async () => {
+    renderCard(0);
+    await userEvent.type(screen.getByRole("textbox", { name: "Weight" }), "200");
+    await userEvent.type(screen.getByRole("textbox", { name: "Reps" }), "5");
+    await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
+    expect(screen.getByRole("textbox", { name: "Weight" })).toHaveValue("200");
+    expect(screen.getByRole("textbox", { name: "Reps" })).toHaveValue("5");
+  });
+
+  it("leaves RIR at its default after a quick fill", async () => {
+    renderCard(0);
+    await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
+    expect(screen.getByRole("combobox", { name: "How hard was it" })).toHaveValue("2");
+  });
 });

@@ -44,8 +44,8 @@ describe("ExerciseLogCard quick fill", () => {
     // No sets logged yet, so the user is entering set 1: matches last set 1 (135 x 8).
     renderCard(0);
     await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
-    const weightInput = screen.getAllByRole("textbox").find((el) => el.getAttribute("inputmode") === "decimal");
-    const repsInput = screen.getAllByRole("textbox").find((el) => el.getAttribute("inputmode") === "numeric");
+    const weightInput = screen.getByRole("textbox", { name: "Weight" });
+    const repsInput = screen.getByRole("textbox", { name: "Reps" });
     expect(weightInput).toHaveValue("135");
     expect(repsInput).toHaveValue("8");
   });
@@ -54,16 +54,16 @@ describe("ExerciseLogCard quick fill", () => {
     // One set already logged, so the user is entering set 2: matches last set 2 (145 x 6).
     renderCard(1);
     await userEvent.click(screen.getByRole("button", { name: /fill set 2/i }));
-    const weightInput = screen.getAllByRole("textbox").find((el) => el.getAttribute("inputmode") === "decimal");
-    const repsInput = screen.getAllByRole("textbox").find((el) => el.getAttribute("inputmode") === "numeric");
+    const weightInput = screen.getByRole("textbox", { name: "Weight" });
+    const repsInput = screen.getByRole("textbox", { name: "Reps" });
     expect(weightInput).toHaveValue("145");
     expect(repsInput).toHaveValue("6");
   });
 
   it("does not clobber a value the user already typed", async () => {
     renderCard(0);
-    const weightInput = screen.getAllByRole("textbox").find((el) => el.getAttribute("inputmode") === "decimal") as HTMLInputElement;
-    const repsInput = screen.getAllByRole("textbox").find((el) => el.getAttribute("inputmode") === "numeric") as HTMLInputElement;
+    const weightInput = screen.getByRole("textbox", { name: "Weight" }) as HTMLInputElement;
+    const repsInput = screen.getByRole("textbox", { name: "Reps" }) as HTMLInputElement;
     await userEvent.type(weightInput, "999");
     await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
     expect(weightInput).toHaveValue("999");

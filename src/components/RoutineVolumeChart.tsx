@@ -55,7 +55,16 @@ export function RoutineVolumeChart({
                 color: "var(--text)",
               }}
               labelStyle={{ color: "var(--text-dim)" }}
-              formatter={(value) => [`${formatCompact(Number(value))} lbs`, ""]}
+              formatter={(value, name) => [`${formatCompact(Number(value))} lbs`, name]}
+              labelFormatter={(label, payload) => {
+                const total =
+                  Array.isArray(payload) && payload.length
+                    ? Number(
+                        (payload[0] as { payload?: { total?: number } }).payload?.total ?? 0,
+                      )
+                    : 0;
+                return `${label}, ${formatCompact(total)} lbs total`;
+              }}
             />
             {exercises.map((ex, i) => (
               <Bar

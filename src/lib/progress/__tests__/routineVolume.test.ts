@@ -67,4 +67,17 @@ describe("buildRoutineVolume", () => {
   it("returns empty structures for no sessions", () => {
     expect(buildRoutineVolume([])).toEqual({ routines: [], series: {} });
   });
+
+  it("accumulates multiple sets of the same exercise in one session", () => {
+    const out = buildRoutineVolume([
+      session("s1", "2026-06-01", "r1", "Push", [
+        { exerciseId: "bench", exerciseName: "Bench", weight: 100, reps: 5 },
+        { exerciseId: "bench", exerciseName: "Bench", weight: 100, reps: 3 },
+      ]),
+    ]);
+    const point = out.series.r1.points[0];
+    expect(point.byExercise).toEqual({ bench: 800 });
+    expect(point.total).toBe(800);
+    expect(out.series.r1.exercises.map((e) => e.id)).toEqual(["bench"]);
+  });
 });

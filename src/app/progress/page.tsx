@@ -1,8 +1,11 @@
-import { getProgressData } from "@/lib/progress/queries";
+import { getProgressData, getRoutineVolumeData } from "@/lib/progress/queries";
 import { ProgressView } from "@/components/ProgressView";
 
 export default async function ProgressPage() {
-  const data = await getProgressData();
+  const [data, routineVolume] = await Promise.all([
+    getProgressData(),
+    getRoutineVolumeData(),
+  ]);
   return (
     <main className="px-5 pt-12 pb-24">
       <h1
@@ -11,7 +14,7 @@ export default async function ProgressPage() {
       >
         Progress
       </h1>
-      <ProgressView data={data} />
+      <ProgressView data={data} routineVolume={routineVolume} />
     </main>
   );
 }

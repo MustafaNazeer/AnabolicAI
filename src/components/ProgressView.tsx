@@ -19,7 +19,8 @@ import {
   PROGRESS_METRICS,
   type ProgressMetric,
 } from "@/lib/progress/progressMetric";
-import type { ProgressData, ProgressPoint } from "@/lib/progress/types";
+import { RoutineVolumeChart } from "@/components/RoutineVolumeChart";
+import type { ProgressData, ProgressPoint, RoutineVolumeData } from "@/lib/progress/types";
 
 type MetricKey = "maxWeight" | "e1rm" | "volume" | "topSetReps";
 
@@ -116,9 +117,18 @@ function Chart({
   );
 }
 
-export function ProgressView({ data }: { data: ProgressData }) {
+export function ProgressView({
+  data,
+  routineVolume,
+}: {
+  data: ProgressData;
+  routineVolume: RoutineVolumeData;
+}) {
   const [selected, setSelected] = useState(data.exercises[0]?.id ?? "");
   const { metric, setMetric } = useProgressMetric();
+  const [routineId, setRoutineId] = useState(
+    routineVolume.routines[0]?.id ?? "",
+  );
 
   if (data.exercises.length === 0) {
     return (
@@ -132,6 +142,9 @@ export function ProgressView({ data }: { data: ProgressData }) {
   const chartData = points.map((p) => ({ ...p, label: shortDate(p.date) }));
   const config = METRIC_CONFIG[metric];
   const trendValues = points.map(config.select);
+
+  const routine = routineVolume.series[routineId];
+  const routineTrend = routine ? routine.points.map((p) => p.total) : [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -173,6 +186,49 @@ export function ProgressView({ data }: { data: ProgressData }) {
           <TrendIndicator values={trendValues} />
         </div>
         <Chart data={chartData} dataKey={config.dataKey} unit={config.unit} />
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-semibold">Volume by exercise</h2>
+          {routine && <TrendIndicator values={routineTrend} />}
+        </div>
+
+        {routineVolume.routines.length === 0 ? (
+          <p style={{ color: "var(--text-dim)" }}>
+            Complete a routine and its volume breakdown will appear here.
+          </p>
+        ) : (
+          <>
+            <label className="text-xs block mb-4" style={{ color: "var(--text-dim)" }}>
+              Routine
+              <select
+                value={routineId}
+                onChange={(e) => setRoutineId(e.target.value)}
+                className="w-full px-3 py-2 mt-1"
+                style={{
+                  background: "var(--surface-sunken)",
+                  border: "1px solid var(--surface-border)",
+                  borderRadius: "var(--radius-square)",
+                  color: "var(--text)",
+                  minHeight: 44,
+                }}
+              >
+                {routineVolume.routines.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {routine && (
+              <RoutineVolumeChart
+                exercises={routine.exercises}
+                points={routine.points}
+              />
+            )}
+          </>
+        )}
       </section>
     </div>
   );

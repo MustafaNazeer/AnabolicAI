@@ -26,6 +26,8 @@ export type ProgressPoint = {
   date: string;
   maxWeight: number;
   e1rm: number;
+  volume: number;
+  topSetReps: number;
 };
 
 export type ProgressData = {

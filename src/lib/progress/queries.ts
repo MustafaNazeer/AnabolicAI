@@ -4,6 +4,7 @@ import { currentStreakWeeks, isInCurrentWeek } from "@/lib/progress/week";
 import { detectPrs, type PrInput } from "@/lib/progress/prs";
 import { APP_TIMEZONE } from "@/lib/notifications/schedule";
 import { buildMatrix, type MatrixDay } from "@/lib/progress/matrix";
+import { exerciseVolume, topSetReps } from "@/lib/progress/exerciseMetrics";
 import type {
   DashboardData,
   ProgressData,
@@ -124,6 +125,8 @@ export async function getProgressData(): Promise<ProgressData> {
         date: s.completed_at,
         maxWeight,
         e1rm: Math.round(e1rm),
+        volume: exerciseVolume(sets),
+        topSetReps: topSetReps(sets),
       });
     }
   }

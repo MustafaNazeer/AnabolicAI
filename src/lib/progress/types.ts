@@ -34,3 +34,21 @@ export type ProgressData = {
   exercises: { id: string; name: string }[];
   series: Record<string, ProgressPoint[]>;
 };
+
+export type RoutineVolumePoint = {
+  sessionId: string;
+  date: string;
+  total: number;
+  byExercise: Record<string, number>;
+};
+
+export type RoutineVolumeData = {
+  routines: { id: string; name: string }[];
+  series: Record<
+    string,
+    {
+      exercises: { id: string; name: string }[];
+      points: RoutineVolumePoint[];
+    }
+  >;
+};

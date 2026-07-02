@@ -5,11 +5,13 @@ import { detectPrs, type PrInput } from "@/lib/progress/prs";
 import { APP_TIMEZONE } from "@/lib/notifications/schedule";
 import { buildMatrix, type MatrixDay } from "@/lib/progress/matrix";
 import { exerciseVolume, topSetReps } from "@/lib/progress/exerciseMetrics";
+import { buildRoutineVolume } from "@/lib/progress/routineVolume";
 import type {
   DashboardData,
   ProgressData,
   ProgressPoint,
   RecentWorkout,
+  RoutineVolumeData,
   WeeklySummary,
 } from "@/lib/progress/types";
 
@@ -24,7 +26,7 @@ type RawSet = {
 type RawSession = {
   id: string;
   completed_at: string | null;
-  routines: { name: string } | null;
+  routines: { id: string; name: string } | null;
   workout_sets: RawSet[] | null;
 };
 
@@ -33,7 +35,7 @@ async function getCompletedSessions(): Promise<RawSession[]> {
   const { data } = await supabase
     .from("workout_sessions")
     .select(
-      "id, completed_at, routines(name), workout_sets(exercise_id, reps, weight, logged_at, exercise:exercises(id, name))",
+      "id, completed_at, routines(id, name), workout_sets(exercise_id, reps, weight, logged_at, exercise:exercises(id, name))",
     )
     .not("completed_at", "is", null)
     .order("completed_at", { ascending: false });
@@ -171,4 +173,23 @@ export async function getMatrixData(
     now,
     APP_TIMEZONE,
   );
+}
+
+export async function getRoutineVolumeData(): Promise<RoutineVolumeData> {
+  const sessions = await getCompletedSessions();
+  const inputs = sessions
+    .filter((s) => s.completed_at && s.routines)
+    .map((s) => ({
+      id: s.id,
+      date: s.completed_at as string,
+      routineId: (s.routines as { id: string; name: string }).id,
+      routineName: (s.routines as { id: string; name: string }).name,
+      sets: (s.workout_sets ?? []).map((st) => ({
+        exerciseId: st.exercise_id,
+        exerciseName: st.exercise?.name ?? "Exercise",
+        weight: st.weight,
+        reps: st.reps,
+      })),
+    }));
+  return buildRoutineVolume(inputs);
 }

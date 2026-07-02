@@ -11,20 +11,69 @@ import {
   CartesianGrid,
 } from "recharts";
 import { TrendIndicator } from "@/components/TrendIndicator";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { useProgressMetric } from "@/components/useProgressMetric";
+import { formatCompact } from "@/lib/progress/strength";
+import { shortDate } from "@/lib/progress/format";
+import {
+  PROGRESS_METRICS,
+  type ProgressMetric,
+} from "@/lib/progress/progressMetric";
 import type { ProgressData, ProgressPoint } from "@/lib/progress/types";
 
-function shortDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
+type MetricKey = "maxWeight" | "e1rm" | "volume" | "topSetReps";
+
+const METRIC_CONFIG: Record<
+  ProgressMetric,
+  {
+    label: string;
+    title: string;
+    dataKey: MetricKey;
+    unit: "lbs" | "reps";
+    select: (p: ProgressPoint) => number;
+  }
+> = {
+  weight: {
+    label: "Weight",
+    title: "Weight over time",
+    dataKey: "maxWeight",
+    unit: "lbs",
+    select: (p) => p.maxWeight,
+  },
+  e1rm: {
+    label: "Est. 1RM",
+    title: "Estimated max you could lift once",
+    dataKey: "e1rm",
+    unit: "lbs",
+    select: (p) => p.e1rm,
+  },
+  volume: {
+    label: "Volume",
+    title: "Total weight moved per session",
+    dataKey: "volume",
+    unit: "lbs",
+    select: (p) => p.volume,
+  },
+  reps: {
+    label: "Reps",
+    title: "Reps on your heaviest set",
+    dataKey: "topSetReps",
+    unit: "reps",
+    select: (p) => p.topSetReps,
+  },
+};
 
 function Chart({
   data,
   dataKey,
+  unit,
 }: {
   data: (ProgressPoint & { label: string })[];
-  dataKey: "maxWeight" | "e1rm";
+  dataKey: MetricKey;
+  unit: "lbs" | "reps";
 }) {
+  const format = (value: number) =>
+    unit === "reps" ? `${value} reps` : `${formatCompact(value)} lbs`;
   return (
     <div style={{ width: "100%", height: 200 }}>
       <ResponsiveContainer>
@@ -39,6 +88,9 @@ function Chart({
             tick={{ fill: "var(--text-dim)", fontSize: 11 }}
             stroke="var(--surface-border)"
             width={40}
+            tickFormatter={(v) =>
+              unit === "reps" ? `${v}` : formatCompact(Number(v))
+            }
           />
           <Tooltip
             contentStyle={{
@@ -48,7 +100,7 @@ function Chart({
               color: "var(--text)",
             }}
             labelStyle={{ color: "var(--text-dim)" }}
-            formatter={(value) => [`${value} lbs`, ""]}
+            formatter={(value) => [format(Number(value)), ""]}
           />
           <Line
             type="monotone"
@@ -66,6 +118,7 @@ function Chart({
 
 export function ProgressView({ data }: { data: ProgressData }) {
   const [selected, setSelected] = useState(data.exercises[0]?.id ?? "");
+  const { metric, setMetric } = useProgressMetric();
 
   if (data.exercises.length === 0) {
     return (
@@ -77,8 +130,8 @@ export function ProgressView({ data }: { data: ProgressData }) {
 
   const points: ProgressPoint[] = data.series[selected] ?? [];
   const chartData = points.map((p) => ({ ...p, label: shortDate(p.date) }));
-  const weights = points.map((p) => p.maxWeight);
-  const e1rms = points.map((p) => p.e1rm);
+  const config = METRIC_CONFIG[metric];
+  const trendValues = points.map(config.select);
 
   return (
     <div className="flex flex-col gap-8">
@@ -104,20 +157,22 @@ export function ProgressView({ data }: { data: ProgressData }) {
         </select>
       </label>
 
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-semibold">Weight over time</h2>
-          <TrendIndicator values={weights} />
-        </div>
-        <Chart data={chartData} dataKey="maxWeight" />
-      </section>
+      <SegmentedControl<ProgressMetric>
+        label="Metric"
+        value={metric}
+        onChange={setMetric}
+        options={PROGRESS_METRICS.map((m) => ({
+          value: m,
+          label: METRIC_CONFIG[m].label,
+        }))}
+      />
 
       <section>
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-semibold">Estimated max you could lift once</h2>
-          <TrendIndicator values={e1rms} />
+          <h2 className="font-semibold">{config.title}</h2>
+          <TrendIndicator values={trendValues} />
         </div>
-        <Chart data={chartData} dataKey="e1rm" />
+        <Chart data={chartData} dataKey={config.dataKey} unit={config.unit} />
       </section>
     </div>
   );

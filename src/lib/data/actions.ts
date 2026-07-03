@@ -66,7 +66,15 @@ export async function duplicateRoutine(id: string) {
       order_index: it.order_index,
       default_sets: it.default_sets,
     }));
-    await supabase.from("routine_exercises").insert(rows);
+    const { error: itemsError } = await supabase
+      .from("routine_exercises")
+      .insert(rows);
+    if (itemsError) {
+      // Keep it all-or-nothing: drop the empty copy rather than leave a
+      // phantom routine that looks like it lost its exercises.
+      await supabase.from("routines").delete().eq("id", created.id);
+      redirect("/routines");
+    }
   }
 
   revalidatePath("/routines");

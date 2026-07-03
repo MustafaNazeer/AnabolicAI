@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getRoutines } from "@/lib/data/queries";
 import { NewRoutineButton } from "@/components/NewRoutineButton";
+import { DuplicateRoutineButton } from "@/components/DuplicateRoutineButton";
 import { DeleteRoutineButton } from "@/components/DeleteRoutineButton";
 
 export default async function RoutinesPage() {
@@ -40,6 +41,7 @@ export default async function RoutinesPage() {
               >
                 {r.name}
               </Link>
+              <DuplicateRoutineButton id={r.id} />
               <DeleteRoutineButton id={r.id} />
             </li>
           ))}

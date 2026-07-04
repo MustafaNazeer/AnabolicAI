@@ -32,6 +32,7 @@ export async function startSession(routineId: string) {
 
 export async function logSet(
   sessionId: string,
+  id: string,
   exerciseId: string,
   setNumber: number,
   reps: number,
@@ -43,20 +44,32 @@ export async function logSet(
   if (!Number.isInteger(rir) || rir < 0 || rir > 5) return { error: "RIR must be 0 to 5." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("workout_sets").insert({
-    session_id: sessionId,
-    exercise_id: exerciseId,
-    set_number: setNumber,
-    reps,
-    weight,
-    rir,
-  });
+  // Upsert on the client-generated id so replaying a queued offline op can
+  // never double-insert. ignoreDuplicates returns no row for a replay, so the
+  // PR celebration below only fires on a genuinely new set.
+  const { data, error } = await supabase
+    .from("workout_sets")
+    .upsert(
+      {
+        id,
+        session_id: sessionId,
+        exercise_id: exerciseId,
+        set_number: setNumber,
+        reps,
+        weight,
+        rir,
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    )
+    .select("id");
   if (error) return { error: error.message };
   revalidatePath(`/log/${sessionId}`);
-  try {
-    await celebrateIfPr(exerciseId, reps, weight);
-  } catch {
-    // A push failure must never break logging.
+  if (data && data.length > 0) {
+    try {
+      await celebrateIfPr(exerciseId, reps, weight);
+    } catch {
+      // A push failure must never break logging.
+    }
   }
   return { ok: true };
 }

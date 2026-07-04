@@ -48,7 +48,15 @@ export function ExerciseLogCard({
     const r = Number(reps);
     const w = Number(weight);
     startTransition(async () => {
-      const result = await logSet(sessionId, item.exercise.id, nextSetNumber, r, w, rir);
+      const result = await logSet(
+        sessionId,
+        crypto.randomUUID(),
+        item.exercise.id,
+        nextSetNumber,
+        r,
+        w,
+        rir,
+      );
       if (result?.error) {
         setError(result.error);
       } else {

@@ -82,10 +82,11 @@ export async function deleteSet(setId: string, sessionId: string) {
 
 export async function finishSession(sessionId: string) {
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from("workout_sessions")
     .update({ completed_at: new Date().toISOString() })
     .eq("id", sessionId);
+  if (error) return { error: error.message };
   revalidatePath("/");
-  redirect("/");
+  return { ok: true };
 }

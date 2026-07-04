@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { X, Check, Copy } from "lucide-react";
 import { RIR_OPTIONS } from "@/lib/workout/rir";
-import { logSet, deleteSet } from "@/lib/workout/actions";
 import { lastSetForNumber } from "@/lib/workout/quickfill";
-import type { LastSet, SessionExercise } from "@/lib/workout/types";
+import type { LastSet } from "@/lib/workout/types";
+import type { LocalSet } from "@/lib/offline/store";
 import { Card } from "@/components/ui/Card";
-import { ErrorRetry } from "@/components/ui/ErrorRetry";
 
 const fieldStyle = {
   background: "var(--surface-sunken)",
@@ -18,23 +17,26 @@ const fieldStyle = {
 } as const;
 
 export function ExerciseLogCard({
-  sessionId,
-  item,
+  exerciseName,
+  defaultSets,
+  loggedSets,
   lastSets,
-  onLogged,
+  onLog,
+  onDelete,
 }: {
-  sessionId: string;
-  item: SessionExercise;
+  exerciseName: string;
+  defaultSets: number;
+  loggedSets: LocalSet[];
   lastSets: LastSet[];
-  onLogged: () => void;
+  onLog: (input: { reps: number; weight: number; rir: number }) => void;
+  onDelete: (setId: string) => void;
 }) {
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
   const [rir, setRir] = useState(2);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
 
-  const nextSetNumber = item.loggedSets.length + 1;
+  const nextSetNumber = loggedSets.length + 1;
   const suggestion = lastSetForNumber(lastSets, nextSetNumber);
 
   function fillFromLast() {
@@ -44,37 +46,30 @@ export function ExerciseLogCard({
   }
 
   function log() {
-    setError(null);
     const r = Number(reps);
     const w = Number(weight);
-    startTransition(async () => {
-      const result = await logSet(
-        sessionId,
-        crypto.randomUUID(),
-        item.exercise.id,
-        nextSetNumber,
-        r,
-        w,
-        rir,
-      );
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        setReps("");
-        setWeight("");
-        onLogged();
-      }
-    });
+    if (!Number.isFinite(r) || r < 1) {
+      setError("Reps must be at least 1.");
+      return;
+    }
+    if (!Number.isFinite(w) || w < 0) {
+      setError("Weight cannot be negative.");
+      return;
+    }
+    setError(null);
+    onLog({ reps: r, weight: w, rir });
+    setReps("");
+    setWeight("");
   }
 
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold" style={{ color: "var(--text)" }}>
-          {item.exercise.name}
+          {exerciseName}
         </h3>
         <span className="text-xs" style={{ color: "var(--text-dim)" }}>
-          {item.defaultSets} sets
+          {defaultSets} sets
         </span>
       </div>
       {suggestion ? (
@@ -95,7 +90,7 @@ export function ExerciseLogCard({
       )}
 
       <ul className="flex flex-col gap-1 mt-3">
-        {item.loggedSets.map((s) => (
+        {loggedSets.map((s) => (
           <li
             key={s.id}
             className="flex items-center justify-between px-3 py-2 text-sm"
@@ -104,19 +99,33 @@ export function ExerciseLogCard({
               borderRadius: "var(--radius-square)",
             }}
           >
-            <span>
-              Set {s.set_number}: {s.weight} x {s.reps}
+            <span className="flex items-center gap-2">
+              {s.syncState === "pending" ? (
+                <span
+                  role="img"
+                  aria-label="Not yet synced"
+                  title="Not yet synced"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 9999,
+                    background: "var(--accent)",
+                    display: "inline-block",
+                    flexShrink: 0,
+                  }}
+                />
+              ) : null}
+              Set {s.setNumber}: {s.weight} x {s.reps}
             </span>
-            <form action={deleteSet.bind(null, s.id, sessionId)}>
-              <button
-                type="submit"
-                aria-label={`Delete set ${s.set_number}`}
-                style={{ color: "var(--text-dim)", minWidth: 44, minHeight: 44 }}
-                className="flex items-center justify-center"
-              >
-                <X size={16} aria-hidden />
-              </button>
-            </form>
+            <button
+              type="button"
+              onClick={() => onDelete(s.id)}
+              aria-label={`Delete set ${s.setNumber}`}
+              style={{ color: "var(--text-dim)", minWidth: 44, minHeight: 44 }}
+              className="flex items-center justify-center"
+            >
+              <X size={16} aria-hidden />
+            </button>
           </li>
         ))}
       </ul>
@@ -145,9 +154,8 @@ export function ExerciseLogCard({
         <button
           type="button"
           onClick={log}
-          disabled={pending}
           aria-label="Log set"
-          className="flex items-center justify-center disabled:opacity-60"
+          className="flex items-center justify-center"
           style={{
             background: "var(--accent)",
             color: "var(--on-accent)",
@@ -176,7 +184,9 @@ export function ExerciseLogCard({
       </label>
 
       {error ? (
-        <ErrorRetry message={error} onRetry={log} pending={pending} />
+        <p role="alert" className="text-xs mt-2" style={{ color: "var(--trend-down)" }}>
+          {error}
+        </p>
       ) : null}
     </Card>
   );

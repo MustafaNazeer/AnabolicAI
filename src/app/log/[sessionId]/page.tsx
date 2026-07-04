@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getSessionDetail, getLastSets } from "@/lib/workout/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ActiveWorkout } from "@/components/ActiveWorkout";
-import type { LastSet } from "@/lib/workout/types";
+import type { LastRef, LocalSet, Snapshot } from "@/lib/offline/store";
 
 export default async function ActiveWorkoutPage({
   params,
@@ -19,7 +19,7 @@ export default async function ActiveWorkoutPage({
         [item.exercise.id, await getLastSets(item.exercise.id, sessionId)] as const,
     ),
   );
-  const lastByExercise: Record<string, LastSet[]> = Object.fromEntries(lastEntries);
+  const lastByExercise: Record<string, LastRef[]> = Object.fromEntries(lastEntries);
 
   const supabase = await createClient();
   const { data: settings } = await supabase
@@ -28,11 +28,32 @@ export default async function ActiveWorkoutPage({
     .maybeSingle();
   const restSeconds = settings?.rest_timer_seconds ?? 120;
 
-  return (
-    <ActiveWorkout
-      session={session}
-      lastByExercise={lastByExercise}
-      restSeconds={restSeconds}
-    />
+  const snapshot: Snapshot = {
+    sessionId: session.id,
+    routineName: session.routineName,
+    restSeconds,
+    exercises: session.exercises.map((e) => ({
+      exerciseId: e.exercise.id,
+      name: e.exercise.name,
+      muscleGroup: e.exercise.muscle_group,
+      isDefault: e.exercise.is_default,
+      defaultSets: e.defaultSets,
+    })),
+    lastByExercise,
+  };
+
+  const serverSets: LocalSet[] = session.exercises.flatMap((e) =>
+    e.loggedSets.map((s) => ({
+      id: s.id,
+      sessionId: session.id,
+      exerciseId: e.exercise.id,
+      setNumber: s.set_number,
+      reps: s.reps,
+      weight: s.weight,
+      rir: s.rir,
+      syncState: "synced" as const,
+    })),
   );
+
+  return <ActiveWorkout snapshot={snapshot} serverSets={serverSets} />;
 }

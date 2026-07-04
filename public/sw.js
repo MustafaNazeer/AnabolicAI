@@ -1,4 +1,4 @@
-const CACHE = "onyx-shell-v1";
+const CACHE = "onyx-shell-v2";
 const SHELL = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -18,6 +18,27 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
+
+  // Navigations (e.g. reloading /log/<id> while offline): try the network,
+  // cache the result for next time, and fall back to the cached page or the
+  // app shell when offline so the client can rehydrate from IndexedDB.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE).then((c) => c.put(request, copy));
+          return response;
+        })
+        .catch(() =>
+          caches
+            .match(request)
+            .then((cached) => cached || caches.match("/"))
+        )
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => cached || fetch(request))
   );

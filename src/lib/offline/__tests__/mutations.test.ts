@@ -61,13 +61,16 @@ describe("mutations", () => {
     expect(b.setNumber).toBe(2);
   });
 
-  it("deleting a pending set removes it and cancels its queued op", async () => {
+  it("deleting a pending set cancels its insert and enqueues a compensating delete", async () => {
     counter = 0;
     const store = createMemoryStore();
     const s = await logSetLocal(store, "s1", "e1", { reps: 8, weight: 135, rir: 1 }, idGen);
     await deleteSetLocal(store, s.id);
     expect(await store.listSets("s1")).toEqual([]);
-    expect(await store.listOutbox()).toEqual([]);
+    const ob = await store.listOutbox();
+    // The queued logSet is cancelled; only a compensating deleteSet remains.
+    expect(ob).toHaveLength(1);
+    expect(ob[0]).toMatchObject({ type: "deleteSet", payload: { id: s.id } });
   });
 
   it("deleting a synced set enqueues a deleteSet op", async () => {

@@ -4,8 +4,8 @@ import { drainOutbox, type Runners, type RunResult } from "@/lib/offline/sync";
 import type { LocalSet } from "@/lib/offline/store";
 
 const ok: RunResult = { ok: true };
-const net: RunResult = { ok: false, kind: "network" };
-const val: RunResult = { ok: false, kind: "validation" };
+const retry: RunResult = { ok: false, kind: "retry" };
+const drop: RunResult = { ok: false, kind: "drop" };
 
 const pendingSet = (id: string): LocalSet => ({
   id,
@@ -39,11 +39,11 @@ describe("drainOutbox", () => {
     expect((await store.getSet("a"))?.syncState).toBe("synced");
   });
 
-  it("stops on a network failure and preserves the remaining queue in order", async () => {
+  it("halts on a retry result and preserves the remaining queue in order", async () => {
     const store = createMemoryStore();
     await store.enqueue({ type: "deleteSet", sessionId: "s1", payload: { id: "a" } });
     await store.enqueue({ type: "finishSession", sessionId: "s1", payload: {} });
-    const r = runners({ deleteSet: vi.fn(async () => net) });
+    const r = runners({ deleteSet: vi.fn(async () => retry) });
     await drainOutbox(store, r);
     expect((await store.listOutbox()).map((o) => o.type)).toEqual([
       "deleteSet",
@@ -52,17 +52,17 @@ describe("drainOutbox", () => {
     expect(r.finishSession).not.toHaveBeenCalled();
   });
 
-  it("drops an op that fails validation and continues", async () => {
+  it("drops an op that can never succeed and continues", async () => {
     const store = createMemoryStore();
     await store.enqueue({ type: "deleteSet", sessionId: "s1", payload: { id: "a" } });
     await store.enqueue({ type: "finishSession", sessionId: "s1", payload: {} });
-    const r = runners({ deleteSet: vi.fn(async () => val) });
+    const r = runners({ deleteSet: vi.fn(async () => drop) });
     await drainOutbox(store, r);
     expect(await store.listOutbox()).toEqual([]);
     expect(r.finishSession).toHaveBeenCalledOnce();
   });
 
-  it("is single-flight: a concurrent call is a no-op", async () => {
+  it("is single-flight: a concurrent call does not double-process", async () => {
     const store = createMemoryStore();
     await store.enqueue({ type: "finishSession", sessionId: "s1", payload: {} });
     let calls = 0;
@@ -75,5 +75,25 @@ describe("drainOutbox", () => {
     });
     await Promise.all([drainOutbox(store, r), drainOutbox(store, r)]);
     expect(calls).toBe(1);
+  });
+
+  it("processes ops enqueued during the drain (re-loops)", async () => {
+    const store = createMemoryStore();
+    await store.putSet(pendingSet("a"));
+    await store.enqueue({
+      type: "logSet",
+      sessionId: "s1",
+      payload: { id: "a", exerciseId: "e1", setNumber: 1, reps: 5, weight: 100, rir: 2 },
+    });
+    const deleteSet = vi.fn(async () => ok);
+    const logSet = vi.fn(async () => {
+      // A compensating delete queued while this op is in flight must still flush
+      // in the same drain.
+      await store.enqueue({ type: "deleteSet", sessionId: "s1", payload: { id: "a" } });
+      return ok;
+    });
+    await drainOutbox(store, runners({ logSet, deleteSet }));
+    expect(deleteSet).toHaveBeenCalledOnce();
+    expect(await store.listOutbox()).toEqual([]);
   });
 });

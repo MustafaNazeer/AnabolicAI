@@ -29,25 +29,29 @@ function buildRunners(): Runners {
           p.weight,
           p.rir,
         );
-        return r?.error ? { ok: false, kind: "validation" } : { ok: true };
+        if (r && "error" in r) {
+          // Only client-invalid input is droppable; every server error retries.
+          return { ok: false, kind: r.retryable ? "retry" : "drop" };
+        }
+        return { ok: true };
       } catch {
-        return { ok: false, kind: "network" };
+        return { ok: false, kind: "retry" };
       }
     },
     async deleteSet(p) {
       try {
-        await deleteSet(p.id, p.sessionId);
-        return { ok: true };
+        const r = await deleteSet(p.id, p.sessionId);
+        return r && "error" in r ? { ok: false, kind: "retry" } : { ok: true };
       } catch {
-        return { ok: false, kind: "network" };
+        return { ok: false, kind: "retry" };
       }
     },
     async finishSession(p) {
       try {
         const r = await finishSession(p.sessionId);
-        return r?.error ? { ok: false, kind: "validation" } : { ok: true };
+        return r && "error" in r ? { ok: false, kind: "retry" } : { ok: true };
       } catch {
-        return { ok: false, kind: "network" };
+        return { ok: false, kind: "retry" };
       }
     },
   };

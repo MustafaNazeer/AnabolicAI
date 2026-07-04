@@ -1,6 +1,11 @@
 import type { LogPayload, OfflineStore, QueuedOp } from "@/lib/offline/store";
 
-export type RunResult = { ok: true } | { ok: false; kind: "network" | "validation" };
+// "retry": leave the op queued and try again on the next trigger (network down,
+// or any server error such as an expired token or a transient 500).
+// "drop": the op can never succeed (client-side invalid input, which should not
+// happen because we validate before enqueuing); discard it so the queue cannot
+// wedge. Dropping is surfaced via console.warn.
+export type RunResult = { ok: true } | { ok: false; kind: "retry" | "drop" };
 
 export type Runners = {
   logSet(p: LogPayload & { sessionId: string }): Promise<RunResult>;
@@ -8,7 +13,8 @@ export type Runners = {
   finishSession(p: { sessionId: string }): Promise<RunResult>;
 };
 
-let draining = false;
+let running = false;
+let rerun = false;
 
 async function runOne(runners: Runners, op: QueuedOp): Promise<RunResult> {
   if (op.type === "logSet") {
@@ -20,14 +26,15 @@ async function runOne(runners: Runners, op: QueuedOp): Promise<RunResult> {
   return runners.finishSession({ sessionId: op.sessionId });
 }
 
-export async function drainOutbox(
-  store: OfflineStore,
-  runners: Runners,
-): Promise<void> {
-  if (draining) return;
-  draining = true;
-  try {
-    for (const op of await store.listOutbox()) {
+// One pass: process ops in seq order, re-reading the outbox after each sweep so
+// ops enqueued mid-drain (e.g. a compensating delete, or finish) are picked up.
+// Returns when the outbox is empty or a "retry" halts it.
+async function drainPass(store: OfflineStore, runners: Runners): Promise<void> {
+  for (;;) {
+    const ops = await store.listOutbox();
+    if (ops.length === 0) return;
+    let halted = false;
+    for (const op of ops) {
       const res = await runOne(runners, op);
       if (res.ok) {
         if (op.type === "logSet") {
@@ -35,13 +42,38 @@ export async function drainOutbox(
           if (s) await store.putSet({ ...s, syncState: "synced" });
         }
         await store.dequeue(op.seq);
-      } else if (res.kind === "network") {
+      } else if (res.kind === "retry") {
+        halted = true;
         break;
       } else {
+        if (typeof console !== "undefined") {
+          console.warn("onyx: dropping unsyncable op", op.type, op.seq);
+        }
         await store.dequeue(op.seq);
       }
     }
+    if (halted) return;
+  }
+}
+
+// Coalescing single-flight: a call while a drain is in flight requests one more
+// pass after it (so a finish/delete enqueued during a drain still flushes),
+// rather than being dropped or running concurrently.
+export async function drainOutbox(
+  store: OfflineStore,
+  runners: Runners,
+): Promise<void> {
+  if (running) {
+    rerun = true;
+    return;
+  }
+  running = true;
+  try {
+    do {
+      rerun = false;
+      await drainPass(store, runners);
+    } while (rerun);
   } finally {
-    draining = false;
+    running = false;
   }
 }

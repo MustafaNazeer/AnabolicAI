@@ -13,7 +13,7 @@ let dbPromise: Promise<IDBDatabase> | null = null;
 
 function openDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -30,6 +30,11 @@ function openDb(): Promise<IDBDatabase> {
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+  }).catch((err) => {
+    // Clear the memoized rejection so a later call can retry (e.g. Safari
+    // private mode transiently denying storage).
+    dbPromise = null;
+    throw err;
   });
   return dbPromise;
 }

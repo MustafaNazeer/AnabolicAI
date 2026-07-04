@@ -26,8 +26,13 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((c) => c.put(request, copy));
+          // Only cache successful same-origin workout pages, so a redirect to
+          // /sign-in or an error page is never stored and replayed offline.
+          const path = new URL(request.url).pathname;
+          if (response.ok && response.type === "basic" && path.startsWith("/log/")) {
+            const copy = response.clone();
+            caches.open(CACHE).then((c) => c.put(request, copy));
+          }
           return response;
         })
         .catch(() =>

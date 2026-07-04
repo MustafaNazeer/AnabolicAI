@@ -39,9 +39,15 @@ export async function logSet(
   weight: number,
   rir: number,
 ) {
-  if (!Number.isFinite(reps) || reps < 1) return { error: "Reps must be at least 1." };
-  if (!Number.isFinite(weight) || weight < 0) return { error: "Weight cannot be negative." };
-  if (!Number.isInteger(rir) || rir < 0 || rir > 5) return { error: "RIR must be 0 to 5." };
+  // retryable:false marks input that can never succeed, so the sync engine
+  // drops it instead of retrying forever. Server errors below are retryable so
+  // a queued set is never silently lost to an auth/RLS/transient failure.
+  if (!Number.isFinite(reps) || reps < 1)
+    return { error: "Reps must be at least 1.", retryable: false };
+  if (!Number.isFinite(weight) || weight < 0)
+    return { error: "Weight cannot be negative.", retryable: false };
+  if (!Number.isInteger(rir) || rir < 0 || rir > 5)
+    return { error: "RIR must be 0 to 5.", retryable: false };
 
   const supabase = await createClient();
   // Upsert on the client-generated id so replaying a queued offline op can
@@ -62,7 +68,7 @@ export async function logSet(
       { onConflict: "id", ignoreDuplicates: true },
     )
     .select("id");
-  if (error) return { error: error.message };
+  if (error) return { error: error.message, retryable: true };
   revalidatePath(`/log/${sessionId}`);
   if (data && data.length > 0) {
     try {
@@ -76,8 +82,10 @@ export async function logSet(
 
 export async function deleteSet(setId: string, sessionId: string) {
   const supabase = await createClient();
-  await supabase.from("workout_sets").delete().eq("id", setId);
+  const { error } = await supabase.from("workout_sets").delete().eq("id", setId);
   revalidatePath(`/log/${sessionId}`);
+  if (error) return { error: error.message };
+  return { ok: true };
 }
 
 export async function finishSession(sessionId: string) {

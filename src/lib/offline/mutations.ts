@@ -59,15 +59,19 @@ export async function deleteSetLocal(
   const set = await store.getSet(id);
   if (!set) return;
   await store.removeSet(id);
+  // Cancel the queued insert if it has not been sent yet. We still enqueue a
+  // delete: if the insert was already in flight and landed on the server, this
+  // is the compensating cleanup; if it never left the device, deleting an
+  // absent id is a harmless server no-op. This closes the race where deleting a
+  // pending set mid-sync would otherwise resurrect the row on reload.
   if (set.syncState === "pending") {
     await store.cancelLogSet(id);
-  } else {
-    await store.enqueue({
-      type: "deleteSet",
-      sessionId: set.sessionId,
-      payload: { id },
-    });
   }
+  await store.enqueue({
+    type: "deleteSet",
+    sessionId: set.sessionId,
+    payload: { id },
+  });
 }
 
 export async function finishLocal(

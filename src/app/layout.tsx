@@ -47,6 +47,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="cobalt"
+      data-mode="dark"
       className={`${geistSans.variable} ${geistMono.variable} ${spectral.variable} h-full antialiased`}
     >
       <SplashLinks />

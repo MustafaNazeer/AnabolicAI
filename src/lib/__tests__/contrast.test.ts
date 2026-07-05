@@ -22,27 +22,27 @@ function firstHex(value: string): string {
   return `#${m[1]}`;
 }
 
-const root = block(":root");
-const ON_ACCENT = pick(root, "on-accent")!;
+const shared = block('[data-mode="dark"]');
+const ON_ACCENT = pick(block(":root"), "on-accent")!;
 
 type Resolved = { text: string; textDim: string; accent: string; baseTop: string };
 
-function theme(selector: string | null): Resolved {
-  const body = selector ? block(selector) : root;
+function theme(selector: string): Resolved {
+  const body = block(selector);
   return {
-    text: pick(body, "text") ?? pick(root, "text")!,
-    textDim: pick(body, "text-dim") ?? pick(root, "text-dim")!,
-    accent: pick(body, "accent") ?? pick(root, "accent")!,
-    baseTop: firstHex(pick(body, "bg-gradient") ?? pick(root, "bg-gradient")!),
+    text: pick(body, "text")!,
+    textDim: pick(body, "text-dim")!,
+    accent: pick(body, "accent")!,
+    baseTop: firstHex(pick(body, "bg-gradient")!),
   };
 }
 
 const THEMES: Record<string, Resolved> = {
-  cobalt: theme(null),
-  emerald: theme('[data-theme="emerald"]'),
-  magenta: theme('[data-theme="magenta"]'),
-  crimson: theme('[data-theme="crimson"]'),
-  rose: theme('[data-theme="rose"]'),
+  cobalt: theme('[data-mode="dark"][data-theme="cobalt"]'),
+  emerald: theme('[data-mode="dark"][data-theme="emerald"]'),
+  magenta: theme('[data-mode="dark"][data-theme="magenta"]'),
+  crimson: theme('[data-mode="dark"][data-theme="crimson"]'),
+  rose: theme('[data-mode="dark"][data-theme="rose"]'),
 };
 
 function rgb(hex: string): [number, number, number] {

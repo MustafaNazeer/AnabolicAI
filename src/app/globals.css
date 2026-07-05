@@ -2,50 +2,54 @@
 
 /* Emerald Field tokens. Each theme is an accent plus a matching tinted base. */
 :root {
-  /* default theme: cobalt */
+  /* mode-invariant */
+  --on-accent: #0a0b0c;
+  --radius-card: 22px;
+  --radius-tile: 16px;
+  --radius-square: 10px;
+  --trend-up: #34d399;
+  --trend-flat: #fbbf24;
+  --trend-down: #f87171;
+  --shadow: none;
+}
+
+/* ---------- DARK (pinned to shipped v1 values) ---------- */
+[data-mode="dark"] {
+  color-scheme: dark;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-sunken: rgba(0, 0, 0, 0.25);
+  --surface-border: rgba(255, 255, 255, 0.10);
+  --shadow: none;
+}
+[data-mode="dark"][data-theme="cobalt"] {
   --accent: #3b82f6;
   --accent-dim: #1e2f4d;
   --bg-gradient: radial-gradient(120% 90% at 50% 0%, #111a2c 0%, #070a10 62%);
   --text: #e8eef7;
   --text-dim: #93a0b3;
-
-  /* shared, theme-independent */
-  --surface: rgba(255, 255, 255, 0.05);
-  --surface-sunken: rgba(0, 0, 0, 0.25);
-  --surface-border: rgba(255, 255, 255, 0.10);
-  --on-accent: #0a0b0c;
-  --radius-card: 22px;
-  --radius-tile: 16px;
-  --radius-square: 10px;
-
-  /* trend semantics, never themed */
-  --trend-up: #34d399;
-  --trend-flat: #fbbf24;
-  --trend-down: #f87171;
 }
-
-[data-theme="emerald"] {
+[data-mode="dark"][data-theme="emerald"] {
   --accent: #34d399;
   --accent-dim: #123026;
   --bg-gradient: radial-gradient(120% 90% at 50% 0%, #18271f 0%, #070c09 62%);
   --text: #e7efeb;
   --text-dim: #889a92;
 }
-[data-theme="magenta"] {
+[data-mode="dark"][data-theme="magenta"] {
   --accent: #f0457e;
   --accent-dim: #3a1622;
   --bg-gradient: radial-gradient(120% 90% at 50% 0%, #2a1320 0%, #0c060a 62%);
   --text: #f3e6ee;
   --text-dim: #ad94a2;
 }
-[data-theme="crimson"] {
+[data-mode="dark"][data-theme="crimson"] {
   --accent: #ef4444;
   --accent-dim: #3a1a1a;
   --bg-gradient: radial-gradient(120% 90% at 50% 0%, #251114 0%, #0a0708 62%);
   --text: #f3e9ea;
   --text-dim: #a8908f;
 }
-[data-theme="rose"] {
+[data-mode="dark"][data-theme="rose"] {
   --accent: #fb7185;
   --accent-dim: #3a1c22;
   --bg-gradient: radial-gradient(120% 90% at 50% 0%, #241318 0%, #0b0709 62%);
@@ -69,7 +73,6 @@ html,
 body {
   background: var(--bg-gradient) fixed;
   color: var(--text);
-  color-scheme: dark;
   min-height: 100%;
 }
 
@@ -82,13 +85,13 @@ body {
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root {
+  [data-mode="dark"] {
     --surface: rgba(20, 24, 33, 0.92);
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  :root {
+  [data-mode="dark"] {
     --surface: rgba(20, 24, 33, 0.92);
   }
 }

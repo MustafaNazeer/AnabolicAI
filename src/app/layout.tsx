@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabs } from "@/components/BottomTabs";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { SplashLinks } from "@/components/SplashLinks";
+import { NO_FLASH_SCRIPT } from "@/app/noFlashScript";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +36,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#070a10",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eef3fc" },
+    { media: "(prefers-color-scheme: dark)", color: "#070a10" },
+  ],
   viewportFit: "cover",
 };
 
@@ -50,9 +54,11 @@ export default function RootLayout({
       data-theme="cobalt"
       data-mode="dark"
       className={`${geistSans.variable} ${geistMono.variable} ${spectral.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <SplashLinks />
       <body className="min-h-full flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
         <AppearanceProvider>
           <ThemeProvider>
             {children}

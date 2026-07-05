@@ -15,6 +15,7 @@ export function Card({
         borderRadius: "var(--radius-card)",
         backdropFilter: "blur(14px)",
         WebkitBackdropFilter: "blur(14px)",
+        boxShadow: "var(--shadow)",
         ...style,
       }}
       {...rest}

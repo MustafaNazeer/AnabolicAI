@@ -22,7 +22,6 @@ function firstHex(value: string): string {
   return `#${m[1]}`;
 }
 
-const shared = block('[data-mode="dark"]');
 const ON_ACCENT = pick(block(":root"), "on-accent")!;
 
 type Resolved = { text: string; textDim: string; accent: string; baseTop: string };
@@ -86,6 +85,42 @@ describe("WCAG AA contrast across all themes", () => {
       expect(ratio(t.textDim, cardBg)).toBeGreaterThanOrEqual(4.5);
     });
     it(`${name}: on-accent text on accent >= 4.5:1`, () => {
+      expect(ratio(ON_ACCENT, t.accent)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});
+
+// Light surface: translucent white brightening the light base.
+const LIGHT_SURFACE: [number, number, number, number] = [255, 255, 255, 0.72];
+
+function lightTheme(selector: string): Resolved {
+  const body = block(selector);
+  return {
+    text: pick(body, "text")!,
+    textDim: pick(body, "text-dim")!,
+    accent: pick(body, "accent")!,
+    baseTop: firstHex(pick(body, "bg-gradient")!),
+  };
+}
+
+const LIGHT_THEMES: Record<string, Resolved> = {
+  cobalt: lightTheme('[data-mode="light"][data-theme="cobalt"]'),
+  emerald: lightTheme('[data-mode="light"][data-theme="emerald"]'),
+  magenta: lightTheme('[data-mode="light"][data-theme="magenta"]'),
+  crimson: lightTheme('[data-mode="light"][data-theme="crimson"]'),
+  rose: lightTheme('[data-mode="light"][data-theme="rose"]'),
+};
+
+describe("WCAG AA contrast across all light themes", () => {
+  for (const [name, t] of Object.entries(LIGHT_THEMES)) {
+    const cardBg = over(LIGHT_SURFACE, t.baseTop);
+    it(`${name} light: body text on card >= 4.5:1`, () => {
+      expect(ratio(t.text, cardBg)).toBeGreaterThanOrEqual(4.5);
+    });
+    it(`${name} light: dim text on card >= 4.5:1`, () => {
+      expect(ratio(t.textDim, cardBg)).toBeGreaterThanOrEqual(4.5);
+    });
+    it(`${name} light: on-accent text on accent >= 4.5:1`, () => {
       expect(ratio(ON_ACCENT, t.accent)).toBeGreaterThanOrEqual(4.5);
     });
   }

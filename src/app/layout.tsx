@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Spectral } from "next/font/google";
 import "./globals.css";
+import { AppearanceProvider } from "@/components/AppearanceProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabs } from "@/components/BottomTabs";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
@@ -52,11 +53,13 @@ export default function RootLayout({
     >
       <SplashLinks />
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>
-          {children}
-          <BottomTabs />
-          <ServiceWorkerRegister />
-        </ThemeProvider>
+        <AppearanceProvider>
+          <ThemeProvider>
+            {children}
+            <BottomTabs />
+            <ServiceWorkerRegister />
+          </ThemeProvider>
+        </AppearanceProvider>
       </body>
     </html>
   );

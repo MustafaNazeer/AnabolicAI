@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, act } from "@testing-library/react";
 import { AppearanceProvider, useAppearance } from "@/components/AppearanceProvider";
 
@@ -63,5 +63,41 @@ describe("AppearanceProvider", () => {
     });
     expect(getByTestId("probe").textContent).toBe("system:light");
     expect(document.documentElement.getAttribute("data-mode")).toBe("light");
+  });
+
+  describe("theme-color meta sync", () => {
+    let lightMeta: HTMLMetaElement;
+    let darkMeta: HTMLMetaElement;
+
+    beforeEach(() => {
+      lightMeta = document.createElement("meta");
+      lightMeta.setAttribute("name", "theme-color");
+      lightMeta.setAttribute("media", "(prefers-color-scheme: light)");
+      lightMeta.setAttribute("content", "#eef3fc");
+      document.head.appendChild(lightMeta);
+
+      darkMeta = document.createElement("meta");
+      darkMeta.setAttribute("name", "theme-color");
+      darkMeta.setAttribute("media", "(prefers-color-scheme: dark)");
+      darkMeta.setAttribute("content", "#070a10");
+      document.head.appendChild(darkMeta);
+    });
+
+    afterEach(() => {
+      lightMeta.remove();
+      darkMeta.remove();
+    });
+
+    it("updates every theme-color meta when OS is dark but the user manually picks light", () => {
+      installMatchMedia(true); // OS dark
+      localStorage.setItem("onyx-mode", "light"); // manual override to light
+      render(
+        <AppearanceProvider>
+          <Probe />
+        </AppearanceProvider>,
+      );
+      expect(lightMeta.getAttribute("content")).toBe("#eef3fc");
+      expect(darkMeta.getAttribute("content")).toBe("#eef3fc");
+    });
   });
 });

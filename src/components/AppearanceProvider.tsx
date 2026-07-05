@@ -71,8 +71,9 @@ export function AppearanceProvider({
 
   useEffect(() => {
     document.documentElement.setAttribute("data-mode", appearance);
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", THEME_COLOR[appearance]);
+    document
+      .querySelectorAll('meta[name="theme-color"]')
+      .forEach((meta) => meta.setAttribute("content", THEME_COLOR[appearance]));
   }, [appearance]);
 
   return (

@@ -232,16 +232,23 @@ VAPID_PRIVATE_KEY
 - Run the schema migration (tables, indexes, RLS policies).
 - Seed the default exercise library.
 
-## Project structure and build approach
+## Project structure
 
-Onyx is built following the canonical project template under `~/.claude/templates/`, with `SPEC.md`, `STATUS.md`, phased delivery, and check ins at phase boundaries. The frontend and backend live in the standard layout for a Next.js plus Supabase PWA.
+Onyx is a single Next.js application. Routes and shared logic live under `src/`, the database schema under `supabase/`, and the installable app shell under `public/`.
 
-Privacy of the build process is a hard requirement (see the repository `CLAUDE.md`):
+```
+src/app/          App Router routes, layouts, and the PWA entry points
+src/components/   Screen components, with shared primitives under ui/
+src/lib/          Domain logic by concern: data access and server actions,
+                  Supabase clients, workout logging, progress math,
+                  notifications, offline queueing, brand assets
+supabase/         SQL migrations and the exercise library seed
+public/           Service worker, manifest, icons, splash images
+scripts/          Build time asset generation
+middleware.ts     Session refresh on every request
+```
 
-- Template scaffolding that reveals an assisted workflow (`agents/`, `docs/superpowers/`, phase status tables) stays local only and gitignored.
-- No commit message, README, or shipped document references any AI assistance.
-- `.gitignore` lists `CLAUDE.md`, `future-ideas.md`, `.superpowers/`, and `.claude/` before the first commit.
-- Git history is clean from the first commit, authored solely by the project owner.
+Derived values (estimated one rep max, volume, personal record detection, trend direction) are computed by pure modules under `src/lib/`, so they can be unit tested without a database or a browser. Tests live in `__tests__` folders beside the code they cover and run under Vitest with `npm test`.
 
 ## Non goals (v1)
 

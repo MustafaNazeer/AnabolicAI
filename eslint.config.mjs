@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Hidden directories hold local tooling state and vendored build output,
+    // never source we own, so linting them only produces noise.
+    "**/.*/**",
   ]),
 ]);
 

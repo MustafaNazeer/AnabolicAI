@@ -42,19 +42,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Maintainer private files (never tracked)
-CLAUDE.md
-future-ideas.md
+# local scratch
 salvage/
 ui-references/
-
-# Local-only project scaffolding (workflow tells, never shipped publicly)
-agents/
-docs/superpowers/
-docs/plan.md
-STATUS.md
-
-# Tooling artifacts
-.superpowers/
-.claude/
-.specstory/

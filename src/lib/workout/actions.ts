@@ -77,11 +77,11 @@ export async function logSet(
     } catch {
       // A push failure must never break logging.
     }
-  }
-  try {
-    await evaluateGoalOnLog(exerciseId);
-  } catch {
-    // Goal evaluation must never break logging.
+    try {
+      await evaluateGoalOnLog(exerciseId);
+    } catch {
+      // Goal evaluation must never break logging.
+    }
   }
   return { ok: true };
 }

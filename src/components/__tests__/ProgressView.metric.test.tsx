@@ -41,12 +41,12 @@ beforeEach(() => localStorage.clear());
 
 describe("ProgressView metric switcher", () => {
   it("shows the weight chart title by default", () => {
-    render(<ProgressView data={data} routineVolume={emptyRoutines} />);
+    render(<ProgressView data={data} routineVolume={emptyRoutines} goals={{}} />);
     expect(screen.getByRole("heading", { name: "Weight over time" })).toBeInTheDocument();
   });
 
   it("switches to the volume chart and persists the choice", async () => {
-    render(<ProgressView data={data} routineVolume={emptyRoutines} />);
+    render(<ProgressView data={data} routineVolume={emptyRoutines} goals={{}} />);
     await userEvent.click(screen.getByRole("tab", { name: "Volume" }));
     expect(
       screen.getByRole("heading", { name: "Total weight moved per session" }),
@@ -55,7 +55,7 @@ describe("ProgressView metric switcher", () => {
   });
 
   it("switches to the reps chart", async () => {
-    render(<ProgressView data={data} routineVolume={emptyRoutines} />);
+    render(<ProgressView data={data} routineVolume={emptyRoutines} goals={{}} />);
     await userEvent.click(screen.getByRole("tab", { name: "Reps" }));
     expect(
       screen.getByRole("heading", { name: "Reps on your heaviest set" }),
@@ -65,7 +65,7 @@ describe("ProgressView metric switcher", () => {
 
 describe("ProgressView routine section", () => {
   it("shows the most recent routine and its legend by default", () => {
-    render(<ProgressView data={data} routineVolume={routineVolume} />);
+    render(<ProgressView data={data} routineVolume={routineVolume} goals={{}} />);
     expect(
       screen.getByRole("heading", { name: "Volume by exercise" }),
     ).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe("ProgressView routine section", () => {
   });
 
   it("switches the routine series when a different routine is picked", async () => {
-    render(<ProgressView data={data} routineVolume={routineVolume} />);
+    render(<ProgressView data={data} routineVolume={routineVolume} goals={{}} />);
     await userEvent.selectOptions(
       screen.getByRole("combobox", { name: "Routine" }),
       "Leg Day",
@@ -86,7 +86,7 @@ describe("ProgressView routine section", () => {
   });
 
   it("shows an empty message when no routine has completed sessions", () => {
-    render(<ProgressView data={data} routineVolume={emptyRoutines} />);
+    render(<ProgressView data={data} routineVolume={emptyRoutines} goals={{}} />);
     expect(
       screen.getByText(
         "Complete a routine and its volume breakdown will appear here.",

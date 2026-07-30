@@ -62,6 +62,8 @@ Logged per set: set number, reps, weight (lbs), and RIR (Reps In Reserve, 0 to 5
 - Users move through the routine's exercises in order, logging each set.
 - The previous session's numbers are shown as reference, for example "Last time: 135 lbs x 8".
 - Users can add extra sets beyond the routine default, and skip exercises.
+- Swap for today: any exercise can be replaced with another for the current session only, for when a machine is occupied. The replacement takes the original's position and inherits its target set count, and the card names what it replaced. The routine itself is never modified, so the planned exercise returns next session. An exercise swapped out after it already had sets logged stays on screen as a read only card, and anything logged against an exercise no card shows is grouped under "Also logged this session", so work performed is never hidden.
+- A workout left untouched for six hours is treated as abandoned. Opening it offers Resume, Finish, or Discard. Discarding deletes the session and its sets outright, so clearing an abandoned workout never counts as a completed one in the weekly summary, the streak, or the recap.
 - Mid workout persistence: the in progress session is saved locally so closing, backgrounding, or reloading the app never loses the current workout. This is local resilience only, not full offline sync (see Deferred to v2).
 
 ### 5. Rest timer
@@ -103,6 +105,7 @@ Delivered via a service worker and Web Push (VAPID). On iOS this requires the ap
 3. Streak protection: a warning before the weekly streak lapses.
 4. PR celebration: instant congratulations the moment a personal record is logged.
 5. Weekly recap: a Sunday summary, for example "This week: 4 workouts, 28k lbs moved".
+6. Unfinished workout: a single reminder when a session has been left open with no activity for six hours, linking straight to it so it can be resumed, finished, or discarded.
 
 All notifications are individually toggleable in Settings. The app works fully with notifications disabled.
 
@@ -152,6 +155,7 @@ user_settings
   notif_streak       boolean
   notif_pr           boolean
   notif_weekly       boolean
+  notif_unfinished   boolean
 
 routines
   id, user_id (FK), name, created_at, updated_at
@@ -163,7 +167,14 @@ routine_exercises
   id, routine_id (FK), exercise_id (FK), order_index, default_sets (default 3)
 
 workout_sessions
-  id, user_id (FK), routine_id (FK), started_at, completed_at (nullable)
+  id, user_id (FK), routine_id (FK), started_at, completed_at (nullable),
+  unfinished_notified (boolean, default false)
+
+session_exercise_swaps
+  id, session_id (FK), original_exercise_id (FK), replacement_exercise_id (FK),
+  created_at
+  one row per swapped slot per session (unique on session_id +
+  original_exercise_id); deleting the row undoes the swap
 
 workout_sets
   id, session_id (FK), exercise_id (FK), set_number, reps, weight, rir (0 to 5), logged_at
@@ -210,7 +221,6 @@ These are deliberately excluded from v1 but are real planned next steps. They de
 - Secondary charts: volume over time, rep progression, per routine stacked volume.
 - Routine duplicate.
 - Quick fill: one tap copy of last session's weight and reps.
-- Additional notifications: unfinished workout reminder.
 
 Speculative ideas that are not yet planned live in `future-ideas.md` (private, gitignored).
 

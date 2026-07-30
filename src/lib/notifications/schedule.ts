@@ -91,5 +91,16 @@ export function shouldSendWeeklyRecap(
   );
 }
 
+// Fires once per session: alreadyNotified is the session's own flag, which the
+// caller claims with a conditional update so a concurrent run cannot send twice.
+export function shouldNudgeUnfinished(
+  s: { notif_master: boolean; notif_unfinished: boolean },
+  ctx: { isStale: boolean; alreadyNotified: boolean },
+): boolean {
+  return (
+    s.notif_master && s.notif_unfinished && ctx.isStale && !ctx.alreadyNotified
+  );
+}
+
 // DAY_SHORT is exported for callers that render the day picker order.
 export { DAY_SHORT };

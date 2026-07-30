@@ -47,6 +47,18 @@ export function weeklyRecapPayload(workouts: number, volume: number): PushPayloa
   };
 }
 
+export function unfinishedWorkoutPayload(
+  routineName: string,
+  sessionId: string,
+): PushPayload {
+  return {
+    title: "Workout still open",
+    body: `${routineName} is still open. Finish it or clear it out.`,
+    url: `/log/${sessionId}`,
+    tag: "unfinished",
+  };
+}
+
 export function goalReachedPayload(
   name: string,
   weight: number,

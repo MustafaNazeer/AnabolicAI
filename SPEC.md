@@ -155,6 +155,7 @@ user_settings
   notif_streak       boolean
   notif_pr           boolean
   notif_weekly       boolean
+  notif_goal         boolean
   notif_unfinished   boolean
 
 routines
@@ -169,6 +170,13 @@ routine_exercises
 workout_sessions
   id, user_id (FK), routine_id (FK), started_at, completed_at (nullable),
   unfinished_notified (boolean, default false)
+
+goals
+  id, user_id (FK), exercise_id (FK), target_weight, target_reps,
+  status ('active' or 'achieved'), proximity_notified (boolean),
+  created_at, achieved_at (nullable)
+  at most one active goal per user and exercise; achieved rows are
+  unconstrained history
 
 session_exercise_swaps
   id, session_id (FK), original_exercise_id (FK), replacement_exercise_id (FK),
@@ -213,7 +221,7 @@ Derived values (estimated 1RM, volume, PR detection, trend direction) are comput
 
 ## Deferred to v2
 
-These are deliberately excluded from v1 but are real planned next steps. They define the v1 scope boundary.
+These were deliberately excluded from v1. The list is kept as the record of where the v1 scope boundary sat, not as a task list. Every item below has since been built and shipped in v2, along with the mid workout exercise swap and the ability to discard an abandoned workout.
 
 - Goals feature: set per lift targets, track progress toward them, and the goal proximity notification ("You're 5 lbs from your bench goal"). This is the first planned v2 feature.
 - Offline sync: full workout logging with no connection, with background sync on reconnect (IndexedDB). Note that mid workout local persistence is in v1; full offline sync is not.
@@ -221,6 +229,7 @@ These are deliberately excluded from v1 but are real planned next steps. They de
 - Secondary charts: volume over time, rep progression, per routine stacked volume.
 - Routine duplicate.
 - Quick fill: one tap copy of last session's weight and reps.
+- Additional notifications: unfinished workout reminder.
 
 Speculative ideas that are not yet planned live in `future-ideas.md` (private, gitignored).
 

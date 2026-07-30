@@ -1,12 +1,33 @@
-export const RIR_OPTIONS: { value: number; label: string }[] = [
-  { value: 0, label: "Nothing left" },
-  { value: 1, label: "Maybe 1 more" },
-  { value: 2, label: "Could do 2 more" },
-  { value: 3, label: "Comfortable" },
-  { value: 4, label: "Easy" },
-  { value: 5, label: "Very easy" },
-];
+// Reps in reserve, recorded as an optional range. A single value is stored
+// with the same number in both fields, so consumers never branch on shape.
+export type RirRange = { rirLow: number | null; rirHigh: number | null };
 
-export function rirLabel(value: number): string {
-  return RIR_OPTIONS.find((o) => o.value === value)?.label ?? "";
+function parseOne(raw: string): number | null | { error: string } {
+  const t = raw.trim();
+  if (t === "") return null;
+  if (!/^-?\d+$/.test(t)) return { error: "RIR must be a whole number." };
+  const n = Number(t);
+  if (n < 0 || n > 5) return { error: "RIR must be 0 to 5." };
+  return n;
+}
+
+export function parseRir(
+  low: string,
+  high: string,
+): RirRange | { error: string } {
+  const lo = parseOne(low);
+  if (lo !== null && typeof lo === "object") return lo;
+  const hi = parseOne(high);
+  if (hi !== null && typeof hi === "object") return hi;
+
+  if (lo === null && hi === null) return { rirLow: null, rirHigh: null };
+  if (lo === null) return { error: "Enter the lower RIR first." };
+  if (hi === null) return { rirLow: lo, rirHigh: lo };
+  if (hi < lo) return { error: "RIR range must go from low to high." };
+  return { rirLow: lo, rirHigh: hi };
+}
+
+export function formatRir(low: number | null, high: number | null): string {
+  if (low === null || high === null) return "";
+  return low === high ? String(low) : `${low}-${high}`;
 }

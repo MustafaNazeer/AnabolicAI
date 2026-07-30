@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ExerciseLogCard } from "@/components/ExerciseLogCard";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { RestTimer } from "@/components/RestTimer";
+import { StaleSessionBanner } from "@/components/StaleSessionBanner";
 import {
   buildEffectiveCards,
   takenExerciseIds,
@@ -100,9 +101,13 @@ function buildRunners(): Runners {
 export function ActiveWorkout({
   snapshot,
   serverSets,
+  startedAt,
+  stale = false,
 }: {
   snapshot: Snapshot;
   serverSets: LocalSet[];
+  startedAt?: string;
+  stale?: boolean;
 }) {
   const router = useRouter();
   const online = useOnline();
@@ -266,6 +271,14 @@ export function ActiveWorkout({
         <p className="text-xs mb-4" style={{ color: "var(--text-dim)" }}>
           Syncing...
         </p>
+      ) : null}
+
+      {stale && startedAt ? (
+        <StaleSessionBanner
+          sessionId={sessionId}
+          startedAt={startedAt}
+          onFinish={() => void handleFinish()}
+        />
       ) : null}
 
       <div className="sticky top-2 z-10 mb-4">

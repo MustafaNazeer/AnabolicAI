@@ -6,6 +6,7 @@ import {
 } from "@/lib/workout/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ActiveWorkout } from "@/components/ActiveWorkout";
+import { isStale, lastActivityAt } from "@/lib/workout/stale";
 import type { LastRef, LocalSet, Snapshot } from "@/lib/offline/store";
 
 export default async function ActiveWorkoutPage({
@@ -63,5 +64,17 @@ export default async function ActiveWorkoutPage({
     })),
   );
 
-  return <ActiveWorkout snapshot={snapshot} serverSets={serverSets} />;
+  const stale = isStale(
+    lastActivityAt(session.startedAt, session.setTimes),
+    new Date(),
+  );
+
+  return (
+    <ActiveWorkout
+      snapshot={snapshot}
+      serverSets={serverSets}
+      startedAt={session.startedAt}
+      stale={stale}
+    />
+  );
 }

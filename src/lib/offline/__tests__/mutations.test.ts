@@ -6,8 +6,10 @@ import {
   deleteSetLocal,
   finishLocal,
   nextSetNumber,
+  swapLocal,
+  undoSwapLocal,
 } from "@/lib/offline/mutations";
-import type { LocalSet } from "@/lib/offline/store";
+import type { LocalSet, Snapshot } from "@/lib/offline/store";
 
 let counter = 0;
 const idGen = () => `id-${++counter}`;
@@ -95,7 +97,15 @@ describe("mutations", () => {
     const pending = await logSetLocal(store, "s1", "e1", { reps: 8, weight: 135, rir: 1 }, idGen);
     await seedSession(
       store,
-      { sessionId: "s1", routineName: "Push", restSeconds: 120, exercises: [], lastByExercise: {} },
+      {
+        sessionId: "s1",
+        routineName: "Push",
+        restSeconds: 120,
+        exercises: [],
+        lastByExercise: {},
+        swaps: [],
+        library: [],
+      },
       [synced("srv")],
     );
     const ids = (await store.listSets("s1")).map((s) => s.id).sort();
@@ -109,5 +119,75 @@ describe("mutations", () => {
     await finishLocal(store, "s1");
     const ob = await store.listOutbox();
     expect(ob[0]).toMatchObject({ type: "finishSession", sessionId: "s1" });
+  });
+});
+
+const swapSnapshot: Snapshot = {
+  sessionId: "sess1",
+  routineName: "Push Day",
+  restSeconds: 120,
+  exercises: [
+    {
+      exerciseId: "pecdeck",
+      name: "Pec Deck",
+      muscleGroup: "chest",
+      isDefault: true,
+      defaultSets: 3,
+    },
+  ],
+  lastByExercise: {},
+  swaps: [],
+  library: [],
+};
+
+describe("swapLocal", () => {
+  it("records the swap in the snapshot and queues it", async () => {
+    const store = createMemoryStore();
+    await seedSession(store, swapSnapshot, []);
+
+    await swapLocal(store, "sess1", "pecdeck", "bench");
+
+    const snap = await store.getSnapshot("sess1");
+    expect(snap?.swaps).toEqual([
+      { originalExerciseId: "pecdeck", replacementExerciseId: "bench" },
+    ]);
+    const outbox = await store.listOutbox();
+    expect(outbox).toHaveLength(1);
+    expect(outbox[0].type).toBe("swapExercise");
+  });
+
+  it("replaces the existing swap for a slot rather than adding a second", async () => {
+    const store = createMemoryStore();
+    await seedSession(store, swapSnapshot, []);
+
+    await swapLocal(store, "sess1", "pecdeck", "bench");
+    await swapLocal(store, "sess1", "pecdeck", "machine");
+
+    const snap = await store.getSnapshot("sess1");
+    expect(snap?.swaps).toEqual([
+      { originalExerciseId: "pecdeck", replacementExerciseId: "machine" },
+    ]);
+    expect(await store.listOutbox()).toHaveLength(2);
+  });
+
+  it("does nothing when the session is not in the store", async () => {
+    const store = createMemoryStore();
+    await swapLocal(store, "missing", "pecdeck", "bench");
+    expect(await store.listOutbox()).toHaveLength(0);
+  });
+});
+
+describe("undoSwapLocal", () => {
+  it("removes the swap and queues the undo", async () => {
+    const store = createMemoryStore();
+    await seedSession(store, swapSnapshot, []);
+    await swapLocal(store, "sess1", "pecdeck", "bench");
+
+    await undoSwapLocal(store, "sess1", "pecdeck");
+
+    const snap = await store.getSnapshot("sess1");
+    expect(snap?.swaps).toEqual([]);
+    const outbox = await store.listOutbox();
+    expect(outbox.map((o) => o.type)).toEqual(["swapExercise", "undoSwap"]);
   });
 });

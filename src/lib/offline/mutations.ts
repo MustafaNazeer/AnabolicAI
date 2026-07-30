@@ -74,6 +74,49 @@ export async function deleteSetLocal(
   });
 }
 
+// The swap is applied to the cached snapshot immediately so the screen reacts
+// with no connection, and queued for the server. Sets never reference a swap
+// row, so a swap arriving after its own sets is harmless.
+export async function swapLocal(
+  store: OfflineStore,
+  sessionId: string,
+  originalExerciseId: string,
+  replacementExerciseId: string,
+): Promise<void> {
+  const snapshot = await store.getSnapshot(sessionId);
+  if (!snapshot) return;
+  const swaps = snapshot.swaps.filter(
+    (s) => s.originalExerciseId !== originalExerciseId,
+  );
+  swaps.push({ originalExerciseId, replacementExerciseId });
+  await store.putSnapshot({ ...snapshot, swaps });
+  await store.enqueue({
+    type: "swapExercise",
+    sessionId,
+    payload: { originalExerciseId, replacementExerciseId },
+  });
+}
+
+export async function undoSwapLocal(
+  store: OfflineStore,
+  sessionId: string,
+  originalExerciseId: string,
+): Promise<void> {
+  const snapshot = await store.getSnapshot(sessionId);
+  if (!snapshot) return;
+  await store.putSnapshot({
+    ...snapshot,
+    swaps: snapshot.swaps.filter(
+      (s) => s.originalExerciseId !== originalExerciseId,
+    ),
+  });
+  await store.enqueue({
+    type: "undoSwap",
+    sessionId,
+    payload: { originalExerciseId },
+  });
+}
+
 export async function finishLocal(
   store: OfflineStore,
   sessionId: string,

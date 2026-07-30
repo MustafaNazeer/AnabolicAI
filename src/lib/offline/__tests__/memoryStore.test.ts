@@ -23,6 +23,8 @@ describe("memoryStore", () => {
       restSeconds: 120,
       exercises: [],
       lastByExercise: {},
+      swaps: [],
+      library: [],
     };
     await store.putSnapshot(snap);
     expect(await store.getSnapshot("s1")).toEqual(snap);

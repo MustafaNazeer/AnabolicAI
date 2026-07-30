@@ -38,7 +38,8 @@ describe("ExerciseLogCard field order", () => {
             setNumber: 1,
             reps: 8,
             weight: 135,
-            rir: 2,
+            rirLow: 2,
+            rirHigh: 2,
             syncState: "synced",
           },
         ]}
@@ -56,7 +57,7 @@ describe("ExerciseLogCard field order", () => {
         exerciseName="Bench Press"
         defaultSets={3}
         loggedSets={[]}
-        lastSets={[{ set_number: 1, reps: 8, weight: 135, rir: 2 }]}
+        lastSets={[{ set_number: 1, reps: 8, weight: 135, rirLow: 2, rirHigh: 2 }]}
         onLog={noop}
         onDelete={noop}
       />,

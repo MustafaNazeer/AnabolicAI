@@ -9,7 +9,8 @@ const set = (id: string, over: Partial<LocalSet> = {}): LocalSet => ({
   setNumber: 1,
   reps: 5,
   weight: 100,
-  rir: 2,
+  rirLow: 2,
+  rirHigh: 2,
   syncState: "pending",
   ...over,
 });
@@ -70,12 +71,12 @@ describe("memoryStore", () => {
     await store.enqueue({
       type: "logSet",
       sessionId: "s1",
-      payload: { id: "a", exerciseId: "e1", setNumber: 1, reps: 5, weight: 100, rir: 2 },
+      payload: { id: "a", exerciseId: "e1", setNumber: 1, reps: 5, weight: 100, rirLow: 2, rirHigh: 2 },
     });
     await store.enqueue({
       type: "logSet",
       sessionId: "s1",
-      payload: { id: "b", exerciseId: "e1", setNumber: 2, reps: 5, weight: 100, rir: 2 },
+      payload: { id: "b", exerciseId: "e1", setNumber: 2, reps: 5, weight: 100, rirLow: 2, rirHigh: 2 },
     });
     await store.cancelLogSet("a");
     const ids = (await store.listOutbox()).map((o) =>

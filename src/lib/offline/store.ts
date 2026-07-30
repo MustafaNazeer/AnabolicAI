@@ -10,7 +10,8 @@ export type LocalSet = {
   setNumber: number;
   reps: number;
   weight: number;
-  rir: number;
+  rirLow: number | null;
+  rirHigh: number | null;
   syncState: SyncState;
 };
 
@@ -26,7 +27,8 @@ export type LastRef = {
   set_number: number;
   reps: number;
   weight: number;
-  rir: number;
+  rirLow: number | null;
+  rirHigh: number | null;
 };
 
 export type Snapshot = {
@@ -48,7 +50,12 @@ export type LogPayload = {
   setNumber: number;
   reps: number;
   weight: number;
-  rir: number;
+  rirLow: number | null;
+  rirHigh: number | null;
+  // Written by builds before the range change. Read when replaying a queued
+  // op from an older build, never written. Removed once no device can still
+  // hold a pre-range outbox entry.
+  rir?: number;
 };
 
 export type OutboxOp =

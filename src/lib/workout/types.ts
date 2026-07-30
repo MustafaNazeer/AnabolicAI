@@ -6,7 +6,8 @@ export type LoggedSet = {
   set_number: number;
   reps: number;
   weight: number;
-  rir: number;
+  rirLow: number | null;
+  rirHigh: number | null;
 };
 
 export type SessionExercise = {
@@ -28,5 +29,6 @@ export type LastSet = {
   set_number: number;
   reps: number;
   weight: number;
-  rir: number;
+  rirLow: number | null;
+  rirHigh: number | null;
 };

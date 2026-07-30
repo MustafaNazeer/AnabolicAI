@@ -67,7 +67,8 @@ describe("ActiveWorkout with a swap", () => {
             setNumber: 1,
             reps: 10,
             weight: 100,
-            rir: 2,
+            rirLow: 2,
+            rirHigh: 2,
             syncState: "synced",
           },
         ]}

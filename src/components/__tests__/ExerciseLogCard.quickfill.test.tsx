@@ -13,14 +13,15 @@ function makeLoggedSets(count: number): LocalSet[] {
     setNumber: i + 1,
     reps: 8,
     weight: 135,
-    rir: 2,
+    rirLow: 2,
+    rirHigh: 2,
     syncState: "synced" as const,
   }));
 }
 
 const lastSets: LastSet[] = [
-  { set_number: 1, reps: 8, weight: 135, rir: 2 },
-  { set_number: 2, reps: 6, weight: 145, rir: 1 },
+  { set_number: 1, reps: 8, weight: 135, rirLow: 2, rirHigh: 2 },
+  { set_number: 2, reps: 6, weight: 145, rirLow: 1, rirHigh: 1 },
 ];
 
 function renderCard(
@@ -102,7 +103,7 @@ describe("ExerciseLogCard logging", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Weight" }), "185");
     await userEvent.type(screen.getByRole("textbox", { name: "Reps" }), "5");
     await userEvent.click(screen.getByRole("button", { name: "Log set" }));
-    expect(onLog).toHaveBeenCalledWith({ reps: 5, weight: 185, rir: 2 });
+    expect(onLog).toHaveBeenCalledWith({ reps: 5, weight: 185, rirLow: 2, rirHigh: 2 });
     expect(screen.getByRole("textbox", { name: "Weight" })).toHaveValue("");
     expect(screen.getByRole("textbox", { name: "Reps" })).toHaveValue("");
   });

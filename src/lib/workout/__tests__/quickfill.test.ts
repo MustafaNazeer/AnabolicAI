@@ -3,9 +3,9 @@ import { lastSetForNumber } from "@/lib/workout/quickfill";
 import type { LastSet } from "@/lib/workout/types";
 
 const sets: LastSet[] = [
-  { set_number: 1, reps: 8, weight: 135, rir: 2 },
-  { set_number: 2, reps: 6, weight: 145, rir: 1 },
-  { set_number: 3, reps: 5, weight: 155, rir: 0 },
+  { set_number: 1, reps: 8, weight: 135, rirLow: 2, rirHigh: 2 },
+  { set_number: 2, reps: 6, weight: 145, rirLow: 1, rirHigh: 1 },
+  { set_number: 3, reps: 5, weight: 155, rirLow: 0, rirHigh: 0 },
 ];
 
 describe("lastSetForNumber", () => {
@@ -14,7 +14,8 @@ describe("lastSetForNumber", () => {
       set_number: 2,
       reps: 6,
       weight: 145,
-      rir: 1,
+      rirLow: 1,
+      rirHigh: 1,
     });
   });
 
@@ -23,7 +24,8 @@ describe("lastSetForNumber", () => {
       set_number: 3,
       reps: 5,
       weight: 155,
-      rir: 0,
+      rirLow: 0,
+      rirHigh: 0,
     });
   });
 
@@ -32,7 +34,7 @@ describe("lastSetForNumber", () => {
   });
 
   it("returns the only set for both an exact match and a fallback", () => {
-    const one: LastSet[] = [{ set_number: 1, reps: 10, weight: 95, rir: 3 }];
+    const one: LastSet[] = [{ set_number: 1, reps: 10, weight: 95, rirLow: 3, rirHigh: 3 }];
     expect(lastSetForNumber(one, 1)).toEqual(one[0]);
     expect(lastSetForNumber(one, 2)).toEqual(one[0]);
   });

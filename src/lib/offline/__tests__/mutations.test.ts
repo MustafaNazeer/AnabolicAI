@@ -20,7 +20,8 @@ const synced = (id: string, over: Partial<LocalSet> = {}): LocalSet => ({
   setNumber: 1,
   reps: 5,
   weight: 100,
-  rir: 2,
+  rirLow: 2,
+  rirHigh: 2,
   syncState: "synced",
   ...over,
 });
@@ -39,13 +40,14 @@ describe("mutations", () => {
   it("logSetLocal adds a pending set and a logSet op with a fresh id", async () => {
     counter = 0;
     const store = createMemoryStore();
-    const s = await logSetLocal(store, "s1", "e1", { reps: 8, weight: 135, rir: 1 }, idGen);
+    const s = await logSetLocal(store, "s1", "e1", { reps: 8, weight: 135, rirLow: 1, rirHigh: 1 }, idGen);
     expect(s).toMatchObject({
       id: "id-1",
       setNumber: 1,
       reps: 8,
       weight: 135,
-      rir: 1,
+      rirLow: 1,
+      rirHigh: 1,
       syncState: "pending",
     });
     expect(await store.listSets("s1")).toHaveLength(1);
@@ -57,8 +59,8 @@ describe("mutations", () => {
   it("assigns increasing set numbers per exercise", async () => {
     counter = 0;
     const store = createMemoryStore();
-    const a = await logSetLocal(store, "s1", "e1", { reps: 5, weight: 100, rir: 2 }, idGen);
-    const b = await logSetLocal(store, "s1", "e1", { reps: 5, weight: 100, rir: 2 }, idGen);
+    const a = await logSetLocal(store, "s1", "e1", { reps: 5, weight: 100, rirLow: 2, rirHigh: 2 }, idGen);
+    const b = await logSetLocal(store, "s1", "e1", { reps: 5, weight: 100, rirLow: 2, rirHigh: 2 }, idGen);
     expect(a.setNumber).toBe(1);
     expect(b.setNumber).toBe(2);
   });
@@ -66,7 +68,7 @@ describe("mutations", () => {
   it("deleting a pending set cancels its insert and enqueues a compensating delete", async () => {
     counter = 0;
     const store = createMemoryStore();
-    const s = await logSetLocal(store, "s1", "e1", { reps: 8, weight: 135, rir: 1 }, idGen);
+    const s = await logSetLocal(store, "s1", "e1", { reps: 8, weight: 135, rirLow: 1, rirHigh: 1 }, idGen);
     await deleteSetLocal(store, s.id);
     expect(await store.listSets("s1")).toEqual([]);
     const ob = await store.listOutbox();
@@ -94,7 +96,7 @@ describe("mutations", () => {
   it("seedSession stores the snapshot and adds server sets without clobbering pending", async () => {
     counter = 0;
     const store = createMemoryStore();
-    const pending = await logSetLocal(store, "s1", "e1", { reps: 8, weight: 135, rir: 1 }, idGen);
+    const pending = await logSetLocal(store, "s1", "e1", { reps: 8, weight: 135, rirLow: 1, rirHigh: 1 }, idGen);
     await seedSession(
       store,
       {

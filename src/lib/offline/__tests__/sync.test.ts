@@ -14,7 +14,8 @@ const pendingSet = (id: string): LocalSet => ({
   setNumber: 1,
   reps: 5,
   weight: 100,
-  rir: 2,
+  rirLow: 2,
+  rirHigh: 2,
   syncState: "pending",
 });
 
@@ -34,7 +35,7 @@ describe("drainOutbox", () => {
     await store.enqueue({
       type: "logSet",
       sessionId: "s1",
-      payload: { id: "a", exerciseId: "e1", setNumber: 1, reps: 5, weight: 100, rir: 2 },
+      payload: { id: "a", exerciseId: "e1", setNumber: 1, reps: 5, weight: 100, rirLow: 2, rirHigh: 2 },
     });
     await drainOutbox(store, runners());
     expect(await store.listOutbox()).toEqual([]);
@@ -85,7 +86,7 @@ describe("drainOutbox", () => {
     await store.enqueue({
       type: "logSet",
       sessionId: "s1",
-      payload: { id: "a", exerciseId: "e1", setNumber: 1, reps: 5, weight: 100, rir: 2 },
+      payload: { id: "a", exerciseId: "e1", setNumber: 1, reps: 5, weight: 100, rirLow: 2, rirHigh: 2 },
     });
     const deleteSet = vi.fn(async () => ok);
     const logSet = vi.fn(async () => {

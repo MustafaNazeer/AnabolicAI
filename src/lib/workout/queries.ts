@@ -42,7 +42,7 @@ export async function getSessionDetail(
 
   const { data: setsRaw } = await supabase
     .from("workout_sets")
-    .select("id, exercise_id, set_number, reps, weight, rir, logged_at")
+    .select("id, exercise_id, set_number, reps, weight, rir_low, rir_high, logged_at")
     .eq("session_id", sessionId)
     .order("set_number", { ascending: true });
 
@@ -66,22 +66,30 @@ export async function getSessionDetail(
     default_sets: number;
     exercise: Exercise;
   }[];
-  const sets = (setsRaw ?? []) as unknown as ({
+  // The database row shape, snake case, before it is mapped onto LoggedSet.
+  const sets = (setsRaw ?? []) as unknown as {
+    id: string;
     exercise_id: string;
+    set_number: number;
+    reps: number;
+    weight: number;
+    rir_low: number | null;
+    rir_high: number | null;
     logged_at: string;
-  } & LoggedSet)[];
+  }[];
 
   const exercises: SessionExercise[] = rx.map((r) => ({
     exercise: r.exercise,
     defaultSets: r.default_sets,
     loggedSets: sets
       .filter((s) => s.exercise_id === r.exercise_id)
-      .map(({ id, set_number, reps, weight, rir }) => ({
+      .map(({ id, set_number, reps, weight, rir_low, rir_high }) => ({
         id,
         set_number,
         reps,
         weight,
-        rir,
+        rirLow: rir_low,
+        rirHigh: rir_high,
       })),
   }));
 
@@ -122,10 +130,24 @@ export async function getLastSets(
 
   const { data } = await supabase
     .from("workout_sets")
-    .select("set_number, reps, weight, rir")
+    .select("set_number, reps, weight, rir_low, rir_high")
     .eq("exercise_id", exerciseId)
     .eq("session_id", latest.session_id)
     .order("set_number", { ascending: true });
 
-  return (data ?? []) as LastSet[];
+  const rows = (data ?? []) as unknown as {
+    set_number: number;
+    reps: number;
+    weight: number;
+    rir_low: number | null;
+    rir_high: number | null;
+  }[];
+
+  return rows.map(({ set_number, reps, weight, rir_low, rir_high }) => ({
+    set_number,
+    reps,
+    weight,
+    rirLow: rir_low,
+    rirHigh: rir_high,
+  }));
 }

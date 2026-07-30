@@ -59,7 +59,8 @@ export default async function ActiveWorkoutPage({
       setNumber: s.set_number,
       reps: s.reps,
       weight: s.weight,
-      rir: s.rir,
+      rirLow: s.rirLow,
+      rirHigh: s.rirHigh,
       syncState: "synced" as const,
     })),
   );

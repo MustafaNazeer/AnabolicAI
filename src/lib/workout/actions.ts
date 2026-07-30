@@ -38,7 +38,8 @@ export async function logSet(
   setNumber: number,
   reps: number,
   weight: number,
-  rir: number,
+  rirLow: number | null,
+  rirHigh: number | null,
 ) {
   // retryable:false marks input that can never succeed, so the sync engine
   // drops it instead of retrying forever. Server errors below are retryable so
@@ -47,8 +48,17 @@ export async function logSet(
     return { error: "Reps must be at least 1.", retryable: false };
   if (!Number.isFinite(weight) || weight < 0)
     return { error: "Weight cannot be negative.", retryable: false };
-  if (!Number.isInteger(rir) || rir < 0 || rir > 5)
+  if (rirLow !== null && (!Number.isInteger(rirLow) || rirLow < 0 || rirLow > 5))
     return { error: "RIR must be 0 to 5.", retryable: false };
+  if (
+    rirHigh !== null &&
+    (!Number.isInteger(rirHigh) || rirHigh < 0 || rirHigh > 5)
+  )
+    return { error: "RIR must be 0 to 5.", retryable: false };
+  if (rirLow !== null && rirHigh !== null && rirLow > rirHigh)
+    return { error: "RIR range must go from low to high.", retryable: false };
+  if ((rirLow === null) !== (rirHigh === null))
+    return { error: "RIR needs both ends or neither.", retryable: false };
 
   const supabase = await createClient();
   // Upsert on the client-generated id so replaying a queued offline op can
@@ -64,7 +74,11 @@ export async function logSet(
         set_number: setNumber,
         reps,
         weight,
-        rir,
+        rir_low: rirLow,
+        rir_high: rirHigh,
+        // rir is still NOT NULL until migration 0006 drops it. Written and
+        // never read; the fallback only matters for a set logged with no RIR.
+        rir: rirLow ?? 2,
       },
       { onConflict: "id", ignoreDuplicates: true },
     )

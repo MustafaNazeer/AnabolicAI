@@ -22,6 +22,8 @@ const runners = (over: Partial<Runners> = {}): Runners => ({
   logSet: vi.fn(async () => ok),
   deleteSet: vi.fn(async () => ok),
   finishSession: vi.fn(async () => ok),
+  swapExercise: vi.fn(async () => ok),
+  undoSwap: vi.fn(async () => ok),
   ...over,
 });
 
@@ -95,5 +97,72 @@ describe("drainOutbox", () => {
     await drainOutbox(store, runners({ logSet, deleteSet }));
     expect(deleteSet).toHaveBeenCalledOnce();
     expect(await store.listOutbox()).toEqual([]);
+  });
+});
+
+describe("draining swap ops", () => {
+  it("runs a swap and clears it from the outbox", async () => {
+    const store = createMemoryStore();
+    await store.enqueue({
+      type: "swapExercise",
+      sessionId: "sess1",
+      payload: { originalExerciseId: "pecdeck", replacementExerciseId: "bench" },
+    });
+
+    const calls: string[] = [];
+    await drainOutbox(
+      store,
+      runners({
+        swapExercise: async (p) => {
+          calls.push(`${p.originalExerciseId}->${p.replacementExerciseId}`);
+          return ok;
+        },
+      }),
+    );
+
+    expect(calls).toEqual(["pecdeck->bench"]);
+    expect(await store.listOutbox()).toHaveLength(0);
+  });
+
+  it("drops a swap the server rejects as invalid and keeps draining", async () => {
+    const store = createMemoryStore();
+    await store.enqueue({
+      type: "swapExercise",
+      sessionId: "sess1",
+      payload: { originalExerciseId: "pecdeck", replacementExerciseId: "bench" },
+    });
+    await store.enqueue({
+      type: "undoSwap",
+      sessionId: "sess1",
+      payload: { originalExerciseId: "fly" },
+    });
+
+    let undone = 0;
+    await drainOutbox(
+      store,
+      runners({
+        swapExercise: async () => drop,
+        undoSwap: async () => {
+          undone += 1;
+          return ok;
+        },
+      }),
+    );
+
+    expect(undone).toBe(1);
+    expect(await store.listOutbox()).toHaveLength(0);
+  });
+
+  it("halts on a retryable swap failure and leaves it queued", async () => {
+    const store = createMemoryStore();
+    await store.enqueue({
+      type: "swapExercise",
+      sessionId: "sess1",
+      payload: { originalExerciseId: "pecdeck", replacementExerciseId: "bench" },
+    });
+
+    await drainOutbox(store, runners({ swapExercise: async () => retry }));
+
+    expect(await store.listOutbox()).toHaveLength(1);
   });
 });

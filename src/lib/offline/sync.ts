@@ -11,6 +11,15 @@ export type Runners = {
   logSet(p: LogPayload & { sessionId: string }): Promise<RunResult>;
   deleteSet(p: { id: string; sessionId: string }): Promise<RunResult>;
   finishSession(p: { sessionId: string }): Promise<RunResult>;
+  swapExercise(p: {
+    sessionId: string;
+    originalExerciseId: string;
+    replacementExerciseId: string;
+  }): Promise<RunResult>;
+  undoSwap(p: {
+    sessionId: string;
+    originalExerciseId: string;
+  }): Promise<RunResult>;
 };
 
 let running = false;
@@ -22,6 +31,12 @@ async function runOne(runners: Runners, op: QueuedOp): Promise<RunResult> {
   }
   if (op.type === "deleteSet") {
     return runners.deleteSet({ id: op.payload.id, sessionId: op.sessionId });
+  }
+  if (op.type === "swapExercise") {
+    return runners.swapExercise({ ...op.payload, sessionId: op.sessionId });
+  }
+  if (op.type === "undoSwap") {
+    return runners.undoSwap({ ...op.payload, sessionId: op.sessionId });
   }
   return runners.finishSession({ sessionId: op.sessionId });
 }

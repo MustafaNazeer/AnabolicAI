@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseLogCard } from "@/components/ExerciseLogCard";
 import { RestTimer } from "@/components/RestTimer";
-import { logSet, deleteSet, finishSession } from "@/lib/workout/actions";
+import {
+  logSet,
+  deleteSet,
+  finishSession,
+  swapExercise,
+  undoSwap,
+} from "@/lib/workout/actions";
 import { createIdbStore } from "@/lib/offline/idb";
 import {
   seedSession,
@@ -50,6 +56,32 @@ function buildRunners(): Runners {
       try {
         const r = await finishSession(p.sessionId);
         return r && "error" in r ? { ok: false, kind: "retry" } : { ok: true };
+      } catch {
+        return { ok: false, kind: "retry" };
+      }
+    },
+    async swapExercise(p) {
+      try {
+        const r = await swapExercise(
+          p.sessionId,
+          p.originalExerciseId,
+          p.replacementExerciseId,
+        );
+        if (r && "error" in r) {
+          return { ok: false, kind: r.retryable ? "retry" : "drop" };
+        }
+        return { ok: true };
+      } catch {
+        return { ok: false, kind: "retry" };
+      }
+    },
+    async undoSwap(p) {
+      try {
+        const r = await undoSwap(p.sessionId, p.originalExerciseId);
+        if (r && "error" in r) {
+          return { ok: false, kind: r.retryable ? "retry" : "drop" };
+        }
+        return { ok: true };
       } catch {
         return { ok: false, kind: "retry" };
       }

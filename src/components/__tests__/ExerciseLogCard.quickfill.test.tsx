@@ -74,7 +74,7 @@ describe("ExerciseLogCard quick fill", () => {
     renderCard(makeLoggedSets(1));
     expect(
       screen.getByRole("button", {
-        name: /fill set 2 with last time, 145 pounds for 6 reps/i,
+        name: /fill set 2 with last time, 6 reps for 145 pounds/i,
       }),
     ).toBeInTheDocument();
   });

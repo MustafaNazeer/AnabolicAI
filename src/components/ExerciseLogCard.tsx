@@ -76,12 +76,12 @@ export function ExerciseLogCard({
         <button
           type="button"
           onClick={fillFromLast}
-          aria-label={`Fill set ${nextSetNumber} with last time, ${suggestion.weight} pounds for ${suggestion.reps} reps`}
+          aria-label={`Fill set ${nextSetNumber} with last time, ${suggestion.reps} reps for ${suggestion.weight} pounds`}
           className="inline-flex items-center gap-1 text-xs mt-1 underline underline-offset-2"
           style={{ color: "var(--text-dim)", minHeight: 44 }}
         >
           <Copy size={12} aria-hidden />
-          Last time: {suggestion.weight} lbs x {suggestion.reps}
+          Last time: {suggestion.reps} for {suggestion.weight} lbs
         </button>
       ) : (
         <p className="text-xs mt-1" style={{ color: "var(--text-dim)" }}>
@@ -115,7 +115,7 @@ export function ExerciseLogCard({
                   }}
                 />
               ) : null}
-              Set {s.setNumber}: {s.weight} x {s.reps}
+              Set {s.setNumber}: {s.reps} for {s.weight} lbs
             </span>
             <button
               type="button"
@@ -132,21 +132,21 @@ export function ExerciseLogCard({
 
       <div className="flex items-end gap-2 mt-3">
         <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
-          Weight
-          <input
-            inputMode="decimal"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            className="w-full px-3 py-2 mt-1"
-            style={fieldStyle}
-          />
-        </label>
-        <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
           Reps
           <input
             inputMode="numeric"
             value={reps}
             onChange={(e) => setReps(e.target.value)}
+            className="w-full px-3 py-2 mt-1"
+            style={fieldStyle}
+          />
+        </label>
+        <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
+          Weight
+          <input
+            inputMode="decimal"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
             className="w-full px-3 py-2 mt-1"
             style={fieldStyle}
           />

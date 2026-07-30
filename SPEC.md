@@ -48,16 +48,9 @@ Onyx is a clean rebuild of an earlier prototype (SpotMe). The product idea is th
 
 Each time a user performs a routine they create a workout session and log sets against it.
 
-Logged per set: set number, reps, weight (lbs), and RIR (Reps In Reserve, 0 to 5). RIR is shown with plain language labels:
+Logged per set: set number, reps, weight (lbs), and RIR (Reps In Reserve).
 
-| RIR | Label |
-|-----|-------|
-| 0 | Nothing left |
-| 1 | Maybe 1 more |
-| 2 | Could do 2 more |
-| 3 | Comfortable |
-| 4 | Easy |
-| 5 | Very easy |
+RIR is typed rather than picked, and it is optional. It takes a whole number from 0 to 5, or a range such as 0 to 1 for a set that sat honestly between the two, entered as a value plus an optional second box. Leaving it blank records no RIR at all rather than assuming one. Each logged set reads its RIR back, for example "Set 1: 8 for 135 lbs, 0-1 RIR".
 
 - Users move through the routine's exercises in order, logging each set.
 - The previous session's numbers are shown as reference, for example "Last time: 135 lbs x 8".
@@ -185,7 +178,10 @@ session_exercise_swaps
   original_exercise_id); deleting the row undoes the swap
 
 workout_sets
-  id, session_id (FK), exercise_id (FK), set_number, reps, weight, rir (0 to 5), logged_at
+  id, session_id (FK), exercise_id (FK), set_number, reps, weight,
+  rir_low (nullable, 0 to 5), rir_high (nullable, 0 to 5), logged_at
+  both ends are set together or both are null; a single value stores the
+  same number in each
 
 push_subscriptions
   id, user_id (FK), endpoint, keys, created_at

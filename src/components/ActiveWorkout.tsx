@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseLogCard } from "@/components/ExerciseLogCard";
+import { ExercisePicker } from "@/components/ExercisePicker";
 import { RestTimer } from "@/components/RestTimer";
+import {
+  buildEffectiveCards,
+  takenExerciseIds,
+  orphanedExerciseIds,
+} from "@/lib/workout/swap";
 import {
   logSet,
   deleteSet,
@@ -17,6 +23,8 @@ import {
   logSetLocal,
   deleteSetLocal,
   finishLocal,
+  swapLocal,
+  undoSwapLocal,
 } from "@/lib/offline/mutations";
 import { drainOutbox, type Runners } from "@/lib/offline/sync";
 import { useOnline } from "@/lib/offline/useOnline";
@@ -101,10 +109,15 @@ export function ActiveWorkout({
   const store = useMemo(() => createIdbStore(), []);
   const runners = useMemo(() => buildRunners(), []);
   const [sets, setSets] = useState<LocalSet[]>(serverSets);
+  const [swaps, setSwaps] = useState(snapshot.swaps);
+  // The routine exercise whose slot the picker is currently choosing for.
+  const [picking, setPicking] = useState<string | null>(null);
   const sessionId = snapshot.sessionId;
 
   const refresh = useCallback(async () => {
     setSets(await store.listSets(sessionId));
+    const snap = await store.getSnapshot(sessionId);
+    if (snap) setSwaps(snap.swaps);
   }, [store, sessionId]);
 
   const sync = useCallback(async () => {
@@ -160,6 +173,25 @@ export function ActiveWorkout({
     [store, refresh, sync],
   );
 
+  const handleSwap = useCallback(
+    async (slotExerciseId: string, replacementId: string) => {
+      await swapLocal(store, sessionId, slotExerciseId, replacementId);
+      setPicking(null);
+      await refresh();
+      if (navigator.onLine) void sync();
+    },
+    [store, sessionId, refresh, sync],
+  );
+
+  const handleUndoSwap = useCallback(
+    async (slotExerciseId: string) => {
+      await undoSwapLocal(store, sessionId, slotExerciseId);
+      await refresh();
+      if (navigator.onLine) void sync();
+    },
+    [store, sessionId, refresh, sync],
+  );
+
   const handleFinish = useCallback(async () => {
     await finishLocal(store, sessionId);
     if (navigator.onLine) await sync();
@@ -167,6 +199,43 @@ export function ActiveWorkout({
   }, [store, sessionId, sync, router]);
 
   const hasPending = sets.some((s) => s.syncState === "pending");
+
+  const setCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const s of sets) counts[s.exerciseId] = (counts[s.exerciseId] ?? 0) + 1;
+    return counts;
+  }, [sets]);
+
+  const cards = useMemo(
+    () =>
+      buildEffectiveCards(
+        snapshot.exercises.map((e) => ({
+          exerciseId: e.exerciseId,
+          name: e.name,
+          defaultSets: e.defaultSets,
+        })),
+        swaps,
+        snapshot.library,
+        setCounts,
+      ),
+    [snapshot.exercises, snapshot.library, swaps, setCounts],
+  );
+
+  // Sets logged against an exercise no card shows, which happens when a slot
+  // is swapped more than once. Grouped rather than dropped so work actually
+  // performed is never invisible.
+  const orphans = useMemo(
+    () => orphanedExerciseIds(cards, setCounts),
+    [cards, setCounts],
+  );
+
+  const nameFor = useCallback(
+    (id: string) =>
+      snapshot.library.find((e) => e.id === id)?.name ??
+      snapshot.exercises.find((e) => e.exerciseId === id)?.name ??
+      "Exercise",
+    [snapshot.library, snapshot.exercises],
+  );
 
   return (
     <main className="px-5 pt-12 pb-28">
@@ -203,19 +272,75 @@ export function ActiveWorkout({
         <RestTimer defaultSeconds={snapshot.restSeconds} />
       </div>
 
+      {picking ? (
+        <div className="mb-3">
+          <p className="text-sm mb-2" style={{ color: "var(--text-dim)" }}>
+            Swap in a different exercise for today
+          </p>
+          <ExercisePicker
+            library={snapshot.library}
+            takenIds={takenExerciseIds(cards)}
+            onAdd={(e) => void handleSwap(picking, e.id)}
+            onCreated={(e) => void handleSwap(picking, e.id)}
+          />
+          <button
+            type="button"
+            onClick={() => setPicking(null)}
+            className="text-xs underline underline-offset-2 mt-2"
+            style={{ color: "var(--text-dim)", minHeight: 44 }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-3">
-        {snapshot.exercises.map((ex) => (
+        {cards.map((c) => (
           <ExerciseLogCard
-            key={ex.exerciseId}
-            exerciseName={ex.name}
-            defaultSets={ex.defaultSets}
-            loggedSets={sets.filter((s) => s.exerciseId === ex.exerciseId)}
-            lastSets={snapshot.lastByExercise[ex.exerciseId] ?? []}
-            onLog={(input) => void handleLog(ex.exerciseId, input)}
+            key={`${c.slotExerciseId}:${c.exerciseId}`}
+            exerciseName={c.name}
+            defaultSets={c.defaultSets}
+            role={c.role}
+            originalName={c.originalName}
+            loggedSets={sets.filter((s) => s.exerciseId === c.exerciseId)}
+            lastSets={snapshot.lastByExercise[c.exerciseId] ?? []}
+            onLog={(input) => void handleLog(c.exerciseId, input)}
             onDelete={(setId) => void handleDelete(setId)}
+            onSwap={
+              c.role === "swappedOutOriginal"
+                ? undefined
+                : () => setPicking(c.slotExerciseId)
+            }
+            onUndoSwap={
+              c.role === "replacement" && c.canUndo
+                ? () => void handleUndoSwap(c.slotExerciseId)
+                : undefined
+            }
           />
         ))}
       </div>
+
+      {orphans.length > 0 ? (
+        <section className="mt-6">
+          <h2 className="text-sm mb-2" style={{ color: "var(--text-dim)" }}>
+            Also logged this session
+          </h2>
+          <div className="flex flex-col gap-3">
+            {orphans.map((id) => (
+              <ExerciseLogCard
+                key={id}
+                exerciseName={nameFor(id)}
+                defaultSets={0}
+                role="swappedOutOriginal"
+                loggedSets={sets.filter((s) => s.exerciseId === id)}
+                lastSets={[]}
+                onLog={() => {}}
+                onDelete={(setId) => void handleDelete(setId)}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <button
         type="button"

@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
-import { getSessionDetail, getLastSets } from "@/lib/workout/queries";
+import {
+  getSessionDetail,
+  getLastSets,
+  getExerciseLibrary,
+} from "@/lib/workout/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ActiveWorkout } from "@/components/ActiveWorkout";
 import type { LastRef, LocalSet, Snapshot } from "@/lib/offline/store";
@@ -21,6 +25,8 @@ export default async function ActiveWorkoutPage({
   );
   const lastByExercise: Record<string, LastRef[]> = Object.fromEntries(lastEntries);
 
+  const library = await getExerciseLibrary();
+
   const supabase = await createClient();
   const { data: settings } = await supabase
     .from("user_settings")
@@ -40,6 +46,8 @@ export default async function ActiveWorkoutPage({
       defaultSets: e.defaultSets,
     })),
     lastByExercise,
+    swaps: session.swaps,
+    library,
   };
 
   const serverSets: LocalSet[] = session.exercises.flatMap((e) =>

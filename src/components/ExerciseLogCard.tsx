@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, Check, Copy, Repeat } from "lucide-react";
-import { RIR_OPTIONS } from "@/lib/workout/rir";
+import { parseRir, formatRir } from "@/lib/workout/rir";
 import { lastSetForNumber } from "@/lib/workout/quickfill";
 import type { LastSet } from "@/lib/workout/types";
 import type { LocalSet } from "@/lib/offline/store";
@@ -32,7 +32,12 @@ export function ExerciseLogCard({
   defaultSets: number;
   loggedSets: LocalSet[];
   lastSets: LastSet[];
-  onLog: (input: { reps: number; weight: number; rir: number }) => void;
+  onLog: (input: {
+    reps: number;
+    weight: number;
+    rirLow: number | null;
+    rirHigh: number | null;
+  }) => void;
   onDelete: (setId: string) => void;
   // "swappedOutOriginal" is a read-only card kept on screen so sets logged
   // before the swap stay visible. It shows what was logged and nothing else.
@@ -44,7 +49,9 @@ export function ExerciseLogCard({
   const readOnly = role === "swappedOutOriginal";
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
-  const [rir, setRir] = useState(2);
+  const [rirLow, setRirLow] = useState("");
+  const [rirHigh, setRirHigh] = useState("");
+  const [showHigh, setShowHigh] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const nextSetNumber = loggedSets.length + 1;
@@ -67,10 +74,18 @@ export function ExerciseLogCard({
       setError("Weight cannot be negative.");
       return;
     }
+    const parsed = parseRir(rirLow, rirHigh);
+    if ("error" in parsed) {
+      setError(parsed.error);
+      return;
+    }
     setError(null);
-    onLog({ reps: r, weight: w, rir });
+    onLog({ reps: r, weight: w, ...parsed });
     setReps("");
     setWeight("");
+    setRirLow("");
+    setRirHigh("");
+    setShowHigh(false);
   }
 
   return (
@@ -164,6 +179,9 @@ export function ExerciseLogCard({
                 />
               ) : null}
               Set {s.setNumber}: {s.reps} for {s.weight} lbs
+              {formatRir(s.rirLow, s.rirHigh)
+                ? `, ${formatRir(s.rirLow, s.rirHigh)} RIR`
+                : ""}
             </span>
             <button
               type="button"
@@ -201,6 +219,41 @@ export function ExerciseLogCard({
                 style={fieldStyle}
               />
             </label>
+            <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
+              RIR
+              <input
+                inputMode="numeric"
+                value={rirLow}
+                onChange={(e) => setRirLow(e.target.value)}
+                className="w-full px-3 py-2 mt-1"
+                style={fieldStyle}
+              />
+            </label>
+            {showHigh ? (
+              <label
+                className="flex-1 text-xs"
+                style={{ color: "var(--text-dim)" }}
+              >
+                Highest RIR
+                <input
+                  inputMode="numeric"
+                  value={rirHigh}
+                  onChange={(e) => setRirHigh(e.target.value)}
+                  className="w-full px-3 py-2 mt-1"
+                  style={fieldStyle}
+                />
+              </label>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowHigh(true)}
+                aria-label="Add an RIR range"
+                className="flex items-center justify-center text-xs"
+                style={{ color: "var(--text-dim)", minWidth: 44, minHeight: 44 }}
+              >
+                to
+              </button>
+            )}
             <button
               type="button"
               onClick={log}
@@ -217,21 +270,6 @@ export function ExerciseLogCard({
               <Check size={18} aria-hidden />
             </button>
           </div>
-          <label className="block text-xs mt-2" style={{ color: "var(--text-dim)" }}>
-            How hard was it
-            <select
-              value={rir}
-              onChange={(e) => setRir(Number(e.target.value))}
-              className="w-full px-3 py-2 mt-1"
-              style={fieldStyle}
-            >
-              {RIR_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
         </>
       )}
 

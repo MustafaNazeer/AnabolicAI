@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Exercise } from "@/lib/data/types";
-import type { LastSet, LoggedSet, SessionDetail, SessionExercise } from "@/lib/workout/types";
+import type { LastSet, SessionDetail, SessionExercise } from "@/lib/workout/types";
 import type { Swap } from "@/lib/workout/swap";
 
 export async function getActiveSession(): Promise<{ id: string } | null> {

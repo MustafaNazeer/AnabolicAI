@@ -61,8 +61,8 @@ describe("ExerciseLogCard swap affordance", () => {
             setNumber: 1,
             reps: 10,
             weight: 120,
-            rirLow: 2,
-            rirHigh: 2,
+            rirLow: null,
+            rirHigh: null,
             syncState: "synced",
           },
         ]}

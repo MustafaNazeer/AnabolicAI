@@ -89,10 +89,10 @@ describe("ExerciseLogCard quick fill", () => {
     expect(screen.getByRole("textbox", { name: "Reps" })).toHaveValue("5");
   });
 
-  it("leaves RIR at its default after a quick fill", async () => {
+  it("leaves RIR untouched after a quick fill", async () => {
     renderCard(makeLoggedSets(0));
     await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
-    expect(screen.getByRole("combobox", { name: "How hard was it" })).toHaveValue("2");
+    expect(screen.getByRole("textbox", { name: "RIR" })).toHaveValue("");
   });
 });
 
@@ -103,7 +103,12 @@ describe("ExerciseLogCard logging", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Weight" }), "185");
     await userEvent.type(screen.getByRole("textbox", { name: "Reps" }), "5");
     await userEvent.click(screen.getByRole("button", { name: "Log set" }));
-    expect(onLog).toHaveBeenCalledWith({ reps: 5, weight: 185, rirLow: 2, rirHigh: 2 });
+    expect(onLog).toHaveBeenCalledWith({
+      reps: 5,
+      weight: 185,
+      rirLow: null,
+      rirHigh: null,
+    });
     expect(screen.getByRole("textbox", { name: "Weight" })).toHaveValue("");
     expect(screen.getByRole("textbox", { name: "Reps" })).toHaveValue("");
   });

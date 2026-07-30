@@ -38,8 +38,8 @@ describe("ExerciseLogCard field order", () => {
             setNumber: 1,
             reps: 8,
             weight: 135,
-            rirLow: 2,
-            rirHigh: 2,
+            rirLow: null,
+            rirHigh: null,
             syncState: "synced",
           },
         ]}

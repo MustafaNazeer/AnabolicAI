@@ -76,9 +76,6 @@ export async function logSet(
         weight,
         rir_low: rirLow,
         rir_high: rirHigh,
-        // rir is still NOT NULL until migration 0006 drops it. Written and
-        // never read; the fallback only matters for a set logged with no RIR.
-        rir: rirLow ?? 2,
       },
       { onConflict: "id", ignoreDuplicates: true },
     )

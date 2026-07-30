@@ -17,7 +17,8 @@ type ToggleKey =
   | "notif_reminder"
   | "notif_streak"
   | "notif_weekly"
-  | "notif_goal";
+  | "notif_goal"
+  | "notif_unfinished";
 
 const TOGGLES: { key: ToggleKey; label: string; note?: string }[] = [
   { key: "notif_pr", label: "Personal record celebration" },
@@ -26,6 +27,7 @@ const TOGGLES: { key: ToggleKey; label: string; note?: string }[] = [
   { key: "notif_streak", label: "Streak protection" },
   { key: "notif_weekly", label: "Weekly recap" },
   { key: "notif_goal", label: "Goal progress" },
+  { key: "notif_unfinished", label: "Unfinished workout" },
 ];
 
 function Row({
@@ -93,6 +95,7 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
         notif_pr: next.notif_pr,
         notif_weekly: next.notif_weekly,
         notif_goal: next.notif_goal,
+        notif_unfinished: next.notif_unfinished,
         rest_timer_seconds: next.rest_timer_seconds,
       });
       if (res?.error) setError(res.error);

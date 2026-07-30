@@ -8,6 +8,7 @@ export type NotificationSettings = {
   notif_pr: boolean;
   notif_weekly: boolean;
   notif_goal: boolean;
+  notif_unfinished: boolean;
   rest_timer_seconds: number;
 };
 
@@ -21,5 +22,6 @@ export const NOTIFICATION_DEFAULTS: NotificationSettings = {
   notif_pr: true,
   notif_weekly: true,
   notif_goal: true,
+  notif_unfinished: true,
   rest_timer_seconds: 120,
 };

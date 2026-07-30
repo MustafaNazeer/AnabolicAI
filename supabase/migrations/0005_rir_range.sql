@@ -1,7 +1,9 @@
 -- 0005: RIR becomes an optional range rather than one required value.
 -- Additive only. The old rir column stays and keeps its NOT NULL, so the
--- currently deployed build keeps working whether this runs before or after
--- the deploy. Dropping rir happens separately in 0006.
+-- currently deployed build keeps working after this runs, which means it is
+-- safe to apply well in advance. It must still be applied BEFORE the build
+-- that reads and writes the new columns goes live. Dropping rir happens
+-- separately in 0006.
 
 ALTER TABLE workout_sets ADD COLUMN rir_low  INTEGER;
 ALTER TABLE workout_sets ADD COLUMN rir_high INTEGER;

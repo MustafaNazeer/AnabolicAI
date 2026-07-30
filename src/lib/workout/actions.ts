@@ -94,6 +94,97 @@ export async function deleteSet(setId: string, sessionId: string) {
   return { ok: true };
 }
 
+export async function swapExercise(
+  sessionId: string,
+  originalExerciseId: string,
+  replacementExerciseId: string,
+) {
+  // Same retryable contract as logSet: false means the input can never succeed
+  // and the sync engine should drop it, true means retry.
+  if (originalExerciseId === replacementExerciseId) {
+    return { error: "That is already the exercise.", retryable: false };
+  }
+
+  const supabase = await createClient();
+
+  // Refuse a replacement already present in this session. Two cards for one
+  // exercise would compute colliding set numbers, since set numbering is
+  // derived per exercise from the logged sets.
+  const { data: session } = await supabase
+    .from("workout_sessions")
+    .select("routine_id")
+    .eq("id", sessionId)
+    .single();
+  if (!session) return { error: "Workout not found.", retryable: false };
+
+  const { data: inRoutine } = await supabase
+    .from("routine_exercises")
+    .select("exercise_id")
+    .eq("routine_id", (session as unknown as { routine_id: string }).routine_id);
+
+  const { data: swapped } = await supabase
+    .from("session_exercise_swaps")
+    .select("original_exercise_id, replacement_exercise_id")
+    .eq("session_id", sessionId);
+
+  const present = new Set<string>();
+  for (const r of (inRoutine ?? []) as { exercise_id: string }[]) {
+    present.add(r.exercise_id);
+  }
+  for (const s of (swapped ?? []) as {
+    original_exercise_id: string;
+    replacement_exercise_id: string;
+  }[]) {
+    present.delete(s.original_exercise_id);
+    present.add(s.replacement_exercise_id);
+  }
+  present.delete(originalExerciseId);
+
+  if (present.has(replacementExerciseId)) {
+    return { error: "That exercise is already in this workout.", retryable: false };
+  }
+
+  const { error } = await supabase.from("session_exercise_swaps").upsert(
+    {
+      session_id: sessionId,
+      original_exercise_id: originalExerciseId,
+      replacement_exercise_id: replacementExerciseId,
+    },
+    { onConflict: "session_id,original_exercise_id" },
+  );
+  if (error) return { error: error.message, retryable: true };
+  revalidatePath(`/log/${sessionId}`);
+  return { ok: true };
+}
+
+export async function undoSwap(sessionId: string, originalExerciseId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("session_exercise_swaps")
+    .delete()
+    .eq("session_id", sessionId)
+    .eq("original_exercise_id", originalExerciseId);
+  if (error) return { error: error.message, retryable: true };
+  revalidatePath(`/log/${sessionId}`);
+  return { ok: true };
+}
+
+// Deletes the session outright. Its sets go with it through the cascade on
+// workout_sets.session_id. This exists so a stale workout can be cleared
+// without finishing it, which would otherwise record a phantom workout in the
+// dashboard count, the streak and the weekly recap.
+export async function discardSession(sessionId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("workout_sessions")
+    .delete()
+    .eq("id", sessionId);
+  if (error) return { error: error.message };
+  revalidatePath("/");
+  revalidatePath("/log");
+  return { ok: true };
+}
+
 export async function finishSession(sessionId: string) {
   const supabase = await createClient();
   const { error } = await supabase

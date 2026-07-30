@@ -1,4 +1,5 @@
 import type { Exercise } from "@/lib/data/types";
+import type { Swap } from "@/lib/workout/swap";
 
 export type LoggedSet = {
   id: string;
@@ -17,7 +18,10 @@ export type SessionExercise = {
 export type SessionDetail = {
   id: string;
   routineName: string;
+  startedAt: string;
   exercises: SessionExercise[];
+  swaps: Swap[];
+  setTimes: string[];
 };
 
 export type LastSet = {

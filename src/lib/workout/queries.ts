@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Exercise } from "@/lib/data/types";
 import type { LastSet, LoggedSet, SessionDetail, SessionExercise } from "@/lib/workout/types";
+import type { Swap } from "@/lib/workout/swap";
 
 export async function getActiveSession(): Promise<{ id: string } | null> {
   const supabase = await createClient();
@@ -21,7 +22,7 @@ export async function getSessionDetail(
 
   const { data: session } = await supabase
     .from("workout_sessions")
-    .select("id, routine_id, routines(name)")
+    .select("id, routine_id, started_at, routines(name)")
     .eq("id", sessionId)
     .single();
   if (!session) return null;
@@ -41,16 +42,34 @@ export async function getSessionDetail(
 
   const { data: setsRaw } = await supabase
     .from("workout_sets")
-    .select("id, exercise_id, set_number, reps, weight, rir")
+    .select("id, exercise_id, set_number, reps, weight, rir, logged_at")
     .eq("session_id", sessionId)
     .order("set_number", { ascending: true });
+
+  const { data: swapsRaw } = await supabase
+    .from("session_exercise_swaps")
+    .select("original_exercise_id, replacement_exercise_id")
+    .eq("session_id", sessionId);
+
+  const swaps: Swap[] = (
+    (swapsRaw ?? []) as {
+      original_exercise_id: string;
+      replacement_exercise_id: string;
+    }[]
+  ).map((r) => ({
+    originalExerciseId: r.original_exercise_id,
+    replacementExerciseId: r.replacement_exercise_id,
+  }));
 
   const rx = (rxRaw ?? []) as unknown as {
     exercise_id: string;
     default_sets: number;
     exercise: Exercise;
   }[];
-  const sets = (setsRaw ?? []) as unknown as ({ exercise_id: string } & LoggedSet)[];
+  const sets = (setsRaw ?? []) as unknown as ({
+    exercise_id: string;
+    logged_at: string;
+  } & LoggedSet)[];
 
   const exercises: SessionExercise[] = rx.map((r) => ({
     exercise: r.exercise,
@@ -66,7 +85,23 @@ export async function getSessionDetail(
       })),
   }));
 
-  return { id: session.id, routineName, exercises };
+  return {
+    id: session.id,
+    routineName,
+    startedAt: (session as unknown as { started_at: string }).started_at,
+    exercises,
+    swaps,
+    setTimes: sets.map((s) => s.logged_at),
+  };
+}
+
+export async function getExerciseLibrary(): Promise<Exercise[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("exercises")
+    .select("id, name, muscle_group, is_default")
+    .order("name", { ascending: true });
+  return (data ?? []) as Exercise[];
 }
 
 export async function getLastSets(

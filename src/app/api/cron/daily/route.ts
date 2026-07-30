@@ -6,7 +6,9 @@ import {
   workoutReminderPayload,
   streakWarningPayload,
   weeklyRecapPayload,
+  unfinishedWorkoutPayload,
 } from "@/lib/notifications/payloads";
+import { lastActivityAt, isStale } from "@/lib/workout/stale";
 import {
   APP_TIMEZONE,
   zonedNow,
@@ -15,6 +17,7 @@ import {
   shouldSendReminder,
   shouldWarnStreak,
   shouldSendWeeklyRecap,
+  shouldNudgeUnfinished,
 } from "@/lib/notifications/schedule";
 
 export const runtime = "nodejs";
@@ -26,6 +29,7 @@ type SettingsRow = {
   notif_reminder: boolean;
   notif_streak: boolean;
   notif_weekly: boolean;
+  notif_unfinished: boolean;
   reminder_days: string | null;
 };
 
@@ -35,7 +39,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // ?force=reminder|streak|weekly bypasses the day gate for end-to-end testing.
+  // ?force=reminder|streak|weekly|unfinished bypasses the day gate for
+  // end-to-end testing.
   const force = new URL(request.url).searchParams.get("force");
 
   const now = new Date();
@@ -47,7 +52,7 @@ export async function GET(request: Request) {
   const { data } = await admin
     .from("user_settings")
     .select(
-      "user_id, notif_master, notif_reminder, notif_streak, notif_weekly, reminder_days",
+      "user_id, notif_master, notif_reminder, notif_streak, notif_weekly, notif_unfinished, reminder_days",
     )
     .eq("notif_master", true);
   const users = (data ?? []) as SettingsRow[];
@@ -87,6 +92,53 @@ export async function GET(request: Request) {
           admin,
           u.user_id,
           weeklyRecapPayload(g.workoutsThisWeek, g.weeklyVolume),
+        );
+        sent++;
+      }
+
+      // Unfinished workout. Nudge once per session, claimed with a conditional
+      // update so a concurrent run cannot send it twice.
+      const { data: openRaw } = await admin
+        .from("workout_sessions")
+        .select(
+          "id, started_at, unfinished_notified, routines(name), workout_sets(logged_at)",
+        )
+        .eq("user_id", u.user_id)
+        .is("completed_at", null);
+
+      const open = (openRaw ?? []) as unknown as {
+        id: string;
+        started_at: string;
+        unfinished_notified: boolean;
+        routines: { name: string } | null;
+        workout_sets: { logged_at: string }[] | null;
+      }[];
+
+      for (const s of open) {
+        const last = lastActivityAt(
+          s.started_at,
+          (s.workout_sets ?? []).map((w) => w.logged_at),
+        );
+        const send =
+          force === "unfinished" ||
+          shouldNudgeUnfinished(u, {
+            isStale: isStale(last, now),
+            alreadyNotified: s.unfinished_notified,
+          });
+        if (!send) continue;
+
+        const { data: claimed } = await admin
+          .from("workout_sessions")
+          .update({ unfinished_notified: true })
+          .eq("id", s.id)
+          .eq("unfinished_notified", false)
+          .select("id");
+        if (!claimed || claimed.length === 0) continue;
+
+        await sendToUserWith(
+          admin,
+          u.user_id,
+          unfinishedWorkoutPayload(s.routines?.name ?? "Your workout", s.id),
         );
         sent++;
       }

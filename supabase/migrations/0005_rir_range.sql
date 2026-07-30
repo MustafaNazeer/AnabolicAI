@@ -8,7 +8,12 @@
 ALTER TABLE workout_sets ADD COLUMN rir_low  INTEGER;
 ALTER TABLE workout_sets ADD COLUMN rir_high INTEGER;
 
-UPDATE workout_sets SET rir_low = rir, rir_high = rir;
+-- Every existing row needs backfilling, so this is deliberately unqualified
+-- apart from the guard below, which only skips rows already carrying a value
+-- and makes re-running the script harmless.
+UPDATE workout_sets
+SET rir_low = rir, rir_high = rir
+WHERE rir_low IS NULL;
 
 ALTER TABLE workout_sets
     ADD CONSTRAINT workout_sets_rir_low_range

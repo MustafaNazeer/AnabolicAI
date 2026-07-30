@@ -167,3 +167,38 @@ describe("draining swap ops", () => {
     expect(await store.listOutbox()).toHaveLength(1);
   });
 });
+
+describe("replaying a set queued before the range change", () => {
+  it("does not wedge the outbox on a legacy rir payload", async () => {
+    const store = createMemoryStore();
+    // Shape written by the previous build: a single rir, no low or high.
+    await store.enqueue({
+      type: "logSet",
+      sessionId: "s1",
+      payload: {
+        id: "old-1",
+        exerciseId: "e1",
+        setNumber: 1,
+        reps: 8,
+        weight: 135,
+        rirLow: null,
+        rirHigh: null,
+        rir: 2,
+      },
+    });
+
+    const seen: unknown[] = [];
+    await drainOutbox(
+      store,
+      runners({
+        logSet: async (p) => {
+          seen.push(p);
+          return ok;
+        },
+      }),
+    );
+
+    expect(seen).toHaveLength(1);
+    expect(await store.listOutbox()).toHaveLength(0);
+  });
+});

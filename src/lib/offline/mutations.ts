@@ -22,7 +22,12 @@ export async function logSetLocal(
   store: OfflineStore,
   sessionId: string,
   exerciseId: string,
-  input: { reps: number; weight: number; rir: number },
+  input: {
+    reps: number;
+    weight: number;
+    rirLow: number | null;
+    rirHigh: number | null;
+  },
   idGen: () => string,
 ): Promise<LocalSet> {
   const setNumber = nextSetNumber(await store.listSets(sessionId), exerciseId);
@@ -33,7 +38,8 @@ export async function logSetLocal(
     setNumber,
     reps: input.reps,
     weight: input.weight,
-    rir: input.rir,
+    rirLow: input.rirLow,
+    rirHigh: input.rirHigh,
     syncState: "pending",
   };
   await store.putSet(set);
@@ -46,7 +52,8 @@ export async function logSetLocal(
       setNumber,
       reps: input.reps,
       weight: input.weight,
-      rir: input.rir,
+      rirLow: input.rirLow,
+      rirHigh: input.rirHigh,
     },
   });
   return set;

@@ -193,3 +193,38 @@ describe("undoSwapLocal", () => {
     expect(outbox.map((o) => o.type)).toEqual(["swapExercise", "undoSwap"]);
   });
 });
+
+describe("logSetLocal with a range", () => {
+  it("carries both ends into the set and the queued op", async () => {
+    const store = createMemoryStore();
+    await logSetLocal(
+      store,
+      "s1",
+      "e1",
+      { reps: 8, weight: 135, rirLow: 0, rirHigh: 1 },
+      () => "new-id",
+    );
+    const set = await store.getSet("new-id");
+    expect(set?.rirLow).toBe(0);
+    expect(set?.rirHigh).toBe(1);
+    const [op] = await store.listOutbox();
+    expect(op).toMatchObject({
+      type: "logSet",
+      payload: { rirLow: 0, rirHigh: 1 },
+    });
+  });
+
+  it("carries a blank RIR through as nulls", async () => {
+    const store = createMemoryStore();
+    await logSetLocal(
+      store,
+      "s1",
+      "e1",
+      { reps: 8, weight: 135, rirLow: null, rirHigh: null },
+      () => "blank-id",
+    );
+    const set = await store.getSet("blank-id");
+    expect(set?.rirLow).toBeNull();
+    expect(set?.rirHigh).toBeNull();
+  });
+});

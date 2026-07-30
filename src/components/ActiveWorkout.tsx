@@ -34,6 +34,11 @@ import type { LocalSet, Snapshot } from "@/lib/offline/store";
 function buildRunners(): Runners {
   return {
     async logSet(p) {
+      // A set queued by a build from before the range change carries a single
+      // `rir` and no pair. Treat it as a range of one so it can still sync,
+      // rather than failing forever and blocking everything behind it.
+      const low = p.rirLow ?? p.rir ?? null;
+      const high = p.rirHigh ?? p.rir ?? null;
       try {
         const r = await logSet(
           p.sessionId,
@@ -42,7 +47,8 @@ function buildRunners(): Runners {
           p.setNumber,
           p.reps,
           p.weight,
-          p.rir,
+          low,
+          high,
         );
         if (r && "error" in r) {
           // Only client-invalid input is droppable; every server error retries.
@@ -161,7 +167,15 @@ export function ActiveWorkout({
   }, [sync]);
 
   const handleLog = useCallback(
-    async (exerciseId: string, input: { reps: number; weight: number; rir: number }) => {
+    async (
+      exerciseId: string,
+      input: {
+        reps: number;
+        weight: number;
+        rirLow: number | null;
+        rirHigh: number | null;
+      },
+    ) => {
       await logSetLocal(store, sessionId, exerciseId, input, () => crypto.randomUUID());
       await refresh();
       if (navigator.onLine) void sync();

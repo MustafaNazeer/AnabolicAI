@@ -24,6 +24,14 @@ const lastSets: LastSet[] = [
   { set_number: 2, reps: 6, weight: 145, rirLow: 1, rirHigh: 1 },
 ];
 
+const rangeLastSets: LastSet[] = [
+  { set_number: 1, reps: 8, weight: 135, rirLow: 0, rirHigh: 1 },
+];
+
+const noRirLastSets: LastSet[] = [
+  { set_number: 1, reps: 8, weight: 135, rirLow: null, rirHigh: null },
+];
+
 function renderCard(
   loggedSets: LocalSet[],
   last: LastSet[] = lastSets,
@@ -71,11 +79,11 @@ describe("ExerciseLogCard quick fill", () => {
     expect(screen.queryByRole("button", { name: /fill set/i })).toBeNull();
   });
 
-  it("names the matched weight and reps in the aria-label", () => {
+  it("names the matched reps, weight and RIR in the aria-label", () => {
     renderCard(makeLoggedSets(1));
     expect(
       screen.getByRole("button", {
-        name: /fill set 2 with last time, 6 reps for 145 pounds/i,
+        name: "Fill set 2 with last time, 6 reps for 145 pounds, 1 RIR",
       }),
     ).toBeInTheDocument();
   });
@@ -89,10 +97,45 @@ describe("ExerciseLogCard quick fill", () => {
     expect(screen.getByRole("textbox", { name: "Reps" })).toHaveValue("5");
   });
 
-  it("leaves RIR untouched after a quick fill", async () => {
+  it("fills RIR from the previous set when both boxes are empty", async () => {
     renderCard(makeLoggedSets(0));
     await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
-    expect(screen.getByRole("textbox", { name: "RIR" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "RIR" })).toHaveValue("2");
+    expect(screen.getByRole("textbox", { name: "to" })).toHaveValue("");
+  });
+
+  it("fills both boxes when the previous set recorded a range", async () => {
+    renderCard(makeLoggedSets(0), rangeLastSets);
+    await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
+    expect(screen.getByRole("textbox", { name: "RIR" })).toHaveValue("0");
+    expect(screen.getByRole("textbox", { name: "to" })).toHaveValue("1");
+  });
+
+  it("leaves a typed RIR alone while still filling reps and weight", async () => {
+    renderCard(makeLoggedSets(0));
+    await userEvent.type(screen.getByRole("textbox", { name: "RIR" }), "4");
+    await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
+    expect(screen.getByRole("textbox", { name: "RIR" })).toHaveValue("4");
+    expect(screen.getByRole("textbox", { name: "to" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "Reps" })).toHaveValue("8");
+    expect(screen.getByRole("textbox", { name: "Weight" })).toHaveValue("135");
+  });
+
+  it("names the previous RIR in the reference line", () => {
+    renderCard(makeLoggedSets(0));
+    expect(
+      screen.getByText("Last time: 8 for 135 lbs, 2 RIR"),
+    ).toBeInTheDocument();
+  });
+
+  it("omits the RIR clause when the previous set recorded none", () => {
+    renderCard(makeLoggedSets(0), noRirLastSets);
+    expect(
+      screen.getByRole("button", {
+        name: "Fill set 1 with last time, 8 reps for 135 pounds",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Last time: 8 for 135 lbs")).toBeInTheDocument();
   });
 });
 

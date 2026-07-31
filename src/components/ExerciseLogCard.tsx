@@ -60,6 +60,15 @@ export function ExerciseLogCard({
     if (!suggestion) return;
     setWeight((w) => (w === "" ? String(suggestion.weight) : w));
     setReps((r) => (r === "" ? String(suggestion.reps) : r));
+    // The two RIR boxes are one value, so they fill as a pair and only when
+    // neither has been typed into. A single recorded value fills the lower box
+    // alone, which is what a person types; parseRir collapses it on log.
+    if (suggestion.rirLow === null) return;
+    if (rirLow !== "" || rirHigh !== "") return;
+    setRirLow(String(suggestion.rirLow));
+    if (suggestion.rirHigh !== null && suggestion.rirHigh !== suggestion.rirLow) {
+      setRirHigh(String(suggestion.rirHigh));
+    }
   }
 
   function log() {
@@ -137,12 +146,13 @@ export function ExerciseLogCard({
         <button
           type="button"
           onClick={fillFromLast}
-          aria-label={`Fill set ${nextSetNumber} with last time, ${suggestion.reps} reps for ${suggestion.weight} pounds`}
+          aria-label={`Fill set ${nextSetNumber} with last time, ${suggestion.reps} reps for ${suggestion.weight} pounds${rirSuffix(suggestion.rirLow, suggestion.rirHigh)}`}
           className="inline-flex items-center gap-1 text-xs mt-1 underline underline-offset-2"
           style={{ color: "var(--text-dim)", minHeight: 44 }}
         >
           <Copy size={12} aria-hidden />
           Last time: {suggestion.reps} for {suggestion.weight} lbs
+          {rirSuffix(suggestion.rirLow, suggestion.rirHigh)}
         </button>
       ) : (
         <p className="text-xs mt-1" style={{ color: "var(--text-dim)" }}>

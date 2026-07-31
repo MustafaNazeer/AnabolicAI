@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseRir, formatRir } from "@/lib/workout/rir";
+import { parseRir, formatRir, rirSuffix } from "@/lib/workout/rir";
 
 describe("parseRir", () => {
   it("treats both blank as no RIR", () => {
@@ -53,5 +53,19 @@ describe("formatRir", () => {
 
   it("shows a range with a hyphen", () => {
     expect(formatRir(0, 1)).toBe("0-1");
+  });
+});
+
+describe("rirSuffix", () => {
+  it("is blank when there is no RIR", () => {
+    expect(rirSuffix(null, null)).toBe("");
+  });
+
+  it("names a single value once", () => {
+    expect(rirSuffix(2, 2)).toBe(", 2 RIR");
+  });
+
+  it("names a range with a hyphen", () => {
+    expect(rirSuffix(0, 1)).toBe(", 0-1 RIR");
   });
 });

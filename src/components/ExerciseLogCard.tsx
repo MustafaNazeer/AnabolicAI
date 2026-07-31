@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, Check, Copy, Repeat } from "lucide-react";
-import { parseRir, formatRir } from "@/lib/workout/rir";
+import { parseRir, rirSuffix } from "@/lib/workout/rir";
 import { lastSetForNumber } from "@/lib/workout/quickfill";
 import type { LastSet } from "@/lib/workout/types";
 import type { LocalSet } from "@/lib/offline/store";
@@ -179,9 +179,7 @@ export function ExerciseLogCard({
                 />
               ) : null}
               Set {s.setNumber}: {s.reps} for {s.weight} lbs
-              {formatRir(s.rirLow, s.rirHigh)
-                ? `, ${formatRir(s.rirLow, s.rirHigh)} RIR`
-                : ""}
+              {rirSuffix(s.rirLow, s.rirHigh)}
             </span>
             <button
               type="button"

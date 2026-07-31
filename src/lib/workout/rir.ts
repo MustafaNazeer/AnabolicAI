@@ -31,3 +31,10 @@ export function formatRir(low: number | null, high: number | null): string {
   if (low === null || high === null) return "";
   return low === high ? String(low) : `${low}-${high}`;
 }
+
+// The ", 0-1 RIR" clause, read by the logged set rows, the quick fill reference
+// line and that button's accessible name, so all three phrase it the same way.
+export function rirSuffix(low: number | null, high: number | null): string {
+  const text = formatRir(low, high);
+  return text ? `, ${text} RIR` : "";
+}

@@ -28,7 +28,10 @@ export function parseRir(
 }
 
 export function formatRir(low: number | null, high: number | null): string {
-  if (low === null || high === null) return "";
+  // Loose null check on purpose: a set queued offline by a build predating the
+  // range fields has neither of them, so they arrive undefined rather than null
+  // and a strict check would let them through and print "undefined".
+  if (low == null || high == null) return "";
   return low === high ? String(low) : `${low}-${high}`;
 }
 

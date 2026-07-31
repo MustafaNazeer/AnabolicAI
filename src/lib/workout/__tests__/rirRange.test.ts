@@ -54,6 +54,19 @@ describe("formatRir", () => {
   it("shows a range with a hyphen", () => {
     expect(formatRir(0, 1)).toBe("0-1");
   });
+
+  // A set queued offline by a build older than 116f923 carries the old single
+  // `rir` field and neither end of the range, so both read as undefined at
+  // runtime even though the type promises a number or null.
+  it("is blank when a value is missing at runtime rather than null", () => {
+    const legacy = {} as { rirLow: number | null; rirHigh: number | null };
+    expect(formatRir(legacy.rirLow, legacy.rirHigh)).toBe("");
+  });
+
+  it("is blank when only one end is missing at runtime", () => {
+    const legacy = { rirHigh: 2 } as { rirLow: number | null; rirHigh: number | null };
+    expect(formatRir(legacy.rirLow, legacy.rirHigh)).toBe("");
+  });
 });
 
 describe("rirSuffix", () => {
@@ -67,5 +80,10 @@ describe("rirSuffix", () => {
 
   it("names a range with a hyphen", () => {
     expect(rirSuffix(0, 1)).toBe(", 0-1 RIR");
+  });
+
+  it("adds no clause when a value is missing at runtime", () => {
+    const legacy = {} as { rirLow: number | null; rirHigh: number | null };
+    expect(rirSuffix(legacy.rirLow, legacy.rirHigh)).toBe("");
   });
 });

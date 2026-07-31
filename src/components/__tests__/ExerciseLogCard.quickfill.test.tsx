@@ -160,12 +160,17 @@ describe("ExerciseLogCard logging", () => {
     renderCard(makeLoggedSets(0), lastSets, { onLog });
     await userEvent.type(screen.getByRole("textbox", { name: "Weight" }), "185");
     await userEvent.type(screen.getByRole("textbox", { name: "Reps" }), "5");
+    await userEvent.type(screen.getByRole("textbox", { name: "RIR" }), "0");
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "to, highest reps in reserve" }),
+      "1",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Log set" }));
     expect(onLog).toHaveBeenCalledWith({
       reps: 5,
       weight: 185,
-      rirLow: null,
-      rirHigh: null,
+      rirLow: 0,
+      rirHigh: 1,
     });
     expect(screen.getByRole("textbox", { name: "Weight" })).toHaveValue("");
     expect(screen.getByRole("textbox", { name: "Reps" })).toHaveValue("");

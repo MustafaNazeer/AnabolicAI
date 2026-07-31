@@ -224,7 +224,7 @@ These were deliberately excluded from v1. The list is kept as the record of wher
 - Light mode (the theme picker stays accent only in v1).
 - Secondary charts: volume over time, rep progression, per routine stacked volume.
 - Routine duplicate.
-- Quick fill: one tap copy of last session's weight and reps.
+- Quick fill: one tap copy of last session's reps, weight and reps in reserve.
 - Additional notifications: unfinished workout reminder.
 
 Speculative ideas that are not yet planned live in `future-ideas.md` (private, gitignored).

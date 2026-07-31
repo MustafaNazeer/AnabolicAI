@@ -58,16 +58,13 @@ describe("RIR input", () => {
     });
   });
 
-  it("reveals a second box and logs a range", async () => {
+  it("logs a range typed into both boxes", async () => {
     const onLog = vi.fn();
     render(<ExerciseLogCard {...base} loggedSets={[]} onLog={onLog} />);
     await userEvent.type(screen.getByLabelText(/^reps$/i), "8");
     await userEvent.type(screen.getByLabelText(/^weight$/i), "135");
     await userEvent.type(screen.getByLabelText(/^rir$/i), "0");
-    await userEvent.click(
-      screen.getByRole("button", { name: /add an rir range/i }),
-    );
-    await userEvent.type(screen.getByLabelText(/highest rir/i), "1");
+    await userEvent.type(screen.getByLabelText(/^to$/i), "1");
     await userEvent.click(screen.getByRole("button", { name: /log set/i }));
     expect(onLog).toHaveBeenCalledWith({
       reps: 8,
@@ -83,13 +80,20 @@ describe("RIR input", () => {
     await userEvent.type(screen.getByLabelText(/^reps$/i), "8");
     await userEvent.type(screen.getByLabelText(/^weight$/i), "135");
     await userEvent.type(screen.getByLabelText(/^rir$/i), "3");
-    await userEvent.click(
-      screen.getByRole("button", { name: /add an rir range/i }),
-    );
-    await userEvent.type(screen.getByLabelText(/highest rir/i), "1");
+    await userEvent.type(screen.getByLabelText(/^to$/i), "1");
     await userEvent.click(screen.getByRole("button", { name: /log set/i }));
     expect(onLog).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toHaveTextContent(/low to high/i);
+  });
+
+  it("shows both RIR boxes in one group with nothing to tap first", () => {
+    render(<ExerciseLogCard {...base} loggedSets={[]} onLog={vi.fn()} />);
+    expect(screen.getByRole("group", { name: "Reps in reserve" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^rir$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^to$/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /add an rir range/i }),
+    ).not.toBeInTheDocument();
   });
 });
 

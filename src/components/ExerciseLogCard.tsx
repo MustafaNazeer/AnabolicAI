@@ -51,7 +51,6 @@ export function ExerciseLogCard({
   const [weight, setWeight] = useState("");
   const [rirLow, setRirLow] = useState("");
   const [rirHigh, setRirHigh] = useState("");
-  const [showHigh, setShowHigh] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const nextSetNumber = loggedSets.length + 1;
@@ -85,7 +84,6 @@ export function ExerciseLogCard({
     setWeight("");
     setRirLow("");
     setRirHigh("");
-    setShowHigh(false);
   }
 
   return (
@@ -217,22 +215,24 @@ export function ExerciseLogCard({
                 style={fieldStyle}
               />
             </label>
-            <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
-              RIR
-              <input
-                inputMode="numeric"
-                value={rirLow}
-                onChange={(e) => setRirLow(e.target.value)}
-                className="w-full px-3 py-2 mt-1"
-                style={fieldStyle}
-              />
-            </label>
-            {showHigh ? (
-              <label
-                className="flex-1 text-xs"
-                style={{ color: "var(--text-dim)" }}
-              >
-                Highest RIR
+            <div
+              role="group"
+              aria-label="Reps in reserve"
+              className="flex items-end gap-2"
+              style={{ flex: 2 }}
+            >
+              <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
+                RIR
+                <input
+                  inputMode="numeric"
+                  value={rirLow}
+                  onChange={(e) => setRirLow(e.target.value)}
+                  className="w-full px-3 py-2 mt-1"
+                  style={fieldStyle}
+                />
+              </label>
+              <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
+                to
                 <input
                   inputMode="numeric"
                   value={rirHigh}
@@ -241,17 +241,7 @@ export function ExerciseLogCard({
                   style={fieldStyle}
                 />
               </label>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowHigh(true)}
-                aria-label="Add an RIR range"
-                className="flex items-center justify-center text-xs"
-                style={{ color: "var(--text-dim)", minWidth: 44, minHeight: 44 }}
-              >
-                to
-              </button>
-            )}
+            </div>
             <button
               type="button"
               onClick={log}

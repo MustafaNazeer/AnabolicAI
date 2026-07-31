@@ -64,7 +64,7 @@ describe("RIR input", () => {
     await userEvent.type(screen.getByLabelText(/^reps$/i), "8");
     await userEvent.type(screen.getByLabelText(/^weight$/i), "135");
     await userEvent.type(screen.getByLabelText(/^rir$/i), "0");
-    await userEvent.type(screen.getByLabelText(/^to$/i), "1");
+    await userEvent.type(screen.getByLabelText(/highest reps in reserve/i), "1");
     await userEvent.click(screen.getByRole("button", { name: /log set/i }));
     expect(onLog).toHaveBeenCalledWith({
       reps: 8,
@@ -80,7 +80,7 @@ describe("RIR input", () => {
     await userEvent.type(screen.getByLabelText(/^reps$/i), "8");
     await userEvent.type(screen.getByLabelText(/^weight$/i), "135");
     await userEvent.type(screen.getByLabelText(/^rir$/i), "3");
-    await userEvent.type(screen.getByLabelText(/^to$/i), "1");
+    await userEvent.type(screen.getByLabelText(/highest reps in reserve/i), "1");
     await userEvent.click(screen.getByRole("button", { name: /log set/i }));
     expect(onLog).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toHaveTextContent(/low to high/i);
@@ -90,7 +90,7 @@ describe("RIR input", () => {
     render(<ExerciseLogCard {...base} loggedSets={[]} onLog={vi.fn()} />);
     expect(screen.getByRole("group", { name: "Reps in reserve" })).toBeInTheDocument();
     expect(screen.getByLabelText(/^rir$/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^to$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/highest reps in reserve/i)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /add an rir range/i }),
     ).not.toBeInTheDocument();

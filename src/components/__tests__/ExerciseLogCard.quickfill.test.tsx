@@ -101,14 +101,14 @@ describe("ExerciseLogCard quick fill", () => {
     renderCard(makeLoggedSets(0));
     await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
     expect(screen.getByRole("textbox", { name: "RIR" })).toHaveValue("2");
-    expect(screen.getByRole("textbox", { name: "to" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "to, highest reps in reserve" })).toHaveValue("");
   });
 
   it("fills both boxes when the previous set recorded a range", async () => {
     renderCard(makeLoggedSets(0), rangeLastSets);
     await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
     expect(screen.getByRole("textbox", { name: "RIR" })).toHaveValue("0");
-    expect(screen.getByRole("textbox", { name: "to" })).toHaveValue("1");
+    expect(screen.getByRole("textbox", { name: "to, highest reps in reserve" })).toHaveValue("1");
   });
 
   it("leaves a typed RIR alone while still filling reps and weight", async () => {
@@ -116,7 +116,7 @@ describe("ExerciseLogCard quick fill", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "RIR" }), "4");
     await userEvent.click(screen.getByRole("button", { name: /fill set 1/i }));
     expect(screen.getByRole("textbox", { name: "RIR" })).toHaveValue("4");
-    expect(screen.getByRole("textbox", { name: "to" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "to, highest reps in reserve" })).toHaveValue("");
     expect(screen.getByRole("textbox", { name: "Reps" })).toHaveValue("8");
     expect(screen.getByRole("textbox", { name: "Weight" })).toHaveValue("135");
   });

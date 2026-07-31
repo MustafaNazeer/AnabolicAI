@@ -246,6 +246,7 @@ export function ExerciseLogCard({
                 to
                 <input
                   inputMode="numeric"
+                  aria-label="to, highest reps in reserve"
                   value={rirHigh}
                   onChange={(e) => setRirHigh(e.target.value)}
                   className="w-full px-3 py-2 mt-1"

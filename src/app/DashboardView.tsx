@@ -9,6 +9,7 @@ import { StatChip } from "@/components/dashboard/StatChip";
 import { GoalsSummary } from "@/components/dashboard/GoalsSummary";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { formatCompact } from "@/lib/progress/strength";
+import { pluralize } from "@/lib/format/plural";
 import type { MatrixDay } from "@/lib/progress/matrix";
 import type { WeekDay } from "@/lib/progress/weekstrip";
 import type { PersonalRecord } from "@/lib/progress/prs";
@@ -138,7 +139,7 @@ export function DashboardView({
                     </span>
                   </span>
                   <span className="text-xs text-right" style={{ color: "var(--text-dim)" }}>
-                    {w.sets} sets
+                    {pluralize(w.sets, "set")}
                     <br />
                     {formatCompact(w.volume)} lbs
                   </span>

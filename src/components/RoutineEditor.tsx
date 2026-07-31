@@ -7,6 +7,7 @@ import { moveItem } from "@/lib/routines/edit";
 import { runViewTransition } from "@/lib/motion/viewTransition";
 import { viewTransitionName } from "@/lib/motion/viewTransitionName";
 import { saveRoutine } from "@/lib/data/actions";
+import { pluralize } from "@/lib/format/plural";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import type { Exercise, RoutineDetail } from "@/lib/data/types";
 import { ErrorRetry } from "@/components/ui/ErrorRetry";
@@ -147,7 +148,7 @@ export function RoutineEditor({
                   className="w-16 text-center text-sm"
                   style={{ color: "var(--text-dim)" }}
                 >
-                  {it.defaultSets} sets
+                  {pluralize(it.defaultSets, "set")}
                 </span>
                 <button
                   type="button"

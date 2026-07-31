@@ -6,6 +6,7 @@ import { parseRir, rirSuffix } from "@/lib/workout/rir";
 import { lastSetForNumber } from "@/lib/workout/quickfill";
 import type { LastSet } from "@/lib/workout/types";
 import type { LocalSet } from "@/lib/offline/store";
+import { pluralize } from "@/lib/format/plural";
 import { Card } from "@/components/ui/Card";
 
 const fieldStyle = {
@@ -104,7 +105,7 @@ export function ExerciseLogCard({
         <span className="flex items-center gap-1">
           {readOnly ? null : (
             <span className="text-xs" style={{ color: "var(--text-dim)" }}>
-              {defaultSets} sets
+              {pluralize(defaultSets, "set")}
             </span>
           )}
           {onSwap ? (

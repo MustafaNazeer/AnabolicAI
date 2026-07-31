@@ -51,6 +51,20 @@ describe("ExerciseLogCard field order", () => {
     expect(screen.getByText("Set 1: 8 for 135 lbs")).toBeInTheDocument();
   });
 
+  it("reads a set count of one as singular in the header", () => {
+    render(
+      <ExerciseLogCard
+        exerciseName="Bench Press"
+        defaultSets={1}
+        loggedSets={[]}
+        lastSets={[]}
+        onLog={noop}
+        onDelete={noop}
+      />,
+    );
+    expect(screen.getByText("1 set")).toBeInTheDocument();
+  });
+
   it("reads the quick fill reference as reps for weight", () => {
     render(
       <ExerciseLogCard

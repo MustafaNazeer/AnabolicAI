@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseLogCard } from "@/components/ExerciseLogCard";
 import { ExercisePicker } from "@/components/ExercisePicker";
@@ -29,6 +29,12 @@ import {
 } from "@/lib/offline/mutations";
 import { drainOutbox, type Runners } from "@/lib/offline/sync";
 import { useOnline } from "@/lib/offline/useOnline";
+import { runViewTransition } from "@/lib/motion/viewTransition";
+import {
+  readSessionState,
+  sameSessionState,
+  type SessionState,
+} from "@/lib/offline/sessionState";
 import type { LocalSet, Snapshot } from "@/lib/offline/store";
 
 function buildRunners(): Runners {
@@ -125,11 +131,33 @@ export function ActiveWorkout({
   const [picking, setPicking] = useState<string | null>(null);
   const sessionId = snapshot.sessionId;
 
+  // The last committed state, held in a ref so the commit and refresh callbacks
+  // keep stable dependencies. Reading it from state instead would rebuild them on
+  // every logged set and churn the visibilitychange effect.
+  const stateRef = useRef<SessionState>({
+    sets: serverSets,
+    swaps: snapshot.swaps,
+  });
+
+  const commit = useCallback((next: SessionState, also?: () => void) => {
+    stateRef.current = next;
+    runViewTransition(() => {
+      also?.();
+      setSets(next.sets);
+      setSwaps(next.swaps);
+    });
+  }, []);
+
   const refresh = useCallback(async () => {
-    setSets(await store.listSets(sessionId));
-    const snap = await store.getSnapshot(sessionId);
-    if (snap) setSwaps(snap.swaps);
-  }, [store, sessionId]);
+    const next = await readSessionState(store, sessionId, stateRef.current.swaps);
+    // Nothing visible changed, so do not animate. This is the common case on
+    // mount and after a sync that only confirmed what was already on screen.
+    if (sameSessionState(stateRef.current, next)) {
+      stateRef.current = next;
+      return;
+    }
+    commit(next);
+  }, [store, sessionId, commit]);
 
   const sync = useCallback(async () => {
     await drainOutbox(store, runners);
@@ -195,11 +223,14 @@ export function ActiveWorkout({
   const handleSwap = useCallback(
     async (slotExerciseId: string, replacementId: string) => {
       await swapLocal(store, sessionId, slotExerciseId, replacementId);
-      setPicking(null);
-      await refresh();
+      const next = await readSessionState(store, sessionId, stateRef.current.swaps);
+      // Always animate, even if the swap itself changed nothing: closing the
+      // picker is a visible change, and it has to share one transition with the
+      // card change or the second interrupts the first.
+      commit(next, () => setPicking(null));
       if (navigator.onLine) void sync();
     },
-    [store, sessionId, refresh, sync],
+    [store, sessionId, commit, sync],
   );
 
   const handleUndoSwap = useCallback(

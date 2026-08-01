@@ -331,7 +331,10 @@ export function ActiveWorkout({
       </div>
 
       {picking ? (
-        <div className="mb-3">
+        <div
+          className="onyx-lift mb-3"
+          style={{ viewTransitionName: "exercise-picker" }}
+        >
           <p className="text-sm mb-2" style={{ color: "var(--text-dim)" }}>
             Swap in a different exercise for today
           </p>
@@ -343,7 +346,7 @@ export function ActiveWorkout({
           />
           <button
             type="button"
-            onClick={() => setPicking(null)}
+            onClick={() => runViewTransition(() => setPicking(null))}
             className="text-xs underline underline-offset-2 mt-2"
             style={{ color: "var(--text-dim)", minHeight: 44 }}
           >
@@ -367,7 +370,7 @@ export function ActiveWorkout({
             onSwap={
               c.role === "swappedOutOriginal"
                 ? undefined
-                : () => setPicking(c.slotExerciseId)
+                : () => runViewTransition(() => setPicking(c.slotExerciseId))
             }
             onUndoSwap={
               c.role === "replacement" && c.canUndo

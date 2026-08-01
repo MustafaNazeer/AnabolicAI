@@ -7,6 +7,7 @@ import { lastSetForNumber } from "@/lib/workout/quickfill";
 import type { LastSet } from "@/lib/workout/types";
 import type { LocalSet } from "@/lib/offline/store";
 import { pluralize } from "@/lib/format/plural";
+import { viewTransitionName } from "@/lib/motion/viewTransitionName";
 import { Card } from "@/components/ui/Card";
 
 const fieldStyle = {
@@ -165,10 +166,11 @@ export function ExerciseLogCard({
         {loggedSets.map((s) => (
           <li
             key={s.id}
-            className="flex items-center justify-between px-3 py-2 text-sm"
+            className="onyx-lift flex items-center justify-between px-3 py-2 text-sm"
             style={{
               background: "var(--surface-sunken)",
               borderRadius: "var(--radius-square)",
+              viewTransitionName: viewTransitionName("set", s.id),
             }}
           >
             <span className="flex items-center gap-2">

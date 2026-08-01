@@ -9,6 +9,7 @@ import {
   unfinishedWorkoutPayload,
 } from "@/lib/notifications/payloads";
 import { lastActivityAt, isStale } from "@/lib/workout/stale";
+import { resetDemoAccount, supabaseDemoDb } from "@/lib/demo/reset";
 import {
   APP_TIMEZONE,
   zonedNow,
@@ -49,6 +50,18 @@ export async function GET(request: Request) {
   const isSunday = isSundayInZone(now, APP_TIMEZONE);
 
   const admin = createAdminClient();
+
+  // Reseed the demo account before the notification pass, so the settings query
+  // below already sees its notifications disabled.
+  if (process.env.DEMO_EMAIL) {
+    try {
+      await resetDemoAccount(supabaseDemoDb(admin), process.env.DEMO_EMAIL, now);
+    } catch {
+      // A failed reseed must not stop the notification run. The next daily run
+      // repairs it, because the reset is unconditional and idempotent.
+    }
+  }
+
   const { data } = await admin
     .from("user_settings")
     .select(

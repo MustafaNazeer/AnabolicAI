@@ -21,9 +21,11 @@ const inputStyle = {
 export function AuthForm({
   mode,
   action,
+  demoAction,
 }: {
   mode: Mode;
   action: (formData: FormData) => Promise<Result>;
+  demoAction?: () => Promise<Result>;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -43,6 +45,14 @@ export function AuthForm({
       } else if (result && "ok" in result && result.ok) {
         setSent(true);
       }
+    });
+  }
+
+  function onDemo() {
+    setError(null);
+    startTransition(async () => {
+      const result = await demoAction?.();
+      if (result && "error" in result && result.error) setError(result.error);
     });
   }
 
@@ -129,6 +139,23 @@ export function AuthForm({
           {pending ? "Please wait" : title}
         </button>
       </form>
+      {mode === "sign-in" && demoAction ? (
+        <button
+          type="button"
+          onClick={onDemo}
+          disabled={pending}
+          className="w-full mt-3 font-semibold py-3 disabled:opacity-60"
+          style={{
+            background: "transparent",
+            border: "1px solid var(--surface-border)",
+            color: "var(--text)",
+            borderRadius: "var(--radius-tile)",
+            minHeight: 48,
+          }}
+        >
+          Try the demo
+        </button>
+      ) : null}
       <Link
         href={altHref}
         className="block mt-6 text-sm"

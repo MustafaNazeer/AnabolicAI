@@ -38,6 +38,19 @@ export async function signUp(formData: FormData) {
   return { ok: true };
 }
 
+export async function signInAsDemo() {
+  const email = process.env.DEMO_EMAIL;
+  const password = process.env.DEMO_PASSWORD;
+  // Both are server only and must never be prefixed NEXT_PUBLIC_, or the demo
+  // password would be shipped to every browser that loads the sign in page.
+  if (!email || !password) return { error: "The demo is not available." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error: error.message };
+  redirect("/");
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

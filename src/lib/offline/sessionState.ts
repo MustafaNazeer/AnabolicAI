@@ -1,4 +1,4 @@
-import type { LocalSet } from "@/lib/offline/store";
+import type { LocalSet, OfflineStore } from "@/lib/offline/store";
 import type { Swap } from "@/lib/workout/swap";
 
 export type SessionState = { sets: LocalSet[]; swaps: Swap[] };
@@ -31,4 +31,24 @@ export function sameSessionState(a: SessionState, b: SessionState): boolean {
     sameKeys(setKeys(a.sets), setKeys(b.sets)) &&
     sameKeys(swapKeys(a.swaps), swapKeys(b.swaps))
   );
+}
+
+/**
+ * Read the session's local state without committing it, so a caller can decide
+ * whether to animate and then apply it in one synchronous update.
+ *
+ * fallbackSwaps is returned when no snapshot is stored, which keeps the swaps
+ * already on screen rather than clearing them, matching the behaviour of the
+ * code this replaced.
+ */
+export async function readSessionState(
+  store: OfflineStore,
+  sessionId: string,
+  fallbackSwaps: Swap[],
+): Promise<SessionState> {
+  const [sets, snapshot] = await Promise.all([
+    store.listSets(sessionId),
+    store.getSnapshot(sessionId),
+  ]);
+  return { sets, swaps: snapshot ? snapshot.swaps : fallbackSwaps };
 }

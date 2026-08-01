@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { sameSessionState, type SessionState } from "@/lib/offline/sessionState";
+import {
+  readSessionState,
+  sameSessionState,
+  type SessionState,
+} from "@/lib/offline/sessionState";
+import { createMemoryStore } from "@/lib/offline/memoryStore";
 import type { LocalSet } from "@/lib/offline/store";
 
 function set(over: Partial<LocalSet> = {}): LocalSet {
@@ -82,5 +87,38 @@ describe("sameSessionState", () => {
       swaps: [{ originalExerciseId: "pecdeck", replacementExerciseId: "fly" }],
     };
     expect(sameSessionState(base, next)).toBe(false);
+  });
+});
+
+describe("readSessionState", () => {
+  it("returns the stored sets and the snapshot's swaps", async () => {
+    const store = createMemoryStore();
+    await store.putSnapshot({
+      sessionId: "sess1",
+      routineName: "Push Day",
+      restSeconds: 120,
+      exercises: [],
+      lastByExercise: {},
+      swaps: [{ originalExerciseId: "pecdeck", replacementExerciseId: "bench" }],
+      library: [],
+    });
+    await store.putSet(set({ id: "s1", setNumber: 1 }));
+
+    const state = await readSessionState(store, "sess1", []);
+
+    expect(state.sets.map((s) => s.id)).toEqual(["s1"]);
+    expect(state.swaps).toEqual([
+      { originalExerciseId: "pecdeck", replacementExerciseId: "bench" },
+    ]);
+  });
+
+  it("keeps the swaps it was given when there is no snapshot", async () => {
+    const store = createMemoryStore();
+    const current = [{ originalExerciseId: "pecdeck", replacementExerciseId: "bench" }];
+
+    const state = await readSessionState(store, "sess1", current);
+
+    expect(state.sets).toEqual([]);
+    expect(state.swaps).toEqual(current);
   });
 });

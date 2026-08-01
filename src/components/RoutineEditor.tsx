@@ -38,6 +38,9 @@ export function RoutineEditor({
     })),
   );
   const [extra, setExtra] = useState<Exercise[]>([]);
+  // Closed by default so an existing routine reads as its exercises, open on a
+  // new one because adding the first exercise is the only thing to do there.
+  const [adding, setAdding] = useState(routine.items.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -185,17 +188,44 @@ export function RoutineEditor({
         ))}
       </ul>
 
-      <div className="mb-6">
-        <ExercisePicker
-          library={fullLibrary}
-          takenIds={takenIds}
-          onAdd={add}
-          onCreated={(e) => {
-            setExtra((cur) => [...cur, e]);
-            add(e);
+      {adding ? (
+        <div
+          className="onyx-lift mb-6"
+          style={{ viewTransitionName: "exercise-picker" }}
+        >
+          <ExercisePicker
+            library={fullLibrary}
+            takenIds={takenIds}
+            onAdd={add}
+            onCreated={(e) => {
+              setExtra((cur) => [...cur, e]);
+              add(e);
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => runViewTransition(() => setAdding(false))}
+            className="text-xs underline underline-offset-2 mt-2"
+            style={{ color: "var(--text-dim)", minHeight: 44 }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => runViewTransition(() => setAdding(true))}
+          className="onyx-lift flex items-center gap-2 mb-6"
+          style={{
+            color: "var(--accent)",
+            minHeight: 44,
+            viewTransitionName: "exercise-picker",
           }}
-        />
-      </div>
+        >
+          <Plus size={16} aria-hidden />
+          Add exercise
+        </button>
+      )}
 
       {error ? (
         <div className="mb-3">

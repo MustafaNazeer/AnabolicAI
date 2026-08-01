@@ -188,3 +188,34 @@ a[data-cta]:active {
 button:disabled:active {
   transform: none;
 }
+
+/* Motion: lift-in and lift-out for elements that enter or leave, opted into per
+   element with the onyx-lift class. Scoped through view-transition-class so the
+   root cross-fade and the routine editor rows keep the animation they shipped
+   with. On a browser without view-transition-class the declaration is ignored
+   and the element falls back to the default cross-fade. */
+.onyx-lift {
+  view-transition-class: onyx-lift;
+}
+
+@keyframes onyx-lift-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes onyx-lift-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+::view-transition-new(*.onyx-lift) {
+  animation: onyx-lift-in 200ms ease;
+}
+
+::view-transition-old(*.onyx-lift) {
+  animation: onyx-lift-out 200ms ease;
+}

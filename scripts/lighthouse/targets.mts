@@ -3,9 +3,15 @@
 
 export const BASE_URL = "https://onyx-kappa-five.vercel.app";
 
-// Five runs, reported as a median. A single Lighthouse pass is not a citable
+// Nine runs, reported as a median. A single Lighthouse pass is not a citable
 // number because the score moves from run to run.
-export const RUNS_PER_ROUTE = 5;
+//
+// Five was the original figure and proved too few. The first real measurement
+// returned a 14 point spread on the dashboard, runs ranging 84 to 98, because
+// total blocking time is CPU bound and therefore sensitive to whatever else the
+// machine is doing. An odd count is deliberate, so the median is a score some
+// run actually produced rather than an average of two that neither did.
+export const RUNS_PER_ROUTE = 9;
 
 export type Route = {
   path: string;

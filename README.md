@@ -66,12 +66,29 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-01: 372 tests across 79 files, covering 69 percent of the application logic.
+As of 2026-08-02: 410 tests across 84 files, covering 67 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a
-real database rather than a mock. Counting those 18 files, overall statement coverage is
-49 percent.
+real database rather than a mock. Counting those 15 files, overall statement coverage is
+50 percent.
+
+## Performance and accessibility
+
+Measured against the live deployment on the mobile preset, signed in as the demo account,
+as the median of 9 runs:
+
+| Route | Performance | Accessibility |
+|---|---|---|
+| Dashboard | 93 | 100 |
+| Progress | 76 | 100 |
+| Sign in | 87 | 100 |
+
+Accessibility returned 100 on every run of every route. The performance figures vary by up
+to 19 points between runs, and the whole gap is main thread blocking time rather than load
+time. Full numbers, conditions and caveats are in [docs/lighthouse.md](docs/lighthouse.md).
+
+Reproduce with `npm run lighthouse`. It requires no credentials.
 
 ## Installing on your iPhone
 

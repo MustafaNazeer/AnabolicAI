@@ -80,13 +80,15 @@ as the median of 9 runs:
 
 | Route | Performance | Accessibility |
 |---|---|---|
-| Dashboard | 93 | 100 |
-| Progress | 76 | 100 |
-| Sign in | 87 | 100 |
+| Dashboard | 94 | 100 |
+| Progress | 78 | 100 |
+| Sign in | 88 | 100 |
 
-Accessibility returned 100 on every run of every route. The performance figures vary by up
-to 19 points between runs, and the whole gap is main thread blocking time rather than load
-time. Full numbers, conditions and caveats are in [docs/lighthouse.md](docs/lighthouse.md).
+**Accessibility returned 100 on all 27 runs with no variation**, and is the figure here to
+rely on. Performance is dominated by main thread blocking time rather than load time, and
+because that is CPU bound it varies by 14 to 16 points between runs on the same build, so
+read it as approximate. Full numbers, every individual run, and the conditions they were
+taken under are in [docs/lighthouse.md](docs/lighthouse.md).
 
 Reproduce with `npm run lighthouse`. It requires no credentials.
 

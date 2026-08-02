@@ -4,35 +4,43 @@ Measured against the live production deployment, signed in as the demo account, 
 numbers describe the app a visitor actually reaches rather than a login form.
 
 Reproduce with `npm run lighthouse`. It needs no credentials: the harness clicks the
-**Try the demo** button, and the demo password stays server side.
+**Try the demo** button, and the demo password stays server side. Set `ONYX_BASE_URL` to
+measure a Vercel preview instead, and `ONYX_SHARE_TOKEN` if that preview is behind
+deployment protection.
 
 ## Scores
 
 | Route | Performance | Accessibility | Best practices | SEO |
 |---|---|---|---|---|
-| `/` (dashboard) | 93 | 100 | 100 | 100 |
-| `/progress` | 76 | 100 | 100 | 100 |
-| `/sign-in` | 87 | 100 | 100 | 100 |
+| `/` (dashboard) | 94 | 100 | 100 | 100 |
+| `/progress` | 78 | 100 | 100 | 100 |
+| `/sign-in` | 88 | 100 | 100 | 100 |
 
-Each figure is the median of 9 runs. Measured 2026-08-02 against commit `645026f` with
-Lighthouse 13.4.1 on the mobile preset, which applies 4x CPU throttling and a slow 4G
-network. Best practices and SEO were 100 on every run.
+Median of 9 runs, measured 2026-08-02 against commit `67e9f6a` with Lighthouse 13.4.1 on
+the mobile preset, which applies 4x CPU throttling and a slow 4G network.
 
-## Performance is noisy, and the spread says so
+## Read the performance column as approximate
 
-The performance score moved a lot between runs. The nine dashboard runs came back 81, 87,
-88, 88, 93, 93, 95, 97, 100.
+Every one of the nine runs, per route:
 
-| Route | Performance spread across 9 runs |
+| Route | Performance across 9 runs |
 |---|---|
-| `/` | 19 points |
-| `/sign-in` | 13 points |
-| `/progress` | 11 points |
+| `/` | 83, 88, 88, 89, **94**, 94, 95, 95, 97 |
+| `/progress` | 71, 76, 76, 76, **78**, 79, 83, 84, 85 |
+| `/sign-in` | 78, 82, 82, 83, **88**, 89, 89, 94, 94 |
 
-Raising the run count from 5 to 9 made the spread wider, not narrower, so this is not
-sampling error that more runs would settle. Total blocking time is CPU bound, and the
-measuring machine is not idle. **Read the performance column as approximate.** The
-accessibility column, by contrast, returned 100 on all 27 runs with zero spread.
+**Accessibility, by contrast, returned 100 on all 27 runs with zero variation.** It is not
+timing dependent, so it is the number here that can be relied on.
+
+Performance is dominated by total blocking time, which is CPU bound, so it moves with
+whatever else the measuring machine is doing. These figures were taken with the machine
+deliberately idle. An earlier run of the **same commit** on a loaded machine returned 75,
+73 and 88 for the same three routes, which is the honest measure of how much the method
+rather than the app moves the number. Raising the run count from 5 to 9 widened the spread
+rather than narrowing it, so this is not sampling error that more runs would settle.
+
+If you want one sentence: **the dashboard and sign in sit in the high 80s to mid 90s, and
+the progress screen in the high 70s.**
 
 ## What is actually costing the points
 
@@ -40,20 +48,35 @@ One audit fails, on every route, and nothing else does.
 
 | Route | Total blocking time | Range | Largest contentful paint |
 |---|---|---|---|
-| `/progress` | 1176ms | 582 to 1449 | 1063ms |
-| `/sign-in` | 503ms | 222 to 708 | 1061ms |
-| `/` | 326ms | 36 to 778 | 1083ms |
+| `/progress` | 987ms | 582 to 2235 | 1078ms |
+| `/sign-in` | 476ms | 284 to 1055 | 1071ms |
+| `/` | 291ms | 190 to 686 | 1067ms |
 
 Lighthouse treats blocking time at or under 200ms as good and over 600ms as poor.
 
 Largest contentful paint sits near 1.07 seconds everywhere, well inside the 2.5 second
 threshold, so the app loads quickly and the deficit is main thread work after load.
 
-`/sign-in` is the useful case here. It is an email field, a password field and two buttons,
-and it blocks for longer than the dashboard that renders a heatmap, stat tiles and a
-personal record list. A form has no content that could account for that, so the cost is
-framework JavaScript and hydration shared by every route, with `/progress` adding its charts
-on top.
+`/sign-in` is the useful case. It is an email field, a password field and two buttons, and
+it blocks for longer than the dashboard that renders a heatmap, stat tiles and a personal
+record list. A form has no content that could account for that, so the cost is framework
+JavaScript and hydration shared by every route rather than anything on the page.
+
+## The chart library was moved off the critical path
+
+`/progress` loads Recharts, 99 KB gzipped, which no other route needs. It is now loaded
+through a dynamic import after hydration, with a skeleton holding its place, so it no
+longer blocks the page becoming interactive.
+
+Measured as a controlled comparison, a preview build against production back to back so
+both saw the same machine and network, blocking time on `/progress` fell from 1691ms to
+729ms. Measured across separate sessions the same change reads smaller, 1176ms against
+987ms. **The improvement is real and the back to back pair is the more trustworthy of the
+two, but the honest range for its size is wide.**
+
+Worth stating plainly: total script evaluation on `/progress` did not fall. The work moved
+to after the page becomes interactive rather than disappearing, which is what blocking time
+measures and why the score moved.
 
 ## What these numbers do not say
 
@@ -65,14 +88,13 @@ WCAG AA, not as proof of it.
 The numbers reflect the demo account's seeded data: three routines and eight weeks of
 sessions. An account with more history renders more and would score differently.
 
-Performance is measured over the public internet against a live deployment, so CDN
-behaviour and network conditions move it, which is why the spread is published beside the
-median rather than the median alone.
+Runs reuse the browser session, which also preserves the HTTP cache, so these are warm
+cache measurements. That barely affects blocking time, since scripts parse and execute
+either way, but the load metrics are optimistic against a first visit.
 
 Chrome runs with `--no-sandbox`. Ubuntu 23.10 and newer restrict unprivileged user
 namespaces through AppArmor, so Chrome cannot start its own sandbox and will not launch
-without the flag. It is recorded here because it is a condition of how these numbers were
-produced.
+without the flag.
 
 The logging screen, `/log/[sessionId]`, is not measured. Every seeded demo session is
 already completed, so there is no active workout to open, and creating one would write to

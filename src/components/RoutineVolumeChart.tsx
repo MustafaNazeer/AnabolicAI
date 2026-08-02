@@ -1,18 +1,20 @@
 "use client";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { colorForIndex } from "@/lib/progress/palette";
-import { shortDate } from "@/lib/progress/format";
-import { formatCompact } from "@/lib/progress/strength";
 import type { RoutineVolumePoint } from "@/lib/progress/types";
+
+// Only the drawing is deferred. The legend below stays here so it renders
+// immediately: it names the exercises for a screen reader, and it is real
+// content rather than decoration.
+const RoutineVolumeCanvas = dynamic(
+  () => import("@/components/RoutineVolumeCanvas"),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="w-full" style={{ height: 200 }} />,
+  },
+);
 
 export function RoutineVolumeChart({
   exercises,
@@ -21,63 +23,9 @@ export function RoutineVolumeChart({
   exercises: { id: string; name: string }[];
   points: RoutineVolumePoint[];
 }) {
-  const rows = points.map((p) => {
-    const row: Record<string, number | string> = {
-      label: shortDate(p.date),
-      total: p.total,
-    };
-    for (const ex of exercises) row[ex.id] = p.byExercise[ex.id] ?? 0;
-    return row;
-  });
-
   return (
     <div>
-      <div style={{ width: "100%", height: 200 }}>
-        <ResponsiveContainer>
-          <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-            <CartesianGrid stroke="var(--surface-border)" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "var(--text-dim)", fontSize: 11 }}
-              stroke="var(--surface-border)"
-            />
-            <YAxis
-              tick={{ fill: "var(--text-dim)", fontSize: 11 }}
-              stroke="var(--surface-border)"
-              width={40}
-              tickFormatter={(v) => formatCompact(Number(v))}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "var(--surface-sunken)",
-                border: "1px solid var(--surface-border)",
-                borderRadius: 8,
-                color: "var(--text)",
-              }}
-              labelStyle={{ color: "var(--text-dim)" }}
-              formatter={(value, name) => [`${formatCompact(Number(value))} lbs`, name]}
-              labelFormatter={(label, payload) => {
-                const total =
-                  Array.isArray(payload) && payload.length
-                    ? Number(
-                        (payload[0] as { payload?: { total?: number } }).payload?.total ?? 0,
-                      )
-                    : 0;
-                return `${label}, ${formatCompact(total)} lbs total`;
-              }}
-            />
-            {exercises.map((ex, i) => (
-              <Bar
-                key={ex.id}
-                dataKey={ex.id}
-                name={ex.name}
-                stackId="volume"
-                fill={colorForIndex(i)}
-              />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <RoutineVolumeCanvas exercises={exercises} points={points} />
       <ul
         aria-label="Exercises"
         className="flex flex-wrap gap-x-4 gap-y-1 mt-3"

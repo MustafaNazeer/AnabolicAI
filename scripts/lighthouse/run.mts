@@ -17,7 +17,13 @@ import {
   type RouteSummary,
 } from "./summarize.mts";
 
-const OUT_DIR = path.join(process.cwd(), "lighthouse-reports");
+// Reports are namespaced by target, so measuring a preview cannot overwrite the
+// production numbers it is being compared against.
+const OUT_DIR = path.join(
+  process.cwd(),
+  "lighthouse-reports",
+  new URL(BASE_URL).hostname.split(".")[0],
+);
 
 // A dashboard-only heading. Verified absent from the signed out /sign-in page,
 // unlike the primary nav, which the root layout renders on every page.

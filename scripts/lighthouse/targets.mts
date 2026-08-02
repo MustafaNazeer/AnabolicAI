@@ -1,7 +1,11 @@
 // What gets measured, as data. Kept separate from the runner so the routes and
 // the run count can be read by a test without launching a browser.
 
-export const BASE_URL = "https://onyx-kappa-five.vercel.app";
+// Production by default, so `npm run lighthouse` with no setup measures what a
+// visitor actually gets. ONYX_BASE_URL points it at a Vercel preview instead,
+// which is how a change is compared against production before it ships.
+export const PRODUCTION_URL = "https://onyx-kappa-five.vercel.app";
+export const BASE_URL = process.env.ONYX_BASE_URL ?? PRODUCTION_URL;
 
 // Nine runs, reported as a median. A single Lighthouse pass is not a citable
 // number because the score moves from run to run.

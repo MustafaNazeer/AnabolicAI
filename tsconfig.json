@@ -11,6 +11,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // The scripts under scripts/lighthouse are .mts and are executed directly
+    // by Node, whose ESM resolver does no extension guessing, so they must
+    // import each other by full path. Without this, tsc rejects those imports
+    // and the harness would sit outside the type gate.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [

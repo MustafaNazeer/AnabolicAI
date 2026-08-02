@@ -21,7 +21,23 @@ const OUT_DIR = path.join(process.cwd(), "lighthouse-reports");
 
 // A dashboard-only heading. Verified absent from the signed out /sign-in page,
 // unlike the primary nav, which the root layout renders on every page.
+//
+// Matched against a heading element's textContent, deliberately, and not
+// against document.body.innerText. The heading carries a Tailwind `uppercase`
+// class, and innerText returns rendered text, so it reads "RECENT WORKOUTS"
+// and a title case comparison silently never matches. Matching body.textContent
+// instead would dodge that but introduce the opposite fault, since the RSC
+// payload sits in a script tag inside the body and would satisfy the check even
+// if nothing rendered.
 const AUTH_MARKER = "Recent workouts";
+
+// Runs in the browser. Kept as a standalone expression so the sign in wait and
+// the mid run re-check cannot drift apart.
+function hasAuthMarker(marker: string): boolean {
+  return Array.from(document.querySelectorAll("h1,h2,h3")).some(
+    (h) => h.textContent?.trim() === marker,
+  );
+}
 
 // Ubuntu 23.10 and newer restrict unprivileged user namespaces through
 // AppArmor, so Chrome cannot start its own sandbox and refuses to launch. The
@@ -53,11 +69,7 @@ async function signInAsDemo(page: Page): Promise<void> {
 
   // The server action redirects to /, which is a client side navigation, so
   // wait on the rendered result rather than on a load event.
-  await page.waitForFunction(
-    (marker: string) => document.body.innerText.includes(marker),
-    { timeout: 30_000 },
-    AUTH_MARKER,
-  );
+  await page.waitForFunction(hasAuthMarker, { timeout: 30_000 }, AUTH_MARKER);
 }
 
 async function measure(page: Page, route: Route): Promise<MinimalLhr[]> {
@@ -101,10 +113,7 @@ async function measure(page: Page, route: Route): Promise<MinimalLhr[]> {
 // would otherwise yield a confident score for a redirect.
 async function verifyStillSignedIn(page: Page, measured: string): Promise<void> {
   await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle2" });
-  const present = await page.evaluate(
-    (marker: string) => document.body.innerText.includes(marker),
-    AUTH_MARKER,
-  );
+  const present = await page.evaluate(hasAuthMarker, AUTH_MARKER);
   if (!present) {
     throw new Error(
       `The demo session was lost while measuring ${measured}. The numbers from ` +

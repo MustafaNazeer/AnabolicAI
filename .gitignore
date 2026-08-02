@@ -45,3 +45,6 @@ next-env.d.ts
 # local scratch
 salvage/
 ui-references/
+
+# lighthouse raw reports, roughly half a megabyte per run
+lighthouse-reports/

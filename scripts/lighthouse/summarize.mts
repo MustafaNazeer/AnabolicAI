@@ -11,8 +11,25 @@ export type MinimalLhr = {
     string,
     { score: number | null; auditRefs: { id: string; weight: number }[] }
   >;
-  audits: Record<string, { title: string; score: number | null }>;
+  audits: Record<
+    string,
+    { title: string; score: number | null; numericValue?: number }
+  >;
 };
+
+// Metrics recorded in their own units alongside the scores.
+//
+// The performance score swings by roughly ten points run to run, because total
+// blocking time is CPU bound, so it cannot tell a real improvement from noise.
+// The underlying milliseconds can. Largest contentful paint rides along as the
+// control: it stayed near 1.07 seconds on every route, which is what shows the
+// gap is script execution rather than load time.
+export const TRACKED_METRICS = [
+  "total-blocking-time",
+  "largest-contentful-paint",
+] as const;
+
+export type MetricStat = { median: number; min: number; max: number };
 
 export type CategoryScores = Record<string, number>;
 
@@ -29,6 +46,7 @@ export type RouteSummary = {
   runs: number;
   scores: CategoryScores;
   spread: Record<string, number>;
+  metrics: Record<string, MetricStat>;
   failingAudits: FailingAudit[];
   lighthouseVersion: string;
   formFactor: string;
@@ -68,6 +86,22 @@ export function summarizeRoute(
     if (raw.length === 0) continue;
     scores[id] = median(raw);
     spread[id] = Math.max(...raw) - Math.min(...raw);
+  }
+
+  const metrics: Record<string, MetricStat> = {};
+  for (const id of TRACKED_METRICS) {
+    const values = lhrs
+      .map((l) => l.audits[id]?.numericValue)
+      .filter((v): v is number => typeof v === "number")
+      .map((v) => Math.round(v));
+    // A metric no run reported is omitted rather than recorded as zero, which
+    // would read as a perfect result.
+    if (values.length === 0) continue;
+    metrics[id] = {
+      median: median(values),
+      min: Math.min(...values),
+      max: Math.max(...values),
+    };
   }
 
   // Failing audits are read from the run whose performance score is closest to
@@ -114,6 +148,7 @@ export function summarizeRoute(
     runs: lhrs.length,
     scores,
     spread,
+    metrics,
     failingAudits,
     // Read from the result rather than hardcoded, so the record always states
     // what actually ran.

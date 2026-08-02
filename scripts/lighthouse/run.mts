@@ -155,11 +155,15 @@ async function main(): Promise<void> {
 
     console.log("\nMedians:");
     for (const s of summaries) {
+      const tbt = s.metrics["total-blocking-time"];
       console.log(
         `  ${s.path}  performance ${s.scores.performance} ` +
           `(spread ${s.spread.performance})  ` +
           `accessibility ${s.scores.accessibility} ` +
-          `(spread ${s.spread.accessibility})`,
+          `(spread ${s.spread.accessibility})` +
+          // The score is noisy enough that the milliseconds are the number to
+          // watch across an optimization pass.
+          (tbt ? `  blocking ${tbt.median}ms (${tbt.min} to ${tbt.max})` : ""),
       );
     }
     console.log(`\nRaw reports and summary.json written to ${OUT_DIR}`);

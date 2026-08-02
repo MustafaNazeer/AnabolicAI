@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { median, summarizeRoute } from "../summarize.mts";
 import type { MinimalLhr } from "../summarize.mts";
 
-function lhr(perf: number, a11y: number): MinimalLhr {
+function lhr(perf: number, a11y: number, tbt = 500): MinimalLhr {
   return {
     lighthouseVersion: "13.4.1",
     configSettings: { formFactor: "mobile" },
@@ -11,6 +11,7 @@ function lhr(perf: number, a11y: number): MinimalLhr {
         score: perf,
         auditRefs: [
           { id: "largest-contentful-paint", weight: 25 },
+          { id: "total-blocking-time", weight: 30 },
           { id: "unused-javascript", weight: 0 },
         ],
       },
@@ -23,6 +24,12 @@ function lhr(perf: number, a11y: number): MinimalLhr {
       "largest-contentful-paint": {
         title: "Largest Contentful Paint",
         score: 0.4,
+        numericValue: 1080,
+      },
+      "total-blocking-time": {
+        title: "Total Blocking Time",
+        score: 0.38,
+        numericValue: tbt,
       },
       "unused-javascript": { title: "Reduce unused JavaScript", score: 0.2 },
       "color-contrast": { title: "Contrast is satisfactory", score: 1 },
@@ -89,9 +96,14 @@ describe("summarizeRoute", () => {
 
   it("lists failing audits ordered by the points they cost", () => {
     const s = summarizeRoute("dashboard", "/", [lhr(0.9, 1)]);
-    // LCP scores 0.4 at weight 25, costing 15. Unused JS scores 0.2 but weighs
-    // 0, so it costs nothing and must not outrank it.
-    expect(s.failingAudits[0].id).toBe("largest-contentful-paint");
+    // Ordered by cost, not by the order they are declared in. Blocking time
+    // scores 0.38 at weight 30, costing 18.6, so it outranks the paint audit
+    // at 0.4 and weight 25, costing 15, even though the paint audit is listed
+    // first in auditRefs.
+    expect(s.failingAudits.map((a) => a.id)).toEqual([
+      "total-blocking-time",
+      "largest-contentful-paint",
+    ]);
   });
 
   it("omits passing audits and zero weight audits from the failing list", () => {
@@ -105,5 +117,37 @@ describe("summarizeRoute", () => {
     expect(() => summarizeRoute("dashboard", "/", [])).toThrow(
       /no lighthouse results/i,
     );
+  });
+});
+
+// The performance score swings by roughly ten points run to run, because total
+// blocking time is CPU bound. Tracking the metric in milliseconds gives an
+// optimization pass a signal that survives that noise, where the score does not.
+describe("summarizeRoute metrics", () => {
+  it("records the median, lowest and highest total blocking time in milliseconds", () => {
+    const s = summarizeRoute("progress", "/progress", [
+      lhr(0.7, 1, 1449),
+      lhr(0.7, 1, 582),
+      lhr(0.7, 1, 1176),
+    ]);
+    expect(s.metrics["total-blocking-time"]).toEqual({
+      median: 1176,
+      min: 582,
+      max: 1449,
+    });
+  });
+
+  it("tracks largest contentful paint alongside it", () => {
+    const s = summarizeRoute("progress", "/progress", [lhr(0.7, 1, 900)]);
+    expect(s.metrics["largest-contentful-paint"].median).toBe(1080);
+  });
+
+  it("omits a metric no run reported rather than recording it as zero", () => {
+    const bare = lhr(0.7, 1, 900);
+    delete bare.audits["total-blocking-time"].numericValue;
+    const s = summarizeRoute("progress", "/progress", [bare]);
+    expect(s.metrics["total-blocking-time"]).toBeUndefined();
+    // The other tracked metric is unaffected.
+    expect(s.metrics["largest-contentful-paint"].median).toBe(1080);
   });
 });

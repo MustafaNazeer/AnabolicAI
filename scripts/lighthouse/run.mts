@@ -53,6 +53,20 @@ function hasAuthMarker(marker: string): boolean {
 // the measurement rather than left implicit here.
 const LAUNCH_ARGS = ["--no-sandbox", "--disable-setuid-sandbox"];
 
+// Vercel preview deployments sit behind Deployment Protection, so a headless
+// browser with no Vercel session is redirected to vercel.com/sso-api and never
+// reaches the app. Visiting the share URL once sets a bypass cookie on the
+// browser context, which every later navigation reuses. Production needs none
+// of this, so the whole step is skipped when no token is given.
+async function bypassDeploymentProtection(page: Page): Promise<void> {
+  const token = process.env.ONYX_SHARE_TOKEN;
+  if (!token) return;
+  await page.goto(`${BASE_URL}/?_vercel_share=${token}`, {
+    waitUntil: "networkidle2",
+  });
+  console.log("Deployment protection bypassed.");
+}
+
 async function signInAsDemo(page: Page): Promise<void> {
   await page.goto(`${BASE_URL}/sign-in`, { waitUntil: "networkidle2" });
 
@@ -142,6 +156,7 @@ async function main(): Promise<void> {
     const page = await browser.newPage();
 
     console.log(`Signing in as the demo user at ${BASE_URL}`);
+    await bypassDeploymentProtection(page);
     await signInAsDemo(page);
     console.log("Signed in.\n");
 

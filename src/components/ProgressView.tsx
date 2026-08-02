@@ -15,14 +15,17 @@ import { RoutineVolumeChart } from "@/components/RoutineVolumeChart";
 import { GoalCard } from "@/components/GoalCard";
 import type { ProgressData, ProgressPoint, RoutineVolumeData } from "@/lib/progress/types";
 import type { GoalWithProgress } from "@/lib/goals/types";
-import type { MetricKey } from "@/components/ProgressChartCanvas";
+import type { MetricKey } from "@/components/ChartCanvases";
 
 // Loaded after hydration so Recharts, 105 KB gzipped, stays off the initial
 // bundle. ssr: false because the chart is decoration over data the page has
 // already stated in words, and the skeleton holds its exact height so nothing
 // below it shifts when the chart arrives.
+//
+// Imported from the same module as the volume canvas deliberately, so the two
+// share one Recharts chunk rather than one each. See ChartCanvases.tsx.
 const ProgressChartCanvas = dynamic(
-  () => import("@/components/ProgressChartCanvas"),
+  () => import("@/components/ChartCanvases").then((m) => m.ProgressChartCanvas),
   {
     ssr: false,
     loading: () => <Skeleton className="w-full" style={{ height: 200 }} />,

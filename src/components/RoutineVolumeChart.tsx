@@ -8,8 +8,11 @@ import type { RoutineVolumePoint } from "@/lib/progress/types";
 // Only the drawing is deferred. The legend below stays here so it renders
 // immediately: it names the exercises for a screen reader, and it is real
 // content rather than decoration.
+//
+// Imported from the same module as the exercise chart deliberately, so the two
+// share one Recharts chunk rather than one each. See ChartCanvases.tsx.
 const RoutineVolumeCanvas = dynamic(
-  () => import("@/components/RoutineVolumeCanvas"),
+  () => import("@/components/ChartCanvases").then((m) => m.RoutineVolumeCanvas),
   {
     ssr: false,
     loading: () => <Skeleton className="w-full" style={{ height: 200 }} />,

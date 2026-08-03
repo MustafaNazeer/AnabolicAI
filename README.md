@@ -6,6 +6,8 @@ A dark, iPhone first strength progress tracker, built as an installable Progress
 
 Onyx is a private app for a small group of users. Each person has their own account and their own isolated data, enforced at the database level.
 
+[docs/case-study.md](docs/case-study.md) is a short account of how it was built, centered on the hardest part: making the workout logging screen work with no connection.
+
 ## Tech stack
 
 - Next.js (App Router) and TypeScript

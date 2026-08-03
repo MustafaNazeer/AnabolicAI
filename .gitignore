@@ -46,5 +46,13 @@ next-env.d.ts
 salvage/
 ui-references/
 
+# local-only working files, never committed
+CLAUDE.md
+future-ideas.md
+STATUS.md
+agents/
+.claude/
+.superpowers/
+
 # lighthouse raw reports, roughly half a megabyte per run
 lighthouse-reports/

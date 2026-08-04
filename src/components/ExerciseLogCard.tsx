@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X, Check, Copy, Repeat } from "lucide-react";
 import { parseRir, rirSuffix } from "@/lib/workout/rir";
 import { lastSetForNumber } from "@/lib/workout/quickfill";
@@ -64,11 +64,17 @@ export function ExerciseLogCard({
   const atTarget = defaultSets > 0 && loggedSets.length >= defaultSets;
   const [extraSets, setExtraSets] = useState(false);
 
-  useEffect(() => {
-    // Deleting back under the target clears the latch, so the collapse returns
-    // rather than staying off for the rest of the session.
-    if (loggedSets.length < defaultSets) setExtraSets(false);
-  }, [loggedSets.length, defaultSets]);
+  // Adjusting state during render rather than from an effect. This is React's
+  // documented pattern for deriving from a changed prop, and it avoids the
+  // cascading re-render that calling setState inside an effect body causes.
+  // Dropping back under the target clears the latch, so the collapse returns
+  // instead of staying off for the rest of the session.
+  const belowTarget = loggedSets.length < defaultSets;
+  const [wasBelowTarget, setWasBelowTarget] = useState(belowTarget);
+  if (belowTarget !== wasBelowTarget) {
+    setWasBelowTarget(belowTarget);
+    if (belowTarget) setExtraSets(false);
+  }
 
   const showInputs = !atTarget || extraSets;
 

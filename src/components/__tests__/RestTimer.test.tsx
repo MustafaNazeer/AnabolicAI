@@ -400,6 +400,56 @@ describe("the picker's motion", () => {
   });
 });
 
+describe("scheduling the background notification", () => {
+  it("reports the deadline when a rest starts", () => {
+    const onRestStart = vi.fn(async () => true);
+    render(<RestTimer defaultSeconds={120} onRestStart={onRestStart} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+
+    expect(onRestStart).toHaveBeenCalledWith(T0 + 120_000);
+  });
+
+  it("says so when the notification could not be scheduled", async () => {
+    const onRestStart = vi.fn(async () => false);
+    render(<RestTimer defaultSeconds={120} onRestStart={onRestStart} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    await act(async () => {});
+
+    expect(screen.getByText(/no alert/i)).toBeInTheDocument();
+  });
+
+  it("says nothing when scheduling worked", async () => {
+    const onRestStart = vi.fn(async () => true);
+    render(<RestTimer defaultSeconds={120} onRestStart={onRestStart} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    await act(async () => {});
+
+    expect(screen.queryByText(/no alert/i)).toBeNull();
+  });
+
+  // A dead spot followed by signal must not leave a stale warning on screen.
+  it("clears the notice on the next successful start", async () => {
+    const onRestStart = vi
+      .fn<(d: number) => Promise<boolean>>()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    render(<RestTimer defaultSeconds={120} onRestStart={onRestStart} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    await act(async () => {});
+    expect(screen.getByText(/no alert/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Pause timer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    await act(async () => {});
+
+    expect(screen.queryByText(/no alert/i)).toBeNull();
+  });
+});
+
 describe("the countdown's tap target", () => {
   // Everything on the tile except play and reset should open the picker. That
   // is done by growing the countdown button to fill the row rather than by

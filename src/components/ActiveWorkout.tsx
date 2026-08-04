@@ -19,6 +19,7 @@ import {
   swapExercise,
   undoSwap,
   setRestDuration,
+  scheduleRestPush,
 } from "@/lib/workout/actions";
 import { createIdbStore } from "@/lib/offline/idb";
 import {
@@ -380,6 +381,10 @@ export function ActiveWorkout({
           defaultSeconds={snapshot.restSeconds}
           alertOnFinish={restAlert}
           onDurationChange={(seconds) => void setRestDuration(seconds)}
+          onRestStart={async (deadlineMs) => {
+            const r = await scheduleRestPush(snapshot.sessionId, deadlineMs);
+            return "ok" in r;
+          }}
         />
       </div>
 

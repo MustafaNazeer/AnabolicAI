@@ -20,10 +20,12 @@ export function RestTimer({
   defaultSeconds,
   alertOnFinish = true,
   onDurationChange,
+  onRestStart,
 }: {
   defaultSeconds: number;
   alertOnFinish?: boolean;
   onDurationChange?: (seconds: number) => void;
+  onRestStart?: (deadlineMs: number) => Promise<boolean>;
 }) {
   // The duration a fresh rest starts at. Seeded from the setting, then owned
   // here, so a value chosen mid workout survives a reset and every later rest.
@@ -35,6 +37,7 @@ export function RestTimer({
   const [deadline, setDeadline] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(() => clampRest(defaultSeconds));
   const [picking, setPicking] = useState(false);
+  const [pushFailed, setPushFailed] = useState(false);
   const firedRef = useRef(false);
   const audioRef = useRef<AudioContext | null>(null);
   const running = deadline !== null;
@@ -111,7 +114,15 @@ export function RestTimer({
     if (deadline === null) {
       // Inside the tap handler, so this is a real user gesture.
       unlockAudio();
-      setDeadline(Date.now() + remaining * 1000);
+      const deadlineMs = Date.now() + remaining * 1000;
+      setDeadline(deadlineMs);
+      // Fire and forget on purpose. The countdown must start immediately, so a
+      // slow or failing network can never delay the timer the user just
+      // started; the result only sets the notice.
+      void onRestStart?.(deadlineMs).then(
+        (ok) => setPushFailed(!ok),
+        () => setPushFailed(true),
+      );
     } else {
       setRemaining(secondsUntil(deadline, Date.now()));
       setDeadline(null);
@@ -217,6 +228,11 @@ export function RestTimer({
           </button>
         </div>
       </div>
+      {pushFailed ? (
+        <p className="text-xs mt-2" style={{ color: "var(--text-dim)" }}>
+          Offline, so no alert when this ends unless the app is open.
+        </p>
+      ) : null}
       {picking ? (
         <div className="onyx-lift" style={{ viewTransitionName: "rest-duration" }}>
           <RestDurationPicker

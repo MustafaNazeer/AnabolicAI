@@ -63,8 +63,9 @@ RIR is typed rather than picked, and it is optional. It takes a whole number fro
 
 - A configurable rest countdown the user can start between sets.
 - Default duration is set in Settings and can be adjusted per use.
-- When the app is in the foreground, completion plays a sound and a haptic.
-- When the app is backgrounded or the phone is locked, completion fires a push notification (see Notifications). The exact mechanism for firing at the end time on iOS is a known design point to resolve during planning, since iOS PWAs do not have reliable local scheduled notifications and Web Push is server initiated.
+- Completion plays a sound and a haptic while the app is open. This is controlled by the "Sound and vibration" setting in Settings, which is independent of the push notification toggles.
+- The countdown is driven by the end time rather than by counting seconds, so backgrounding the app does not make it lose time.
+- Completion does not fire a push notification when the app is closed or the phone is locked. iOS PWAs have no reliable local scheduled notification and Web Push is server initiated, so this would need scheduling that the app does not have.
 
 ### 6. Dashboard (home)
 
@@ -93,19 +94,21 @@ The user always sees words, never a coefficient.
 
 Delivered via a service worker and Web Push (VAPID). On iOS this requires the app to be added to the home screen first (iOS 16.4 or later). v1 ships these notifications:
 
-1. Rest timer complete: "Rest's over, hit your next set."
-2. Workout reminder: configurable in Settings (training days and a time), a scheduled nudge to train.
-3. Streak protection: a warning before the weekly streak lapses.
-4. PR celebration: instant congratulations the moment a personal record is logged.
-5. Weekly recap: a Sunday summary, for example "This week: 4 workouts, 28k lbs moved".
-6. Unfinished workout: a single reminder when a session has been left open with no activity for six hours, linking straight to it so it can be resumed, finished, or discarded.
+1. Workout reminder: configurable in Settings (training days and a time), a scheduled nudge to train.
+2. Streak protection: a warning before the weekly streak lapses.
+3. PR celebration: instant congratulations the moment a personal record is logged.
+4. Weekly recap: a Sunday summary, for example "This week: 4 workouts, 28k lbs moved".
+5. Unfinished workout: a single reminder when a session has been left open with no activity for six hours, linking straight to it so it can be resumed, finished, or discarded.
+
+The rest timer is deliberately not in this list. Its completion alert is a local sound and haptic rather than a push, for the reason given in section 5.
 
 All notifications are individually toggleable in Settings. The app works fully with notifications disabled.
 
 ### 9. Settings
 
 - Theme picker: choose the accent color (see Theme system).
-- Notification preferences: master toggle, per notification toggles, workout reminder schedule, default rest timer duration.
+- Notification preferences: master toggle, per notification toggles, workout reminder schedule.
+- Rest timer: default duration, and whether completion plays a sound and a haptic.
 - Sign out.
 
 ### 10. PWA install

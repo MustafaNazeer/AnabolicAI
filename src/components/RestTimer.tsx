@@ -13,22 +13,6 @@ const ctrlStyle = {
   minHeight: 44,
 } as const;
 
-function alertFinished() {
-  try {
-    navigator.vibrate?.(400);
-    const ctx = new (window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    osc.connect(ctx.destination);
-    osc.frequency.value = 880;
-    osc.start();
-    osc.stop(ctx.currentTime + 0.25);
-  } catch {
-    // Audio or vibrate unavailable; the visual zero is enough.
-  }
-}
-
 export function RestTimer({
   defaultSeconds,
   alertOnFinish = true,
@@ -43,7 +27,46 @@ export function RestTimer({
   const [deadline, setDeadline] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(defaultSeconds);
   const firedRef = useRef(false);
+  const audioRef = useRef<AudioContext | null>(null);
   const running = deadline !== null;
+
+  // iOS builds an AudioContext in the suspended state unless it is constructed
+  // during a user gesture, and nothing un-suspends it on its own. A context
+  // built when the rest ends therefore renders nothing at all, and the beep
+  // only becomes audible on the next tap, when the gesture unlocks audio and
+  // the stale oscillator finally plays. Building it here is the fix, because
+  // starting the timer is the one moment a real gesture is guaranteed.
+  function unlockAudio() {
+    try {
+      const Ctor =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!Ctor) return;
+      if (!audioRef.current) audioRef.current = new Ctor();
+      void audioRef.current.resume?.();
+    } catch {
+      // Audio unavailable; the visual countdown is enough.
+    }
+  }
+
+  function alertFinished() {
+    const ctx = audioRef.current;
+    if (!ctx) return;
+    try {
+      // Backgrounding can suspend a context that was already unlocked. Resuming
+      // one that a gesture has unlocked needs no further gesture, so this is
+      // safe to call from the tick.
+      void ctx.resume?.();
+      const osc = ctx.createOscillator();
+      osc.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    } catch {
+      // Audio unavailable; the visual zero is enough.
+    }
+  }
 
   useEffect(() => {
     if (deadline === null) return;
@@ -52,8 +75,8 @@ export function RestTimer({
       const left = secondsUntil(deadline, Date.now());
       setRemaining(left);
       // The tick owns this rather than a separate effect, for two reasons.
-      // Audio is suspended and vibrate is ignored while the page is hidden, so
-      // firing there would burn the one alert on something nobody perceives.
+      // Audio is suspended while the page is hidden, so firing there would burn
+      // the one alert on something nobody perceives.
       // And recomputing on return cannot rescue it, because setting `remaining`
       // to a value it already holds does not re-run an effect keyed on it.
       if (left === 0 && !firedRef.current && !document.hidden) {
@@ -88,6 +111,8 @@ export function RestTimer({
   function toggle() {
     firedRef.current = false;
     if (deadline === null) {
+      // Inside the tap handler, so this is a real user gesture.
+      unlockAudio();
       setDeadline(Date.now() + remaining * 1000);
     } else {
       setRemaining(secondsUntil(deadline, Date.now()));

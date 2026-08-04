@@ -21,10 +21,17 @@ describe("the rest timer sound setting", () => {
       />,
     );
 
-    const box = screen.getByRole("checkbox", { name: /Sound and vibration/ });
+    const box = screen.getByRole("checkbox", { name: /Sound/ });
     // The whole point of the move: it is not gated on the push master switch.
     expect(box).not.toBeDisabled();
     expect(box).toBeChecked();
+  });
+
+  // iOS Safari does not implement the Vibration API, so the label must not
+  // promise a haptic this app's only target device cannot produce.
+  it("does not promise a vibration", () => {
+    render(<NotificationSettings initial={{ ...NOTIFICATION_DEFAULTS }} />);
+    expect(screen.queryByText(/vibration/i)).toBeNull();
   });
 
   it("says what it does and what it does not do", () => {

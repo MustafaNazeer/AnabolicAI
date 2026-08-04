@@ -226,12 +226,12 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
         />
       </label>
 
-      {/* Not gated on notif_master. This is a local sound and a haptic, not a
-          push, so requiring notification permission to control it would be the
-          wrong gate. */}
+      {/* Not gated on notif_master. This is a local sound, not a push, so
+          requiring notification permission to control it would be the wrong
+          gate. */}
       <div className="mt-3">
         <Row
-          label="Sound and vibration"
+          label="Sound"
           note="When a rest ends, while the app is open"
           checked={s.notif_rest_timer}
           disabled={pending}

@@ -4,7 +4,41 @@ import { RestTimer } from "@/components/RestTimer";
 
 const T0 = new Date("2026-08-03T12:00:00.000Z").getTime();
 
-const vibrate = vi.fn();
+// jsdom implements no Web Audio at all, so the alert is observed through a
+// stub. This replaced asserting on navigator.vibrate, which iOS Safari does not
+// implement, so those assertions passed while the actual beep was silent on the
+// only device this app targets.
+class FakeOscillator {
+  frequency = { value: 0 };
+  connect = vi.fn();
+  start = vi.fn();
+  stop = vi.fn();
+}
+
+class FakeAudioContext {
+  static made: FakeAudioContext[] = [];
+  currentTime = 0;
+  destination = {};
+  oscillators: FakeOscillator[] = [];
+  resume = vi.fn(async () => {});
+  createOscillator = vi.fn(() => {
+    const osc = new FakeOscillator();
+    this.oscillators.push(osc);
+    return osc;
+  });
+  constructor() {
+    FakeAudioContext.made.push(this);
+  }
+}
+
+// Every oscillator started across every context, which is what "did it beep"
+// actually means.
+function beeps(): number {
+  return FakeAudioContext.made.reduce(
+    (n, c) => n + c.oscillators.filter((o) => o.start.mock.calls.length > 0).length,
+    0,
+  );
+}
 
 function setHidden(hidden: boolean) {
   Object.defineProperty(document, "hidden", { value: hidden, configurable: true });
@@ -14,13 +48,14 @@ function setHidden(hidden: boolean) {
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(T0);
-  vibrate.mockClear();
-  Object.defineProperty(navigator, "vibrate", { value: vibrate, configurable: true });
+  FakeAudioContext.made = [];
+  vi.stubGlobal("AudioContext", FakeAudioContext);
   Object.defineProperty(document, "hidden", { value: false, configurable: true });
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("RestTimer", () => {
@@ -117,6 +152,27 @@ describe("RestTimer", () => {
 });
 
 describe("RestTimer finishing", () => {
+  // iOS creates an AudioContext suspended unless it is built during a user
+  // gesture, and nothing un-suspends it on its own. Building it when the rest
+  // ends, which happens on an interval tick, produced no sound at all until the
+  // next tap unlocked audio and the stale oscillator finally played.
+  it("builds the audio context on the start tap, not when the rest ends", () => {
+    render(<RestTimer defaultSeconds={30} />);
+    expect(FakeAudioContext.made).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    expect(FakeAudioContext.made).toHaveLength(1);
+
+    vi.setSystemTime(T0 + 30_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+
+    // Reused, never rebuilt, because a context built here would be suspended.
+    expect(FakeAudioContext.made).toHaveLength(1);
+    expect(FakeAudioContext.made[0].resume).toHaveBeenCalled();
+  });
+
   it("alerts once when the rest runs out with the app open", () => {
     render(<RestTimer defaultSeconds={30} />);
     fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
@@ -127,14 +183,14 @@ describe("RestTimer finishing", () => {
     });
 
     expect(screen.getByText("0:00")).toBeInTheDocument();
-    expect(vibrate).toHaveBeenCalledTimes(1);
+    expect(beeps()).toBe(1);
     // Finishing stops the timer.
     expect(screen.getByRole("button", { name: "Start timer" })).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(5_000);
     });
-    expect(vibrate).toHaveBeenCalledTimes(1);
+    expect(beeps()).toBe(1);
   });
 
   it("stays silent while the app is hidden, then alerts on return", () => {
@@ -149,14 +205,14 @@ describe("RestTimer finishing", () => {
 
     // The rest is over but the user is not looking, and audio and vibrate do
     // nothing in this state, so firing here would waste the one alert.
-    expect(vibrate).not.toHaveBeenCalled();
+    expect(beeps()).toBe(0);
 
     act(() => {
       setHidden(false);
     });
 
     expect(screen.getByText("0:00")).toBeInTheDocument();
-    expect(vibrate).toHaveBeenCalledTimes(1);
+    expect(beeps()).toBe(1);
   });
 
   it("catches up immediately on return without waiting for a tick", () => {
@@ -170,7 +226,7 @@ describe("RestTimer finishing", () => {
     });
 
     expect(screen.getByText("3:00")).toBeInTheDocument();
-    expect(vibrate).not.toHaveBeenCalled();
+    expect(beeps()).toBe(0);
   });
 
   it("stays silent when the sound setting is off", () => {
@@ -185,6 +241,6 @@ describe("RestTimer finishing", () => {
     // The countdown still finishes and still shows zero; only the alert is off.
     expect(screen.getByText("0:00")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start timer" })).toBeInTheDocument();
-    expect(vibrate).not.toHaveBeenCalled();
+    expect(beeps()).toBe(0);
   });
 });

@@ -63,7 +63,8 @@ RIR is typed rather than picked, and it is optional. It takes a whole number fro
 
 - A configurable rest countdown the user can start between sets.
 - Default duration is set in Settings and can be adjusted per use.
-- Completion plays a sound and a haptic while the app is open. This is controlled by the "Sound and vibration" setting in Settings, which is independent of the push notification toggles.
+- Completion plays a sound while the app is open. This is controlled by the "Sound" setting in Settings, which is independent of the push notification toggles.
+- There is no haptic. iOS Safari does not implement the Vibration API, so a web app cannot produce one on the target device.
 - The countdown is driven by the end time rather than by counting seconds, so backgrounding the app does not make it lose time.
 - Completion does not fire a push notification when the app is closed or the phone is locked. iOS PWAs have no reliable local scheduled notification and Web Push is server initiated, so this would need scheduling that the app does not have.
 
@@ -100,7 +101,7 @@ Delivered via a service worker and Web Push (VAPID). On iOS this requires the ap
 4. Weekly recap: a Sunday summary, for example "This week: 4 workouts, 28k lbs moved".
 5. Unfinished workout: a single reminder when a session has been left open with no activity for six hours, linking straight to it so it can be resumed, finished, or discarded.
 
-The rest timer is deliberately not in this list. Its completion alert is a local sound and haptic rather than a push, for the reason given in section 5.
+The rest timer is deliberately not in this list. Its completion alert is a local sound rather than a push, for the reason given in section 5.
 
 All notifications are individually toggleable in Settings. The app works fully with notifications disabled.
 
@@ -108,7 +109,7 @@ All notifications are individually toggleable in Settings. The app works fully w
 
 - Theme picker: choose the accent color (see Theme system).
 - Notification preferences: master toggle, per notification toggles, workout reminder schedule.
-- Rest timer: default duration, and whether completion plays a sound and a haptic.
+- Rest timer: default duration, and whether completion plays a sound.
 - Sign out.
 
 ### 10. PWA install

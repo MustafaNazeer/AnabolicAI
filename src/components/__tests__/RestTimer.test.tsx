@@ -117,26 +117,6 @@ describe("RestTimer", () => {
     expect(screen.getByText("1:30")).toBeInTheDocument();
   });
 
-  it("adds and removes fifteen seconds while running", () => {
-    render(<RestTimer defaultSeconds={120} />);
-    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
-    act(() => {
-      vi.advanceTimersByTime(0);
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Plus 15 seconds" }));
-    act(() => {
-      vi.advanceTimersByTime(0);
-    });
-    expect(screen.getByText("2:15")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Minus 15 seconds" }));
-    act(() => {
-      vi.advanceTimersByTime(0);
-    });
-    expect(screen.getByText("2:00")).toBeInTheDocument();
-  });
-
   it("returns to the default duration on reset", () => {
     render(<RestTimer defaultSeconds={120} />);
     fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
@@ -242,5 +222,94 @@ describe("RestTimer finishing", () => {
     expect(screen.getByText("0:00")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start timer" })).toBeInTheDocument();
     expect(beeps()).toBe(0);
+  });
+});
+
+describe("choosing a rest duration", () => {
+  it("no longer offers the fifteen second buttons", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    expect(screen.queryByRole("button", { name: "Plus 15 seconds" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Minus 15 seconds" })).toBeNull();
+  });
+
+  it("opens the picker from the countdown and applies a choice", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
+
+    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
+      key: "ArrowUp",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
+
+    expect(screen.getByText("3:00")).toBeInTheDocument();
+    // The picker closes once a value is set.
+    expect(screen.queryByRole("group", { name: "Rest duration" })).toBeNull();
+  });
+
+  it("leaves the duration alone when the picker is cancelled", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
+    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
+      key: "ArrowUp",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel duration change" }));
+
+    expect(screen.getByText("2:00")).toBeInTheDocument();
+  });
+
+  // The whole point: set it once at bench and every bench rest uses it.
+  it("keeps the chosen duration for the next rest", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
+    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
+      key: "ArrowUp",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    vi.setSystemTime(T0 + 180_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(screen.getByText("0:00")).toBeInTheDocument();
+
+    // Reset goes back to the CHOSEN value, not the prop.
+    fireEvent.click(screen.getByRole("button", { name: "Reset timer" }));
+    expect(screen.getByText("3:00")).toBeInTheDocument();
+  });
+
+  it("restarts a running rest at the new duration", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    vi.setSystemTime(T0 + 30_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(screen.getByText("1:29")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
+    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
+      key: "ArrowUp",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
+
+    // The number you picked is the number you see. The 31 seconds served are
+    // discarded, which is the accepted cost.
+    expect(screen.getByText("3:00")).toBeInTheDocument();
+  });
+
+  it("reports the choice upward, and survives a handler that throws", () => {
+    const onDurationChange = vi.fn(() => {
+      throw new Error("offline");
+    });
+    render(
+      <RestTimer defaultSeconds={120} onDurationChange={onDurationChange} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
+    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
+
+    expect(onDurationChange).toHaveBeenCalledWith(120);
+    // Failing to save a preference must not interrupt a workout.
+    expect(screen.getByText("2:00")).toBeInTheDocument();
   });
 });

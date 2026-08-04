@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import { formatDuration, secondsUntil } from "@/lib/workout/timer";
+import { RestDurationPicker } from "@/components/RestDurationPicker";
+import { clampRest } from "@/lib/workout/duration";
 
 const ctrlStyle = {
   background: "var(--surface-sunken)",
@@ -16,16 +18,22 @@ const ctrlStyle = {
 export function RestTimer({
   defaultSeconds,
   alertOnFinish = true,
+  onDurationChange,
 }: {
   defaultSeconds: number;
   alertOnFinish?: boolean;
+  onDurationChange?: (seconds: number) => void;
 }) {
+  // The duration a fresh rest starts at. Seeded from the setting, then owned
+  // here, so a value chosen mid workout survives a reset and every later rest.
+  const [duration, setDuration] = useState(() => clampRest(defaultSeconds));
   // While running, the deadline is the source of truth and `remaining` is only
   // what gets painted. Decrementing state on an interval instead loses every
   // callback the browser throttles, coalesces or skips, which on a backgrounded
   // iOS PWA is most of them.
   const [deadline, setDeadline] = useState<number | null>(null);
-  const [remaining, setRemaining] = useState(defaultSeconds);
+  const [remaining, setRemaining] = useState(() => clampRest(defaultSeconds));
+  const [picking, setPicking] = useState(false);
   const firedRef = useRef(false);
   const audioRef = useRef<AudioContext | null>(null);
   const running = deadline !== null;
@@ -97,17 +105,6 @@ export function RestTimer({
     };
   }, [deadline, alertOnFinish]);
 
-  // Both directions clear the guard, matching the behaviour of the shared reset
-  // helper this replaced, so adding time to a finished timer can fire again.
-  function shift(delta: number) {
-    firedRef.current = false;
-    if (deadline !== null) {
-      setDeadline(Math.max(Date.now(), deadline + delta * 1000));
-    } else {
-      setRemaining((r) => Math.max(0, r + delta));
-    }
-  }
-
   function toggle() {
     firedRef.current = false;
     if (deadline === null) {
@@ -123,12 +120,26 @@ export function RestTimer({
   function reset() {
     firedRef.current = false;
     setDeadline(null);
-    setRemaining(defaultSeconds);
+    setRemaining(duration);
+  }
+
+  function pickDuration(seconds: number) {
+    firedRef.current = false;
+    setDuration(seconds);
+    setPicking(false);
+    // Restarting is deliberate: the number just chosen is the number shown.
+    if (deadline !== null) setDeadline(Date.now() + seconds * 1000);
+    else setRemaining(seconds);
+    try {
+      onDurationChange?.(seconds);
+    } catch {
+      // Saving the preference is best effort and must never interrupt a rest.
+    }
   }
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3"
+      className="px-4 py-3"
       style={{
         background: "var(--surface)",
         border: "1px solid var(--surface-border)",
@@ -137,56 +148,56 @@ export function RestTimer({
         WebkitBackdropFilter: "blur(14px)",
       }}
     >
-      <span
-        className="text-2xl font-semibold tabular-nums"
-        style={{ fontFamily: "var(--font-spectral)", color: "var(--accent)" }}
-      >
-        {formatDuration(remaining)}
-      </span>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => shift(-15)}
-          aria-label="Minus 15 seconds"
-          className="px-2 text-sm"
-          style={ctrlStyle}
-        >
-          -15
-        </button>
-        <button
-          type="button"
-          onClick={() => shift(15)}
-          aria-label="Plus 15 seconds"
-          className="px-2 text-sm"
-          style={ctrlStyle}
-        >
-          +15
-        </button>
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={running ? "Pause timer" : "Start timer"}
-          className="flex items-center justify-center"
+          onClick={() => setPicking((p) => !p)}
+          aria-label="Change rest duration"
+          className="text-2xl font-semibold tabular-nums"
           style={{
-            background: "var(--accent)",
-            color: "var(--on-accent)",
-            borderRadius: "var(--radius-square)",
-            minWidth: 44,
+            fontFamily: "var(--font-spectral)",
+            color: "var(--accent)",
             minHeight: 44,
           }}
         >
-          {running ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
+          {formatDuration(remaining)}
         </button>
-        <button
-          type="button"
-          onClick={reset}
-          aria-label="Reset timer"
-          className="flex items-center justify-center"
-          style={ctrlStyle}
-        >
-          <RotateCcw size={18} aria-hidden />
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={running ? "Pause timer" : "Start timer"}
+            className="flex items-center justify-center"
+            style={{
+              background: "var(--accent)",
+              color: "var(--on-accent)",
+              borderRadius: "var(--radius-square)",
+              minWidth: 44,
+              minHeight: 44,
+            }}
+          >
+            {running ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
+          </button>
+          <button
+            type="button"
+            onClick={reset}
+            aria-label="Reset timer"
+            className="flex items-center justify-center"
+            style={ctrlStyle}
+          >
+            <RotateCcw size={18} aria-hidden />
+          </button>
+        </div>
       </div>
+      {picking ? (
+        <div className="onyx-lift" style={{ viewTransitionName: "rest-duration" }}>
+          <RestDurationPicker
+            seconds={duration}
+            onPick={pickDuration}
+            onCancel={() => setPicking(false)}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

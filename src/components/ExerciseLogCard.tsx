@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Check, Copy, Repeat } from "lucide-react";
 import { parseRir, rirSuffix } from "@/lib/workout/rir";
 import { lastSetForNumber } from "@/lib/workout/quickfill";
@@ -57,6 +57,20 @@ export function ExerciseLogCard({
 
   const nextSetNumber = loggedSets.length + 1;
   const suggestion = lastSetForNumber(lastSets, nextSetNumber);
+
+  // A zero target must never count as reached. The "Also logged this session"
+  // cards pass defaultSets={0}, and treating that as finished would make them
+  // unloggable the moment they stopped being read only.
+  const atTarget = defaultSets > 0 && loggedSets.length >= defaultSets;
+  const [extraSets, setExtraSets] = useState(false);
+
+  useEffect(() => {
+    // Deleting back under the target clears the latch, so the collapse returns
+    // rather than staying off for the rest of the session.
+    if (loggedSets.length < defaultSets) setExtraSets(false);
+  }, [loggedSets.length, defaultSets]);
+
+  const showInputs = !atTarget || extraSets;
 
   function fillFromLast() {
     if (!suggestion) return;
@@ -205,7 +219,21 @@ export function ExerciseLogCard({
         ))}
       </ul>
 
-      {readOnly ? null : (
+      {readOnly ? null : !showInputs ? (
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-xs" style={{ color: "var(--text-dim)" }}>
+            Done
+          </span>
+          <button
+            type="button"
+            onClick={() => setExtraSets(true)}
+            className="text-xs underline underline-offset-2"
+            style={{ color: "var(--text-dim)", minHeight: 44 }}
+          >
+            Add another set
+          </button>
+        </div>
+      ) : (
         <>
           <div className="flex items-end gap-2 mt-3">
             <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>

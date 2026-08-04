@@ -36,6 +36,7 @@ export async function removeSubscription(endpoint: string) {
 export async function updateNotificationSettings(values: {
   notif_master: boolean;
   notif_rest_timer: boolean;
+  notif_rest_push: boolean;
   notif_reminder: boolean;
   reminder_days: string | null;
   reminder_time: string | null;

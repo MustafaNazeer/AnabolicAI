@@ -1,6 +1,7 @@
 export type NotificationSettings = {
   notif_master: boolean;
   notif_rest_timer: boolean;
+  notif_rest_push: boolean;
   notif_reminder: boolean;
   reminder_days: string | null;
   reminder_time: string | null;
@@ -15,6 +16,7 @@ export type NotificationSettings = {
 export const NOTIFICATION_DEFAULTS: NotificationSettings = {
   notif_master: false,
   notif_rest_timer: true,
+  notif_rest_push: true,
   notif_reminder: false,
   reminder_days: null,
   reminder_time: null,

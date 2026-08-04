@@ -87,6 +87,7 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
       const res = await updateNotificationSettings({
         notif_master: next.notif_master,
         notif_rest_timer: next.notif_rest_timer,
+        notif_rest_push: next.notif_rest_push,
         notif_reminder: next.notif_reminder,
         reminder_days: next.reminder_days,
         reminder_time: next.reminder_time,

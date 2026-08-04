@@ -376,3 +376,33 @@ describe("the picker's motion", () => {
     );
   });
 });
+
+describe("the countdown's tap target", () => {
+  // Everything on the tile except play and reset should open the picker. That
+  // is done by growing the countdown button to fill the row rather than by
+  // putting a handler on a container, which would nest buttons and would also
+  // fire when the open picker's own inputs are tapped.
+  //
+  // jsdom performs no layout, so the class is the only observable. This still
+  // has teeth: dropping flex-1 shrinks the target back to the digits alone,
+  // which is the exact regression worth catching.
+  it("fills the row so the whole readout area opens the picker", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    const countdown = screen.getByRole("button", { name: "Change rest duration" });
+    expect(countdown).toHaveClass("flex-1");
+    expect(countdown).toHaveClass("text-left");
+  });
+
+  // Growing the button must not put it in front of the two controls.
+  it("still leaves play and reset tappable in their own right", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    expect(screen.getByRole("button", { name: "Pause timer" })).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Rest duration" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset timer" }));
+    expect(screen.getByText("2:00")).toBeInTheDocument();
+    // Neither control may open the picker as a side effect.
+    expect(screen.queryByRole("group", { name: "Rest duration" })).toBeNull();
+  });
+});

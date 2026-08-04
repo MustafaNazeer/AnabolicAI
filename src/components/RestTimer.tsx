@@ -158,7 +158,11 @@ export function RestTimer({
           type="button"
           onClick={() => runViewTransition(() => setPicking((p) => !p))}
           aria-label="Change rest duration"
-          className="text-2xl font-semibold tabular-nums"
+          // Fills the row so that everything on the tile except play and reset
+          // opens the picker. Growing the button is what makes that possible
+          // without nesting buttons or putting a click handler on a container,
+          // which would also fire when the open picker's own inputs are tapped.
+          className="flex-1 text-left text-2xl font-semibold tabular-nums"
           style={{
             fontFamily: "var(--font-spectral)",
             color: "var(--accent)",
@@ -172,7 +176,7 @@ export function RestTimer({
         >
           {formatDuration(remaining)}
         </button>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={toggle}

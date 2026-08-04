@@ -29,6 +29,7 @@ export function ExerciseLogCard({
   originalName = null,
   onSwap,
   onUndoSwap,
+  onEdit,
 }: {
   exerciseName: string;
   defaultSets: number;
@@ -47,6 +48,15 @@ export function ExerciseLogCard({
   originalName?: string | null;
   onSwap?: () => void;
   onUndoSwap?: () => void;
+  onEdit?: (
+    setId: string,
+    input: {
+      reps: number;
+      weight: number;
+      rirLow: number | null;
+      rirHigh: number | null;
+    },
+  ) => void;
 }) {
   const readOnly = role === "swappedOutOriginal";
   const [reps, setReps] = useState("");
@@ -76,7 +86,32 @@ export function ExerciseLogCard({
     if (belowTarget) setExtraSets(false);
   }
 
-  const showInputs = !atTarget || extraSets;
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<{
+    reps: string;
+    weight: string;
+    rirLow: string;
+    rirHigh: string;
+  } | null>(null);
+
+  function clearEditing() {
+    setReps(draft?.reps ?? "");
+    setWeight(draft?.weight ?? "");
+    setRirLow(draft?.rirLow ?? "");
+    setRirHigh(draft?.rirHigh ?? "");
+    setDraft(null);
+    setEditingId(null);
+    setError(null);
+  }
+
+  // The set being edited was deleted, so there is nothing left to save into.
+  // Adjusted during render for the same reason as the latch above, and it
+  // converges because clearing editingId makes this false on the next pass.
+  if (editingId !== null && !loggedSets.some((s) => s.id === editingId)) {
+    clearEditing();
+  }
+
+  const showInputs = !atTarget || extraSets || editingId !== null;
 
   function fillFromLast() {
     if (!suggestion) return;
@@ -115,6 +150,67 @@ export function ExerciseLogCard({
     setWeight("");
     setRirLow("");
     setRirHigh("");
+  }
+
+  function startEdit(s: LocalSet) {
+    // Stash whatever is part way typed so tapping a set never eats it. Only on
+    // the way in, so hopping between two sets does not overwrite the stash.
+    if (editingId === null) setDraft({ reps, weight, rirLow, rirHigh });
+    setEditingId(s.id);
+    setReps(String(s.reps));
+    setWeight(String(s.weight));
+    setRirLow(s.rirLow === null ? "" : String(s.rirLow));
+    setRirHigh(
+      s.rirHigh === null || s.rirHigh === s.rirLow ? "" : String(s.rirHigh),
+    );
+    setError(null);
+  }
+
+  function saveEdit() {
+    if (editingId === null) return;
+    const r = Number(reps);
+    const w = Number(weight);
+    if (!Number.isFinite(r) || r < 1) {
+      setError("Reps must be at least 1.");
+      return;
+    }
+    if (!Number.isFinite(w) || w < 0) {
+      setError("Weight cannot be negative.");
+      return;
+    }
+    const parsed = parseRir(rirLow, rirHigh);
+    if ("error" in parsed) {
+      setError(parsed.error);
+      return;
+    }
+    onEdit?.(editingId, { reps: r, weight: w, ...parsed });
+    clearEditing();
+  }
+
+  // Shared by the plain and the tappable arms of a logged row so the two
+  // cannot drift apart.
+  function rowContent(s: LocalSet) {
+    return (
+      <>
+        {s.syncState === "pending" ? (
+          <span
+            role="img"
+            aria-label="Not yet synced"
+            title="Not yet synced"
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 9999,
+              background: "var(--accent)",
+              display: "inline-block",
+              flexShrink: 0,
+            }}
+          />
+        ) : null}
+        Set {s.setNumber}: {s.reps} for {s.weight} lbs
+        {rirSuffix(s.rirLow, s.rirHigh)}
+      </>
+    );
   }
 
   return (
@@ -193,25 +289,19 @@ export function ExerciseLogCard({
               viewTransitionName: viewTransitionName("set", s.id),
             }}
           >
-            <span className="flex items-center gap-2">
-              {s.syncState === "pending" ? (
-                <span
-                  role="img"
-                  aria-label="Not yet synced"
-                  title="Not yet synced"
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 9999,
-                    background: "var(--accent)",
-                    display: "inline-block",
-                    flexShrink: 0,
-                  }}
-                />
-              ) : null}
-              Set {s.setNumber}: {s.reps} for {s.weight} lbs
-              {rirSuffix(s.rirLow, s.rirHigh)}
-            </span>
+            {readOnly || !onEdit ? (
+              <span className="flex items-center gap-2">{rowContent(s)}</span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => startEdit(s)}
+                aria-label={`Edit set ${s.setNumber}, ${s.reps} for ${s.weight} lbs${rirSuffix(s.rirLow, s.rirHigh)}`}
+                className="flex items-center gap-2 text-left"
+                style={{ color: "var(--text)", minHeight: 44 }}
+              >
+                {rowContent(s)}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => onDelete(s.id)}
@@ -290,22 +380,64 @@ export function ExerciseLogCard({
                 />
               </label>
             </div>
-            <button
-              type="button"
-              onClick={log}
-              aria-label="Log set"
-              className="flex items-center justify-center"
-              style={{
-                background: "var(--accent)",
-                color: "var(--on-accent)",
-                borderRadius: "var(--radius-square)",
-                minWidth: 48,
-                minHeight: 44,
-              }}
-            >
-              <Check size={18} aria-hidden />
-            </button>
+            {editingId === null ? (
+              <button
+                type="button"
+                onClick={log}
+                aria-label="Log set"
+                className="flex items-center justify-center"
+                style={{
+                  background: "var(--accent)",
+                  color: "var(--on-accent)",
+                  borderRadius: "var(--radius-square)",
+                  minWidth: 48,
+                  minHeight: 44,
+                }}
+              >
+                <Check size={18} aria-hidden />
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={saveEdit}
+                  aria-label="Save set"
+                  className="flex items-center justify-center"
+                  style={{
+                    background: "var(--accent)",
+                    color: "var(--on-accent)",
+                    borderRadius: "var(--radius-square)",
+                    minWidth: 48,
+                    minHeight: 44,
+                  }}
+                >
+                  <Check size={18} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={clearEditing}
+                  aria-label="Cancel edit"
+                  className="flex items-center justify-center"
+                  style={{
+                    background: "var(--surface-sunken)",
+                    border: "1px solid var(--surface-border)",
+                    borderRadius: "var(--radius-square)",
+                    color: "var(--text-dim)",
+                    minWidth: 48,
+                    minHeight: 44,
+                  }}
+                >
+                  <X size={18} aria-hidden />
+                </button>
+              </>
+            )}
           </div>
+          {editingId !== null ? (
+            <p className="text-xs mt-2" style={{ color: "var(--text-dim)" }}>
+              Editing set{" "}
+              {loggedSets.find((s) => s.id === editingId)?.setNumber}
+            </p>
+          ) : null}
         </>
       )}
 

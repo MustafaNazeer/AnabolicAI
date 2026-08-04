@@ -326,7 +326,15 @@ export function ActiveWorkout({
         />
       ) : null}
 
-      <div className="sticky top-2 z-10 mb-4">
+      {/* Installed to the home screen the app runs standalone under a
+          translucent status bar, so the layout viewport starts at the physical
+          top of the screen. Offsetting by the top inset keeps the pinned timer
+          clear of the clock and the Dynamic Island, the same way the tab bar
+          clears the home indicator. */}
+      <div
+        className="sticky z-10 mb-4"
+        style={{ top: "calc(0.5rem + env(safe-area-inset-top))" }}
+      >
         <RestTimer defaultSeconds={snapshot.restSeconds} />
       </div>
 

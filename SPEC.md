@@ -66,7 +66,7 @@ RIR is typed rather than picked, and it is optional. It takes a whole number fro
 - Completion plays a sound while the app is open. This is controlled by the "Sound" setting in Settings, which is independent of the push notification toggles.
 - There is no haptic. iOS Safari does not implement the Vibration API, so a web app cannot produce one on the target device.
 - The countdown is driven by the end time rather than by counting seconds, so backgrounding the app does not make it lose time.
-- Completion does not fire a push notification when the app is closed or the phone is locked. iOS PWAs have no reliable local scheduled notification and Web Push is server initiated, so this would need scheduling that the app does not have.
+- Completion also fires a push notification when the app is closed or the phone is locked, so a rest taken with the phone in a pocket still ends with a nudge. It is suppressed while the app is open, since the sound has already played. Scheduling it needs a connection at the moment the rest starts; without one the timer says so and only the local sound applies.
 
 ### 6. Dashboard (home)
 
@@ -100,8 +100,7 @@ Delivered via a service worker and Web Push (VAPID). On iOS this requires the ap
 3. PR celebration: instant congratulations the moment a personal record is logged.
 4. Weekly recap: a Sunday summary, for example "This week: 4 workouts, 28k lbs moved".
 5. Unfinished workout: a single reminder when a session has been left open with no activity for six hours, linking straight to it so it can be resumed, finished, or discarded.
-
-The rest timer is deliberately not in this list. Its completion alert is a local sound rather than a push, for the reason given in section 5.
+6. Rest timer complete: a nudge when a rest ends while the app is closed or the phone is locked.
 
 All notifications are individually toggleable in Settings. The app works fully with notifications disabled.
 
@@ -109,7 +108,7 @@ All notifications are individually toggleable in Settings. The app works fully w
 
 - Theme picker: choose the accent color (see Theme system).
 - Notification preferences: master toggle, per notification toggles, workout reminder schedule.
-- Rest timer: default duration, and whether completion plays a sound. The default is also updated whenever the duration is changed during a workout.
+- Rest timer: default duration, whether completion plays a sound, and whether it sends a notification when the app is closed. The default duration is also updated whenever it is changed during a workout.
 - Sign out.
 
 ### 10. PWA install
@@ -146,6 +145,7 @@ user_settings
   rest_timer_seconds integer (default 120)
   notif_master       boolean
   notif_rest_timer   boolean
+  notif_rest_push    boolean
   notif_reminder     boolean
   reminder_days      text   (which days)
   reminder_time      time
@@ -166,7 +166,10 @@ routine_exercises
 
 workout_sessions
   id, user_id (FK), routine_id (FK), started_at, completed_at (nullable),
-  unfinished_notified (boolean, default false)
+  unfinished_notified (boolean, default false),
+  rest_ends_at (nullable), rest_token (nullable)
+  the live rest for this session; a fresh token per start is what lets a
+  scheduled notification tell whether it is still wanted on arrival
 
 goals
   id, user_id (FK), exercise_id (FK), target_weight, target_reps,

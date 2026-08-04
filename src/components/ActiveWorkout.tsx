@@ -18,6 +18,7 @@ import {
   finishSession,
   swapExercise,
   undoSwap,
+  setRestDuration,
 } from "@/lib/workout/actions";
 import { createIdbStore } from "@/lib/offline/idb";
 import {
@@ -375,7 +376,11 @@ export function ActiveWorkout({
         className="sticky z-10 mb-4"
         style={{ top: "calc(0.5rem + env(safe-area-inset-top))" }}
       >
-        <RestTimer defaultSeconds={snapshot.restSeconds} alertOnFinish={restAlert} />
+        <RestTimer
+          defaultSeconds={snapshot.restSeconds}
+          alertOnFinish={restAlert}
+          onDurationChange={(seconds) => void setRestDuration(seconds)}
+        />
       </div>
 
       {picking ? (

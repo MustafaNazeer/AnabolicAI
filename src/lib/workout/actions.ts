@@ -247,3 +247,26 @@ export async function finishSession(sessionId: string) {
   revalidatePath("/");
   return { ok: true };
 }
+
+export async function setRestDuration(seconds: number) {
+  // The column is CHECK (rest_timer_seconds > 0 AND <= 3600). Guard here so a
+  // bad value is a friendly no-op rather than a constraint violation.
+  if (!Number.isInteger(seconds) || seconds < 1 || seconds > 3600) {
+    return { error: "That is not a usable rest duration." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const { error } = await supabase
+    .from("user_settings")
+    .upsert(
+      { user_id: user.id, rest_timer_seconds: seconds },
+      { onConflict: "user_id" },
+    );
+  if (error) return { error: error.message };
+  return { ok: true };
+}

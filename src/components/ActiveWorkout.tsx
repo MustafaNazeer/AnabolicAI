@@ -24,6 +24,7 @@ import {
   seedSession,
   logSetLocal,
   deleteSetLocal,
+  editSetLocal,
   finishLocal,
   swapLocal,
   undoSwapLocal,
@@ -242,6 +243,23 @@ export function ActiveWorkout({
     [store, refresh, sync],
   );
 
+  const handleEdit = useCallback(
+    async (
+      setId: string,
+      input: {
+        reps: number;
+        weight: number;
+        rirLow: number | null;
+        rirHigh: number | null;
+      },
+    ) => {
+      await editSetLocal(store, setId, input);
+      await refresh();
+      if (navigator.onLine) void sync();
+    },
+    [store, refresh, sync],
+  );
+
   const handleSwap = useCallback(
     async (slotExerciseId: string, replacementId: string) => {
       await swapLocal(store, sessionId, slotExerciseId, replacementId);
@@ -397,6 +415,7 @@ export function ActiveWorkout({
             lastSets={snapshot.lastByExercise[c.exerciseId] ?? []}
             onLog={(input) => void handleLog(c.exerciseId, input)}
             onDelete={(setId) => void handleDelete(setId)}
+            onEdit={(setId, input) => void handleEdit(setId, input)}
             onSwap={
               c.role === "swappedOutOriginal"
                 ? undefined

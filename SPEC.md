@@ -62,7 +62,7 @@ RIR is typed rather than picked, and it is optional. It takes a whole number fro
 ### 5. Rest timer
 
 - A configurable rest countdown the user can start between sets.
-- Default duration is set in Settings. During a workout it can be changed to any value by tapping the countdown and choosing on a wheel, and that choice becomes the duration for the rest of the session and is saved back as the new default.
+- Default duration is set in Settings. During a workout it can be changed to any value by tapping the countdown and typing the minutes and seconds, and that choice becomes the duration for the rest of the session and is saved back as the new default.
 - Completion plays a sound while the app is open. This is controlled by the "Sound" setting in Settings, which is independent of the push notification toggles.
 - There is no haptic. iOS Safari does not implement the Vibration API, so a web app cannot produce one on the target device.
 - The countdown is driven by the end time rather than by counting seconds, so backgrounding the app does not make it lose time.

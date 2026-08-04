@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { RestTimer } from "@/components/RestTimer";
+import { runViewTransition } from "@/lib/motion/viewTransition";
+
+// Passing the update straight through keeps every existing test behaving as it
+// did, while making the call itself observable. jsdom implements no
+// startViewTransition, so the real helper would silently take its fallback
+// branch and a missing call would be invisible.
+vi.mock("@/lib/motion/viewTransition", () => ({
+  runViewTransition: vi.fn((update: () => void) => update()),
+}));
 
 const T0 = new Date("2026-08-03T12:00:00.000Z").getTime();
 
@@ -48,6 +57,7 @@ function setHidden(hidden: boolean) {
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(T0);
+  vi.mocked(runViewTransition).mockClear();
   FakeAudioContext.made = [];
   vi.stubGlobal("AudioContext", FakeAudioContext);
   Object.defineProperty(document, "hidden", { value: false, configurable: true });
@@ -236,10 +246,10 @@ describe("choosing a rest duration", () => {
     render(<RestTimer defaultSeconds={120} />);
     fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
 
-    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
-      key: "ArrowUp",
+    fireEvent.change(screen.getByRole("textbox", { name: "Minutes" }), {
+      target: { value: "3" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Set duration/ }));
 
     expect(screen.getByText("3:00")).toBeInTheDocument();
     // The picker closes once a value is set.
@@ -249,8 +259,8 @@ describe("choosing a rest duration", () => {
   it("leaves the duration alone when the picker is cancelled", () => {
     render(<RestTimer defaultSeconds={120} />);
     fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
-    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
-      key: "ArrowUp",
+    fireEvent.change(screen.getByRole("textbox", { name: "Minutes" }), {
+      target: { value: "3" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Cancel duration change" }));
 
@@ -261,10 +271,10 @@ describe("choosing a rest duration", () => {
   it("keeps the chosen duration for the next rest", () => {
     render(<RestTimer defaultSeconds={120} />);
     fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
-    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
-      key: "ArrowUp",
+    fireEvent.change(screen.getByRole("textbox", { name: "Minutes" }), {
+      target: { value: "3" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Set duration/ }));
 
     fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
     vi.setSystemTime(T0 + 180_000);
@@ -288,10 +298,10 @@ describe("choosing a rest duration", () => {
     expect(screen.getByText("1:29")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
-    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
-      key: "ArrowUp",
+    fireEvent.change(screen.getByRole("textbox", { name: "Minutes" }), {
+      target: { value: "3" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Set duration/ }));
 
     // The number you picked is the number you see. The 31 seconds served are
     // discarded, which is the accepted cost.
@@ -306,10 +316,63 @@ describe("choosing a rest duration", () => {
       <RestTimer defaultSeconds={120} onDurationChange={onDurationChange} />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
-    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Set duration/ }));
 
     expect(onDurationChange).toHaveBeenCalledWith(120);
     // Failing to save a preference must not interrupt a workout.
     expect(screen.getByText("2:00")).toBeInTheDocument();
+  });
+});
+
+describe("the picker's motion", () => {
+  // The defect this pins: the panel carried the onyx-lift class but nothing
+  // ever started a view transition, so the class did nothing and the panel
+  // snapped open and shut.
+  it("runs opening the picker through a view transition", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
+
+    expect(runViewTransition).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("group", { name: "Rest duration" })).toBeInTheDocument();
+  });
+
+  it("runs cancelling the picker through a view transition", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
+    vi.mocked(runViewTransition).mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel duration change" }));
+
+    expect(runViewTransition).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("group", { name: "Rest duration" })).toBeNull();
+  });
+
+  it("runs a committed duration change through a view transition", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
+    vi.mocked(runViewTransition).mockClear();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Minutes" }), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Set duration/ }));
+
+    expect(runViewTransition).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("3:00")).toBeInTheDocument();
+  });
+
+  // Two elements cannot share a view transition name, and both are on screen
+  // together while the panel is open.
+  //
+  // Asserted against the raw style attribute rather than with toHaveStyle,
+  // matching ActiveWorkout.safearea.test.tsx:59. toHaveStyle goes through
+  // getComputedStyle, which is not reliable for a property jsdom does not
+  // implement.
+  it("gives the countdown its own view transition name", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    const countdown = screen.getByRole("button", { name: "Change rest duration" });
+    expect(countdown.getAttribute("style") ?? "").toContain(
+      "view-transition-name: rest-countdown",
+    );
   });
 });

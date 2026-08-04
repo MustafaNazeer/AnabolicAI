@@ -5,6 +5,7 @@ import { Play, Pause, RotateCcw } from "lucide-react";
 import { formatDuration, secondsUntil } from "@/lib/workout/timer";
 import { RestDurationPicker } from "@/components/RestDurationPicker";
 import { clampRest } from "@/lib/workout/duration";
+import { runViewTransition } from "@/lib/motion/viewTransition";
 
 const ctrlStyle = {
   background: "var(--surface-sunken)",
@@ -125,11 +126,15 @@ export function RestTimer({
 
   function pickDuration(seconds: number) {
     firedRef.current = false;
-    setDuration(seconds);
-    setPicking(false);
-    // Restarting is deliberate: the number just chosen is the number shown.
-    if (deadline !== null) setDeadline(Date.now() + seconds * 1000);
-    else setRemaining(seconds);
+    runViewTransition(() => {
+      setDuration(seconds);
+      setPicking(false);
+      // Restarting is deliberate: the number just chosen is the number shown.
+      if (deadline !== null) setDeadline(Date.now() + seconds * 1000);
+      else setRemaining(seconds);
+    });
+    // Deliberately outside the transition: a preference write that throws must
+    // not abort the visual update the user already committed to.
     try {
       onDurationChange?.(seconds);
     } catch {
@@ -151,13 +156,18 @@ export function RestTimer({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => setPicking((p) => !p)}
+          onClick={() => runViewTransition(() => setPicking((p) => !p))}
           aria-label="Change rest duration"
           className="text-2xl font-semibold tabular-nums"
           style={{
             fontFamily: "var(--font-spectral)",
             color: "var(--accent)",
             minHeight: 44,
+            // Its own name, distinct from the panel's, so committing a new
+            // duration cross fades the old number into the new one instead of
+            // snapping. The per second repaints are not wrapped in a
+            // transition, so a running countdown does not animate every tick.
+            viewTransitionName: "rest-countdown",
           }}
         >
           {formatDuration(remaining)}
@@ -194,7 +204,7 @@ export function RestTimer({
           <RestDurationPicker
             seconds={duration}
             onPick={pickDuration}
-            onCancel={() => setPicking(false)}
+            onCancel={() => runViewTransition(() => setPicking(false))}
           />
         </div>
       ) : null}

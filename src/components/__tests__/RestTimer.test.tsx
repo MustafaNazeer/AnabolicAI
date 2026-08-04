@@ -4,9 +4,19 @@ import { RestTimer } from "@/components/RestTimer";
 
 const T0 = new Date("2026-08-03T12:00:00.000Z").getTime();
 
+const vibrate = vi.fn();
+
+function setHidden(hidden: boolean) {
+  Object.defineProperty(document, "hidden", { value: hidden, configurable: true });
+  document.dispatchEvent(new Event("visibilitychange"));
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(T0);
+  vibrate.mockClear();
+  Object.defineProperty(navigator, "vibrate", { value: vibrate, configurable: true });
+  Object.defineProperty(document, "hidden", { value: false, configurable: true });
 });
 
 afterEach(() => {
@@ -103,5 +113,63 @@ describe("RestTimer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reset timer" }));
     expect(screen.getByText("2:00")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start timer" })).toBeInTheDocument();
+  });
+});
+
+describe("RestTimer finishing", () => {
+  it("alerts once when the rest runs out with the app open", () => {
+    render(<RestTimer defaultSeconds={30} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+
+    vi.setSystemTime(T0 + 30_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+
+    expect(screen.getByText("0:00")).toBeInTheDocument();
+    expect(vibrate).toHaveBeenCalledTimes(1);
+    // Finishing stops the timer.
+    expect(screen.getByRole("button", { name: "Start timer" })).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(vibrate).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays silent while the app is hidden, then alerts on return", () => {
+    render(<RestTimer defaultSeconds={30} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+
+    setHidden(true);
+    vi.setSystemTime(T0 + 30_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+
+    // The rest is over but the user is not looking, and audio and vibrate do
+    // nothing in this state, so firing here would waste the one alert.
+    expect(vibrate).not.toHaveBeenCalled();
+
+    act(() => {
+      setHidden(false);
+    });
+
+    expect(screen.getByText("0:00")).toBeInTheDocument();
+    expect(vibrate).toHaveBeenCalledTimes(1);
+  });
+
+  it("catches up immediately on return without waiting for a tick", () => {
+    render(<RestTimer defaultSeconds={300} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+
+    setHidden(true);
+    vi.setSystemTime(T0 + 120_000);
+    act(() => {
+      setHidden(false);
+    });
+
+    expect(screen.getByText("3:00")).toBeInTheDocument();
+    expect(vibrate).not.toHaveBeenCalled();
   });
 });

@@ -13,6 +13,22 @@ const ctrlStyle = {
   minHeight: 44,
 } as const;
 
+function alertFinished() {
+  try {
+    navigator.vibrate?.(400);
+    const ctx = new (window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    osc.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.start();
+    osc.stop(ctx.currentTime + 0.25);
+  } catch {
+    // Audio or vibrate unavailable; the visual zero is enough.
+  }
+}
+
 export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
   // While running, the deadline is the source of truth and `remaining` is only
   // what gets painted. Decrementing state on an interval instead loses every
@@ -25,33 +41,32 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
 
   useEffect(() => {
     if (deadline === null) return;
-    const tick = () => setRemaining(secondsUntil(deadline, Date.now()));
-    // Paint once immediately so starting the timer does not show a stale value
-    // for up to a second.
+
+    const tick = () => {
+      const left = secondsUntil(deadline, Date.now());
+      setRemaining(left);
+      // The tick owns this rather than a separate effect, for two reasons.
+      // Audio is suspended and vibrate is ignored while the page is hidden, so
+      // firing there would burn the one alert on something nobody perceives.
+      // And recomputing on return cannot rescue it, because setting `remaining`
+      // to a value it already holds does not re-run an effect keyed on it.
+      if (left === 0 && !firedRef.current && !document.hidden) {
+        firedRef.current = true;
+        setDeadline(null);
+        alertFinished();
+      }
+    };
+
+    // Paint once immediately so starting the timer, or coming back to it, does
+    // not show a stale value for up to a second.
     tick();
     const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, [deadline]);
-
-  useEffect(() => {
-    if (remaining === 0 && running && !firedRef.current) {
-      firedRef.current = true;
-      setDeadline(null);
-      try {
-        navigator.vibrate?.(400);
-        const ctx = new (window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        osc.connect(ctx.destination);
-        osc.frequency.value = 880;
-        osc.start();
-        osc.stop(ctx.currentTime + 0.25);
-      } catch {
-        // Audio or vibrate unavailable; the visual zero is enough.
-      }
-    }
-  }, [remaining, running]);
 
   // Both directions clear the guard, matching the behaviour of the shared reset
   // helper this replaced, so adding time to a finished timer can fire again.

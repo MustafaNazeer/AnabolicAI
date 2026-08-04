@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { celebrateIfPr } from "@/lib/notifications/pr";
 import { evaluateGoalOnLog } from "@/lib/notifications/goal";
+import { Client } from "@upstash/qstash";
+import { toNotBeforeSeconds } from "@/lib/notifications/restPush";
 
 export async function startSession(routineId: string) {
   const supabase = await createClient();
@@ -268,5 +270,58 @@ export async function setRestDuration(seconds: number) {
       { onConflict: "user_id" },
     );
   if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function scheduleRestPush(sessionId: string, deadlineMs: number) {
+  // The integration provisions these with a STORAGE_ prefix. The SDK reads
+  // bare QSTASH_* names by default and would find nothing, so they are passed
+  // explicitly. They are absent from the Development environment, so this
+  // returns an error on localhost, which is the same path a dead spot takes.
+  const token = process.env.STORAGE_QSTASH_TOKEN;
+  const baseUrl = process.env.STORAGE_QSTASH_URL;
+  // QStash calls an absolute URL, so the deployed origin has to be known. The
+  // explicit variable wins; the Vercel system variable is a convenience so a
+  // fresh environment still works without one more manual step.
+  const host =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined);
+  if (!token || !baseUrl || !host) {
+    return { error: "Notification scheduling is not configured." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const restToken = crypto.randomUUID();
+
+  // Written before publishing. If the publish then fails, the session simply
+  // holds a token no message will ever carry, which is harmless.
+  const { error } = await supabase
+    .from("workout_sessions")
+    .update({
+      rest_ends_at: new Date(deadlineMs).toISOString(),
+      rest_token: restToken,
+    })
+    .eq("id", sessionId);
+  if (error) return { error: error.message };
+
+  try {
+    const client = new Client({ baseUrl, token });
+    await client.publishJSON({
+      url: `${host}/api/rest/complete`,
+      body: { sessionId, token: restToken },
+      notBefore: toNotBeforeSeconds(deadlineMs),
+      deduplicationId: restToken,
+    });
+  } catch {
+    return { error: "Could not schedule the notification." };
+  }
+
   return { ok: true };
 }

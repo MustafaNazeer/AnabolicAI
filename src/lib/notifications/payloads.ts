@@ -84,3 +84,14 @@ export function goalProximityPayload(
     tag: "goal-near",
   };
 }
+
+export function restCompletePayload(): PushPayload {
+  return {
+    title: "Rest's over",
+    body: "Hit your next set.",
+    url: "/log",
+    // The service worker suppresses only this tag while the app is visible,
+    // since the local beep has already played.
+    tag: "rest",
+  };
+}

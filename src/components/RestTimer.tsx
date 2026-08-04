@@ -124,17 +124,29 @@ export function RestTimer({
     setRemaining(duration);
   }
 
+  // OPENING is animated; CLOSING never is, and that asymmetry is deliberate.
+  // A view transition across a shrink holds the taller old snapshot over the
+  // already reflowed layout for the whole animation, so the input boxes hang
+  // below the collapsed tile for 200ms. Measured in headless Chrome: at 100ms
+  // the tile had reached its collapsed height while the boxes were still
+  // painted outside it. Dropping the panel's own view-transition-name did not
+  // fix it and naming the tile instead was worse, so the close simply does not
+  // run through a transition at all.
+  function closePicker() {
+    setPicking(false);
+  }
+
   function pickDuration(seconds: number) {
     firedRef.current = false;
-    runViewTransition(() => {
-      setDuration(seconds);
-      setPicking(false);
-      // Restarting is deliberate: the number just chosen is the number shown.
-      if (deadline !== null) setDeadline(Date.now() + seconds * 1000);
-      else setRemaining(seconds);
-    });
-    // Deliberately outside the transition: a preference write that throws must
-    // not abort the visual update the user already committed to.
+    setDuration(seconds);
+    // Committing closes the panel, so it takes the same instant path. The cost
+    // is that the countdown does not cross fade into its new value.
+    closePicker();
+    // Restarting is deliberate: the number just chosen is the number shown.
+    if (deadline !== null) setDeadline(Date.now() + seconds * 1000);
+    else setRemaining(seconds);
+    // A preference write that throws must not interrupt the update the user
+    // already committed to.
     try {
       onDurationChange?.(seconds);
     } catch {
@@ -156,7 +168,9 @@ export function RestTimer({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => runViewTransition(() => setPicking((p) => !p))}
+          onClick={() =>
+            picking ? closePicker() : runViewTransition(() => setPicking(true))
+          }
           aria-label="Change rest duration"
           // Fills the row so that everything on the tile except play and reset
           // opens the picker. Growing the button is what makes that possible
@@ -208,7 +222,7 @@ export function RestTimer({
           <RestDurationPicker
             seconds={duration}
             onPick={pickDuration}
-            onCancel={() => runViewTransition(() => setPicking(false))}
+            onCancel={closePicker}
           />
         </div>
       ) : null}

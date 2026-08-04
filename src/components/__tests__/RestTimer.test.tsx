@@ -336,18 +336,40 @@ describe("the picker's motion", () => {
     expect(screen.getByRole("group", { name: "Rest duration" })).toBeInTheDocument();
   });
 
-  it("runs cancelling the picker through a view transition", () => {
+  // CLOSING IS DELIBERATELY NOT ANIMATED, and restoring the symmetry would
+  // reintroduce a real visual defect. A view transition across a shrink holds
+  // the taller old snapshot over the already reflowed layout for the whole
+  // animation, so the input boxes visibly hang below the collapsed tile for
+  // 200ms. Confirmed in headless Chrome: at 100ms the tile had reached its
+  // collapsed height while the boxes were still painted outside it. Removing
+  // the panel's own view-transition-name did not help, and naming the tile
+  // instead was worse.
+  it("closes instantly rather than through a view transition", () => {
     render(<RestTimer defaultSeconds={120} />);
     fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
     vi.mocked(runViewTransition).mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel duration change" }));
 
-    expect(runViewTransition).toHaveBeenCalledTimes(1);
+    expect(runViewTransition).not.toHaveBeenCalled();
     expect(screen.queryByRole("group", { name: "Rest duration" })).toBeNull();
   });
 
-  it("runs a committed duration change through a view transition", () => {
+  it("closes instantly when the timer face is tapped again", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    const face = screen.getByRole("button", { name: "Change rest duration" });
+    fireEvent.click(face);
+    vi.mocked(runViewTransition).mockClear();
+
+    fireEvent.click(face);
+
+    expect(runViewTransition).not.toHaveBeenCalled();
+    expect(screen.queryByRole("group", { name: "Rest duration" })).toBeNull();
+  });
+
+  // Committing closes the panel too, so it takes the same instant path. The
+  // cost is accepted: the countdown no longer cross fades into its new value.
+  it("commits instantly rather than through a view transition", () => {
     render(<RestTimer defaultSeconds={120} />);
     fireEvent.click(screen.getByRole("button", { name: "Change rest duration" }));
     vi.mocked(runViewTransition).mockClear();
@@ -357,8 +379,9 @@ describe("the picker's motion", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /^Set duration/ }));
 
-    expect(runViewTransition).toHaveBeenCalledTimes(1);
+    expect(runViewTransition).not.toHaveBeenCalled();
     expect(screen.getByText("3:00")).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Rest duration" })).toBeNull();
   });
 
   // Two elements cannot share a view transition name, and both are on screen

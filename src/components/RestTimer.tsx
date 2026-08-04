@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
-import { formatDuration } from "@/lib/workout/timer";
+import { formatDuration, secondsUntil } from "@/lib/workout/timer";
 
 const ctrlStyle = {
   background: "var(--surface-sunken)",
@@ -14,22 +14,29 @@ const ctrlStyle = {
 } as const;
 
 export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
+  // While running, the deadline is the source of truth and `remaining` is only
+  // what gets painted. Decrementing state on an interval instead loses every
+  // callback the browser throttles, coalesces or skips, which on a backgrounded
+  // iOS PWA is most of them.
+  const [deadline, setDeadline] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(defaultSeconds);
-  const [running, setRunning] = useState(false);
   const firedRef = useRef(false);
+  const running = deadline !== null;
 
   useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => {
-      setRemaining((r) => (r > 0 ? r - 1 : 0));
-    }, 1000);
+    if (deadline === null) return;
+    const tick = () => setRemaining(secondsUntil(deadline, Date.now()));
+    // Paint once immediately so starting the timer does not show a stale value
+    // for up to a second.
+    tick();
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [running]);
+  }, [deadline]);
 
   useEffect(() => {
     if (remaining === 0 && running && !firedRef.current) {
       firedRef.current = true;
-      setRunning(false);
+      setDeadline(null);
       try {
         navigator.vibrate?.(400);
         const ctx = new (window.AudioContext ||
@@ -46,9 +53,31 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
     }
   }, [remaining, running]);
 
-  function reset(to: number) {
+  // Both directions clear the guard, matching the behaviour of the shared reset
+  // helper this replaced, so adding time to a finished timer can fire again.
+  function shift(delta: number) {
     firedRef.current = false;
-    setRemaining(to);
+    if (deadline !== null) {
+      setDeadline(Math.max(Date.now(), deadline + delta * 1000));
+    } else {
+      setRemaining((r) => Math.max(0, r + delta));
+    }
+  }
+
+  function toggle() {
+    firedRef.current = false;
+    if (deadline === null) {
+      setDeadline(Date.now() + remaining * 1000);
+    } else {
+      setRemaining(secondsUntil(deadline, Date.now()));
+      setDeadline(null);
+    }
+  }
+
+  function reset() {
+    firedRef.current = false;
+    setDeadline(null);
+    setRemaining(defaultSeconds);
   }
 
   return (
@@ -71,7 +100,7 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
       <div className="ml-auto flex items-center gap-2">
         <button
           type="button"
-          onClick={() => reset(Math.max(0, remaining - 15))}
+          onClick={() => shift(-15)}
           aria-label="Minus 15 seconds"
           className="px-2 text-sm"
           style={ctrlStyle}
@@ -80,7 +109,7 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
         </button>
         <button
           type="button"
-          onClick={() => reset(remaining + 15)}
+          onClick={() => shift(15)}
           aria-label="Plus 15 seconds"
           className="px-2 text-sm"
           style={ctrlStyle}
@@ -89,10 +118,7 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
         </button>
         <button
           type="button"
-          onClick={() => {
-            firedRef.current = false;
-            setRunning((r) => !r);
-          }}
+          onClick={toggle}
           aria-label={running ? "Pause timer" : "Start timer"}
           className="flex items-center justify-center"
           style={{
@@ -107,10 +133,7 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
         </button>
         <button
           type="button"
-          onClick={() => {
-            setRunning(false);
-            reset(defaultSeconds);
-          }}
+          onClick={reset}
           aria-label="Reset timer"
           className="flex items-center justify-center"
           style={ctrlStyle}

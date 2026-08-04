@@ -1,0 +1,107 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { RestTimer } from "@/components/RestTimer";
+
+const T0 = new Date("2026-08-03T12:00:00.000Z").getTime();
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(T0);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe("RestTimer", () => {
+  it("shows the default duration before it is started", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    expect(screen.getByText("2:00")).toBeInTheDocument();
+  });
+
+  // The bug this component had: it decremented state on a one second interval,
+  // so every callback the browser throttled or skipped was a second the timer
+  // never counted. Here a whole minute of wall clock passes while only ONE
+  // interval callback runs, which is what backgrounding an iOS PWA looks like.
+  it("counts elapsed time, not the number of interval callbacks", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+
+    vi.setSystemTime(T0 + 59_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+
+    // 60 seconds of a 120 second rest have really gone by.
+    expect(screen.getByText("1:00")).toBeInTheDocument();
+    expect(screen.queryByText("1:59")).not.toBeInTheDocument();
+  });
+
+  it("holds its value while paused", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+
+    vi.setSystemTime(T0 + 29_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Pause timer" }));
+
+    // Real time keeps passing, but a paused timer must not move.
+    vi.setSystemTime(T0 + 90_000);
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(screen.getByText("1:30")).toBeInTheDocument();
+  });
+
+  it("resumes from where it was paused", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    vi.setSystemTime(T0 + 29_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Pause timer" }));
+
+    vi.setSystemTime(T0 + 300_000);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+    expect(screen.getByText("1:30")).toBeInTheDocument();
+  });
+
+  it("adds and removes fifteen seconds while running", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Plus 15 seconds" }));
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+    expect(screen.getByText("2:15")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Minus 15 seconds" }));
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+    expect(screen.getByText("2:00")).toBeInTheDocument();
+  });
+
+  it("returns to the default duration on reset", () => {
+    render(<RestTimer defaultSeconds={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+    vi.setSystemTime(T0 + 45_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset timer" }));
+    expect(screen.getByText("2:00")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start timer" })).toBeInTheDocument();
+  });
+});

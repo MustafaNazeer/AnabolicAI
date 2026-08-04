@@ -22,12 +22,15 @@ type ToggleKey =
   | "notif_unfinished";
 
 const TOGGLES: { key: ToggleKey; label: string; note?: string }[] = [
-  // Distinct from the "Sound" row beside the default duration, which is a
-  // local beep while the app is open and is deliberately ungated. The note is
-  // what tells the two apart on screen.
+  // Deliberately NOT labelled "Rest timer". That name belongs to the Sound
+  // row beside the default duration, which is a local beep while the app is
+  // open and is deliberately ungated by the master switch. A test in
+  // NotificationSettings.restsound.test.tsx asserts no push toggle carries
+  // that name, which is what proved the sound setting left this list on
+  // 2026-08-03. Renaming here keeps that assertion at full strength.
   {
     key: "notif_rest_push",
-    label: "Rest timer",
+    label: "Rest complete",
     note: "When a rest ends, even if the app is closed",
   },
   { key: "notif_pr", label: "Personal record celebration" },

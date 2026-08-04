@@ -15,6 +15,7 @@ Onyx is a private app for a small group of users. Each person has their own acco
 - Supabase (Postgres, Auth, Row Level Security)
 - Recharts for progress charts
 - Web Push (VAPID) for notifications
+- Upstash QStash to schedule the rest timer notification
 - Vercel for hosting
 
 ## Prerequisites
@@ -61,6 +62,28 @@ Onyx is a private app for a small group of users. Each person has their own acco
 
    Open http://localhost:3000.
 
+### Rest timer notifications (optional)
+
+The notification that fires when a rest ends while the app is closed is scheduled through
+Upstash QStash. Everything else works without it; skip this and the rest timer still counts
+down and still plays its sound, and the timer says so when it could not schedule an alert.
+
+To enable it, add an Upstash QStash resource and set these on the deployed environment:
+
+```
+STORAGE_QSTASH_URL
+STORAGE_QSTASH_TOKEN
+STORAGE_QSTASH_CURRENT_SIGNING_KEY
+STORAGE_QSTASH_NEXT_SIGNING_KEY
+NEXT_PUBLIC_SITE_URL=https://your-deployment-url
+```
+
+The `STORAGE_` prefix is what the Vercel integration provisions, and the code passes these
+explicitly rather than relying on the SDK's default `QSTASH_*` names. `NEXT_PUBLIC_SITE_URL`
+is needed because the scheduler calls back to an absolute URL.
+
+Scheduling only works on a deployed environment, not on localhost.
+
 ## Tests
 
 ```bash
@@ -68,12 +91,12 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-02: 410 tests across 84 files, covering 67 percent of the application logic.
+As of 2026-08-04: 507 tests across 94 files, covering 68 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a
 real database rather than a mock. Counting those 15 files, overall statement coverage is
-50 percent.
+52 percent.
 
 ## Performance and accessibility
 

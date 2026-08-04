@@ -206,6 +206,7 @@ Derived values (estimated 1RM, volume, PR detection, trend direction) are comput
 | Backend and DB | Supabase (Postgres + Auth + RLS) | Free tier covers the user base, RLS for isolation |
 | Auth | Supabase Auth (email and password) | Simple, no email delivery dependency |
 | Notifications | Service worker + Web Push (VAPID) | Free push on installed iOS PWAs |
+| Scheduling | Upstash QStash | A rest ending needs a push at a specific moment, and the hosting plan's cron only fires once a day |
 | Hosting | Vercel | Free, global CDN, zero config deploys |
 | Icons | Lucide React | Clean icon set, no emojis |
 | Typography | Spectral (serif) for display headings and hero numbers, Geist for body | Contrast between expressive display face and clean body type |

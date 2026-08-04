@@ -13,6 +13,7 @@ import type { NotificationSettings as Settings } from "@/lib/notifications/types
 
 type ToggleKey =
   | "notif_rest_timer"
+  | "notif_rest_push"
   | "notif_pr"
   | "notif_reminder"
   | "notif_streak"
@@ -21,6 +22,14 @@ type ToggleKey =
   | "notif_unfinished";
 
 const TOGGLES: { key: ToggleKey; label: string; note?: string }[] = [
+  // Distinct from the "Sound" row beside the default duration, which is a
+  // local beep while the app is open and is deliberately ungated. The note is
+  // what tells the two apart on screen.
+  {
+    key: "notif_rest_push",
+    label: "Rest timer",
+    note: "When a rest ends, even if the app is closed",
+  },
   { key: "notif_pr", label: "Personal record celebration" },
   { key: "notif_reminder", label: "Workout reminder" },
   { key: "notif_streak", label: "Streak protection" },

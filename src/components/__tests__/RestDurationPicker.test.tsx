@@ -3,116 +3,101 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { RestDurationPicker } from "@/components/RestDurationPicker";
 
+function setup(seconds: number) {
+  const onPick = vi.fn();
+  const onCancel = vi.fn();
+  render(
+    <RestDurationPicker seconds={seconds} onPick={onPick} onCancel={onCancel} />,
+  );
+  return {
+    onPick,
+    onCancel,
+    minutes: () => screen.getByRole("textbox", { name: "Minutes" }),
+    seconds: () => screen.getByRole("textbox", { name: "Seconds" }),
+    set: () => screen.getByRole("button", { name: /^Set duration/ }),
+    cancel: () => screen.getByRole("button", { name: "Cancel duration change" }),
+  };
+}
+
 describe("RestDurationPicker", () => {
-  it("starts on the duration it was given", () => {
-    render(
-      <RestDurationPicker seconds={150} onPick={vi.fn()} onCancel={vi.fn()} />,
-    );
-    const minutes = screen.getByRole("spinbutton", { name: "Minutes" });
-    const secs = screen.getByRole("spinbutton", { name: "Seconds" });
-    expect(minutes).toHaveAttribute("aria-valuenow", "2");
-    expect(secs).toHaveAttribute("aria-valuenow", "30");
+  // A round two minutes seeds a visible 0 rather than a blank, so the value on
+  // screen is the value the timer holds.
+  it("seeds both boxes from the duration it was given", () => {
+    const s = setup(150);
+    expect(s.minutes()).toHaveValue("2");
+    expect(s.seconds()).toHaveValue("30");
   });
 
-  // A screen reader announcing "150" tells you nothing.
-  it("announces the whole duration in words", () => {
-    render(
-      <RestDurationPicker seconds={150} onPick={vi.fn()} onCancel={vi.fn()} />,
-    );
-    expect(screen.getByRole("group", { name: "Rest duration" })).toHaveAttribute(
-      "aria-label",
-      "Rest duration",
-    );
+  it("seeds a zero seconds box rather than leaving it blank", () => {
+    const s = setup(120);
+    expect(s.minutes()).toHaveValue("2");
+    expect(s.seconds()).toHaveValue("0");
+  });
+
+  it("reports what was typed when Set is pressed", () => {
+    const s = setup(120);
+    fireEvent.change(s.minutes(), { target: { value: "3" } });
+    fireEvent.change(s.seconds(), { target: { value: "20" } });
+    fireEvent.click(s.set());
+    expect(s.onPick).toHaveBeenCalledWith(200);
+  });
+
+  it("treats a blank seconds box as zero", () => {
+    const s = setup(120);
+    fireEvent.change(s.minutes(), { target: { value: "3" } });
+    fireEvent.change(s.seconds(), { target: { value: "" } });
+    fireEvent.click(s.set());
+    expect(s.onPick).toHaveBeenCalledWith(180);
+  });
+
+  it("treats a blank minutes box as zero", () => {
+    const s = setup(120);
+    fireEvent.change(s.minutes(), { target: { value: "" } });
+    fireEvent.change(s.seconds(), { target: { value: "45" } });
+    fireEvent.click(s.set());
+    expect(s.onPick).toHaveBeenCalledWith(45);
+  });
+
+  // Mustafa's choice: an empty pair commits nothing and simply closes.
+  it("closes without changing anything when both boxes are blank", () => {
+    const s = setup(120);
+    fireEvent.change(s.minutes(), { target: { value: "" } });
+    fireEvent.change(s.seconds(), { target: { value: "" } });
+    fireEvent.click(s.set());
+    expect(s.onPick).not.toHaveBeenCalled();
+    expect(s.onCancel).toHaveBeenCalled();
+  });
+
+  // Filtering on the way in means there is no invalid state to report.
+  it("refuses anything that is not a digit", () => {
+    const s = setup(120);
+    fireEvent.change(s.minutes(), { target: { value: "a2b" } });
+    expect(s.minutes()).toHaveValue("2");
+  });
+
+  it("caps each box at two digits", () => {
+    const s = setup(120);
+    fireEvent.change(s.seconds(), { target: { value: "1234" } });
+    expect(s.seconds()).toHaveValue("12");
+  });
+
+  // aria-valuetext has no meaning on a text box, so the plain language moved
+  // here. This is what a screen reader user hears before committing.
+  it("names the Set button with the duration in words", () => {
+    setup(150);
     expect(
-      screen.getByRole("spinbutton", { name: "Minutes" }),
-    ).toHaveAttribute("aria-valuetext", "2 minutes 30 seconds");
-  });
-
-  it("changes the minutes with the arrow keys", () => {
-    render(
-      <RestDurationPicker seconds={120} onPick={vi.fn()} onCancel={vi.fn()} />,
-    );
-    const minutes = screen.getByRole("spinbutton", { name: "Minutes" });
-
-    fireEvent.keyDown(minutes, { key: "ArrowUp" });
-    expect(minutes).toHaveAttribute("aria-valuenow", "3");
-    fireEvent.keyDown(minutes, { key: "ArrowDown" });
-    fireEvent.keyDown(minutes, { key: "ArrowDown" });
-    expect(minutes).toHaveAttribute("aria-valuenow", "1");
-  });
-
-  it("changes the seconds in five second steps", () => {
-    render(
-      <RestDurationPicker seconds={120} onPick={vi.fn()} onCancel={vi.fn()} />,
-    );
-    const secs = screen.getByRole("spinbutton", { name: "Seconds" });
-
-    fireEvent.keyDown(secs, { key: "ArrowUp" });
-    expect(secs).toHaveAttribute("aria-valuenow", "5");
-    fireEvent.keyDown(secs, { key: "ArrowDown" });
-    expect(secs).toHaveAttribute("aria-valuenow", "0");
-  });
-
-  it("does not run past either end", () => {
-    render(
-      <RestDurationPicker seconds={5} onPick={vi.fn()} onCancel={vi.fn()} />,
-    );
-    const minutes = screen.getByRole("spinbutton", { name: "Minutes" });
-    fireEvent.keyDown(minutes, { key: "ArrowDown" });
-    expect(minutes).toHaveAttribute("aria-valuenow", "0");
-
-    fireEvent.keyDown(minutes, { key: "End" });
-    expect(minutes).toHaveAttribute("aria-valuenow", "15");
-    fireEvent.keyDown(minutes, { key: "ArrowUp" });
-    expect(minutes).toHaveAttribute("aria-valuenow", "15");
-  });
-
-  // Spinning must not commit anything. Only Set does.
-  it("reports the chosen duration only when Set is pressed", () => {
-    const onPick = vi.fn();
-    render(
-      <RestDurationPicker seconds={120} onPick={onPick} onCancel={vi.fn()} />,
-    );
-    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
-      key: "ArrowUp",
-    });
-    expect(onPick).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
-    expect(onPick).toHaveBeenCalledWith(180);
+      screen.getByRole("button", { name: "Set duration to 2 minutes 30 seconds" }),
+    ).toBeInTheDocument();
   });
 
   it("cancels without reporting anything", () => {
-    const onPick = vi.fn();
-    const onCancel = vi.fn();
-    render(
-      <RestDurationPicker seconds={120} onPick={onPick} onCancel={onCancel} />,
-    );
-    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Minutes" }), {
-      key: "ArrowUp",
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Cancel duration change" }));
-
-    expect(onCancel).toHaveBeenCalled();
-    expect(onPick).not.toHaveBeenCalled();
+    const s = setup(120);
+    fireEvent.change(s.minutes(), { target: { value: "5" } });
+    fireEvent.click(s.cancel());
+    expect(s.onCancel).toHaveBeenCalled();
+    expect(s.onPick).not.toHaveBeenCalled();
   });
 
-  it("refuses to set a zero length rest", () => {
-    const onPick = vi.fn();
-    render(
-      <RestDurationPicker seconds={5} onPick={onPick} onCancel={vi.fn()} />,
-    );
-    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Seconds" }), {
-      key: "ArrowDown",
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Set duration" }));
-
-    // Zero minutes and zero seconds is clamped up to the floor, never reported
-    // as zero.
-    expect(onPick).toHaveBeenCalledWith(5);
-  });
-
-  // This is the app's first custom widget, so it gets checked directly.
   it("has no accessibility violations", async () => {
     const { container } = render(
       <RestDurationPicker seconds={120} onPick={vi.fn()} onCancel={vi.fn()} />,

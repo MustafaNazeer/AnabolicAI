@@ -2,92 +2,30 @@
 
 import { useState } from "react";
 import { Check, X } from "lucide-react";
-import {
-  clampRest,
-  describeDuration,
-  MAX_REST_SECONDS,
-  SECOND_STEP,
-} from "@/lib/workout/duration";
+import { describeDuration, parseTypedDuration } from "@/lib/workout/duration";
 
-const MAX_MINUTES = MAX_REST_SECONDS / 60;
-
-const columnStyle = {
+// Matches the reps and weight fields in ExerciseLogCard, so the two typed
+// surfaces in a workout look and behave the same.
+const fieldStyle = {
   background: "var(--surface-sunken)",
   border: "1px solid var(--surface-border)",
   borderRadius: "var(--radius-square)",
   color: "var(--text)",
-  minWidth: 64,
   minHeight: 44,
-  // The touch affordance. Scrolling is a nicety layered on a control that is
-  // fully usable from the keyboard, never the mechanism.
-  scrollSnapType: "y mandatory",
-  overflowY: "auto",
-  maxHeight: 132,
 } as const;
 
-function Column({
-  label,
-  value,
-  max,
-  step,
-  valueText,
-  onChange,
-  format,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  step: number;
-  valueText: string;
-  onChange: (v: number) => void;
-  format: (v: number) => string;
-}) {
-  const options: number[] = [];
-  for (let v = 0; v <= max; v += step) options.push(v);
+const buttonStyle = {
+  borderRadius: "var(--radius-square)",
+  minWidth: 48,
+  minHeight: 44,
+} as const;
 
-  return (
-    <div
-      role="spinbutton"
-      tabIndex={0}
-      aria-label={label}
-      aria-valuenow={value}
-      aria-valuemin={0}
-      aria-valuemax={max}
-      aria-valuetext={valueText}
-      className="flex flex-col items-center text-center tabular-nums"
-      style={columnStyle}
-      onKeyDown={(e) => {
-        if (e.key === "ArrowUp") {
-          e.preventDefault();
-          onChange(Math.min(max, value + step));
-        } else if (e.key === "ArrowDown") {
-          e.preventDefault();
-          onChange(Math.max(0, value - step));
-        } else if (e.key === "Home") {
-          e.preventDefault();
-          onChange(0);
-        } else if (e.key === "End") {
-          e.preventDefault();
-          onChange(max);
-        }
-      }}
-    >
-      {options.map((v) => (
-        <span
-          key={v}
-          aria-hidden
-          className="py-2 w-full"
-          style={{
-            scrollSnapAlign: "center",
-            opacity: v === value ? 1 : 0.35,
-            fontWeight: v === value ? 600 : 400,
-          }}
-        >
-          {format(v)}
-        </span>
-      ))}
-    </div>
-  );
+/**
+ * Digits only, at most two. Filtering on the way in means an unusable value
+ * cannot be typed at all, so there is no error state to design.
+ */
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 2);
 }
 
 export function RestDurationPicker({
@@ -99,75 +37,80 @@ export function RestDurationPicker({
   onPick: (seconds: number) => void;
   onCancel: () => void;
 }) {
-  const start = clampRest(seconds);
-  const [minutes, setMinutes] = useState(Math.floor(start / 60));
-  const [secs, setSecs] = useState(start % 60);
+  // Seeded from the real value, so a two minute rest opens showing 2 and 0.
+  // The caller's value is always already clamped, by clampRest on mount or by
+  // parseTypedDuration on every later change.
+  const [minutes, setMinutes] = useState(() => String(Math.floor(seconds / 60)));
+  const [secs, setSecs] = useState(() => String(seconds % 60));
 
-  const total = minutes * 60 + secs;
-  const spoken = describeDuration(total);
+  const parsed = parseTypedDuration(minutes, secs);
+
+  function commit() {
+    // Both boxes empty means there is nothing to set, so this closes exactly
+    // like Cancel rather than guessing at a value.
+    if (parsed === null) onCancel();
+    else onPick(parsed);
+  }
 
   return (
-    <div className="flex items-center gap-3 mt-3">
+    <div className="flex items-end gap-2 mt-3">
       <div
         role="group"
         aria-label="Rest duration"
-        className="flex items-center gap-2"
+        className="flex items-end gap-2 flex-1"
       >
-        <Column
-          label="Minutes"
-          value={minutes}
-          max={MAX_MINUTES}
-          step={1}
-          valueText={spoken}
-          onChange={setMinutes}
-          format={(v) => String(v)}
-        />
-        <span aria-hidden style={{ color: "var(--text-dim)" }}>
-          :
-        </span>
-        <Column
-          label="Seconds"
-          value={secs}
-          max={60 - SECOND_STEP}
-          step={SECOND_STEP}
-          valueText={spoken}
-          onChange={setSecs}
-          format={(v) => String(v).padStart(2, "0")}
-        />
+        <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
+          Minutes
+          <input
+            inputMode="numeric"
+            value={minutes}
+            onChange={(e) => setMinutes(digitsOnly(e.target.value))}
+            className="w-full px-3 py-2 mt-1 tabular-nums"
+            style={fieldStyle}
+          />
+        </label>
+        <label className="flex-1 text-xs" style={{ color: "var(--text-dim)" }}>
+          Seconds
+          <input
+            inputMode="numeric"
+            value={secs}
+            onChange={(e) => setSecs(digitsOnly(e.target.value))}
+            className="w-full px-3 py-2 mt-1 tabular-nums"
+            style={fieldStyle}
+          />
+        </label>
       </div>
-      <div className="ml-auto flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onPick(clampRest(total))}
-          aria-label="Set duration"
-          className="flex items-center justify-center"
-          style={{
-            background: "var(--accent)",
-            color: "var(--on-accent)",
-            borderRadius: "var(--radius-square)",
-            minWidth: 48,
-            minHeight: 44,
-          }}
-        >
-          <Check size={18} aria-hidden />
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          aria-label="Cancel duration change"
-          className="flex items-center justify-center"
-          style={{
-            background: "var(--surface-sunken)",
-            border: "1px solid var(--surface-border)",
-            borderRadius: "var(--radius-square)",
-            color: "var(--text-dim)",
-            minWidth: 48,
-            minHeight: 44,
-          }}
-        >
-          <X size={18} aria-hidden />
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={commit}
+        aria-label={
+          parsed === null
+            ? "Set duration"
+            : `Set duration to ${describeDuration(parsed)}`
+        }
+        className="flex items-center justify-center"
+        style={{
+          ...buttonStyle,
+          background: "var(--accent)",
+          color: "var(--on-accent)",
+        }}
+      >
+        <Check size={18} aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        aria-label="Cancel duration change"
+        className="flex items-center justify-center"
+        style={{
+          ...buttonStyle,
+          background: "var(--surface-sunken)",
+          border: "1px solid var(--surface-border)",
+          color: "var(--text-dim)",
+        }}
+      >
+        <X size={18} aria-hidden />
+      </button>
     </div>
   );
 }

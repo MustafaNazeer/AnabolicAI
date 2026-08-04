@@ -1,4 +1,4 @@
-const CACHE = "onyx-shell-v2";
+const CACHE = "onyx-shell-v3";
 const SHELL = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -64,7 +64,22 @@ self.addEventListener("push", (event) => {
     tag: data.tag || "onyx",
     data: { url: data.url || "/" },
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  // A rest ending while the app is open already played a local beep, so a
+  // banner as well is duplicate feedback for one event. Only the rest tag is
+  // suppressed; a personal record or goal push still shows.
+  event.waitUntil(
+    (async () => {
+      if (options.tag === "rest") {
+        const clientList = await self.clients.matchAll({
+          type: "window",
+          includeUncontrolled: true,
+        });
+        const visible = clientList.some((c) => c.visibilityState === "visible");
+        if (visible) return;
+      }
+      await self.registration.showNotification(title, options);
+    })(),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

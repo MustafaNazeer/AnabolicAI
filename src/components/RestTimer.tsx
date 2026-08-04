@@ -29,7 +29,13 @@ function alertFinished() {
   }
 }
 
-export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
+export function RestTimer({
+  defaultSeconds,
+  alertOnFinish = true,
+}: {
+  defaultSeconds: number;
+  alertOnFinish?: boolean;
+}) {
   // While running, the deadline is the source of truth and `remaining` is only
   // what gets painted. Decrementing state on an interval instead loses every
   // callback the browser throttles, coalesces or skips, which on a backgrounded
@@ -53,7 +59,7 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
       if (left === 0 && !firedRef.current && !document.hidden) {
         firedRef.current = true;
         setDeadline(null);
-        alertFinished();
+        if (alertOnFinish) alertFinished();
       }
     };
 
@@ -66,7 +72,7 @@ export function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
       clearInterval(id);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [deadline]);
+  }, [deadline, alertOnFinish]);
 
   // Both directions clear the guard, matching the behaviour of the shared reset
   // helper this replaced, so adding time to a finished timer can fire again.

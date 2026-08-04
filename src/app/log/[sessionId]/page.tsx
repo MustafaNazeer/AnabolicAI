@@ -31,9 +31,10 @@ export default async function ActiveWorkoutPage({
   const supabase = await createClient();
   const { data: settings } = await supabase
     .from("user_settings")
-    .select("rest_timer_seconds")
+    .select("rest_timer_seconds, notif_rest_timer")
     .maybeSingle();
   const restSeconds = settings?.rest_timer_seconds ?? 120;
+  const restAlert = settings?.notif_rest_timer ?? true;
 
   const snapshot: Snapshot = {
     sessionId: session.id,
@@ -76,6 +77,7 @@ export default async function ActiveWorkoutPage({
       serverSets={serverSets}
       startedAt={session.startedAt}
       stale={stale}
+      restAlert={restAlert}
     />
   );
 }

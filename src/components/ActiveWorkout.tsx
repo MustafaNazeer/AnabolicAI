@@ -115,11 +115,13 @@ export function ActiveWorkout({
   serverSets,
   startedAt,
   stale = false,
+  restAlert = true,
 }: {
   snapshot: Snapshot;
   serverSets: LocalSet[];
   startedAt?: string;
   stale?: boolean;
+  restAlert?: boolean;
 }) {
   const router = useRouter();
   const online = useOnline();
@@ -335,7 +337,7 @@ export function ActiveWorkout({
         className="sticky z-10 mb-4"
         style={{ top: "calc(0.5rem + env(safe-area-inset-top))" }}
       >
-        <RestTimer defaultSeconds={snapshot.restSeconds} />
+        <RestTimer defaultSeconds={snapshot.restSeconds} alertOnFinish={restAlert} />
       </div>
 
       {picking ? (

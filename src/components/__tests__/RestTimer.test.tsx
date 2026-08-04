@@ -172,4 +172,19 @@ describe("RestTimer finishing", () => {
     expect(screen.getByText("3:00")).toBeInTheDocument();
     expect(vibrate).not.toHaveBeenCalled();
   });
+
+  it("stays silent when the sound setting is off", () => {
+    render(<RestTimer defaultSeconds={30} alertOnFinish={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start timer" }));
+
+    vi.setSystemTime(T0 + 30_000);
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+
+    // The countdown still finishes and still shows zero; only the alert is off.
+    expect(screen.getByText("0:00")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start timer" })).toBeInTheDocument();
+    expect(vibrate).not.toHaveBeenCalled();
+  });
 });

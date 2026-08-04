@@ -25,6 +25,7 @@ const runners = (over: Partial<Runners> = {}): Runners => ({
   finishSession: vi.fn(async () => ok),
   swapExercise: vi.fn(async () => ok),
   undoSwap: vi.fn(async () => ok),
+  updateSet: vi.fn(async () => ok),
   ...over,
 });
 
@@ -200,5 +201,43 @@ describe("replaying a set queued before the range change", () => {
 
     expect(seen).toHaveLength(1);
     expect(await store.listOutbox()).toHaveLength(0);
+  });
+});
+
+describe("draining a set correction", () => {
+  it("sends the correction and clears it from the outbox", async () => {
+    const store = createMemoryStore();
+    const updateSet = vi.fn(async () => ok);
+    await store.enqueue({
+      type: "updateSet",
+      sessionId: "s1",
+      payload: { id: "a", reps: 6, weight: 155, rirLow: null, rirHigh: null },
+    });
+
+    await drainOutbox(store, runners({ updateSet }));
+
+    expect(updateSet).toHaveBeenCalledWith({
+      id: "a",
+      sessionId: "s1",
+      reps: 6,
+      weight: 155,
+      rirLow: null,
+      rirHigh: null,
+    });
+    expect(await store.listOutbox()).toHaveLength(0);
+  });
+
+  it("keeps the correction queued when the server fails", async () => {
+    const store = createMemoryStore();
+    await store.enqueue({
+      type: "updateSet",
+      sessionId: "s1",
+      payload: { id: "a", reps: 6, weight: 155, rirLow: null, rirHigh: null },
+    });
+
+    await drainOutbox(store, runners({ updateSet: vi.fn(async () => retry) }));
+
+    // A correction must never be silently dropped on a transient failure.
+    expect(await store.listOutbox()).toHaveLength(1);
   });
 });

@@ -105,6 +105,47 @@ export async function deleteSet(setId: string, sessionId: string) {
   return { ok: true };
 }
 
+export async function updateSet(
+  setId: string,
+  sessionId: string,
+  reps: number,
+  weight: number,
+  rirLow: number | null,
+  rirHigh: number | null,
+) {
+  // Same retryable contract as logSet: false means the input can never succeed
+  // and the sync engine should drop it, true means retry.
+  if (!Number.isFinite(reps) || reps < 1)
+    return { error: "Reps must be at least 1.", retryable: false };
+  if (!Number.isFinite(weight) || weight < 0)
+    return { error: "Weight cannot be negative.", retryable: false };
+  if (rirLow !== null && (!Number.isInteger(rirLow) || rirLow < 0 || rirLow > 5))
+    return { error: "RIR must be 0 to 5.", retryable: false };
+  if (
+    rirHigh !== null &&
+    (!Number.isInteger(rirHigh) || rirHigh < 0 || rirHigh > 5)
+  )
+    return { error: "RIR must be 0 to 5.", retryable: false };
+  if (rirLow !== null && rirHigh !== null && rirLow > rirHigh)
+    return { error: "RIR range must go from low to high.", retryable: false };
+  if ((rirLow === null) !== (rirHigh === null))
+    return { error: "RIR needs both ends or neither.", retryable: false };
+
+  const supabase = await createClient();
+  // The workout_sets UPDATE policy scopes this to the owner, so ownership needs
+  // no check here. Set number and exercise are deliberately not writable, and a
+  // correction never re-runs the personal record or goal checks: detection is
+  // derived from workout_sets, so the corrected value still shows as a record
+  // without sending a push that cannot be un-sent.
+  const { error } = await supabase
+    .from("workout_sets")
+    .update({ reps, weight, rir_low: rirLow, rir_high: rirHigh })
+    .eq("id", setId);
+  revalidatePath(`/log/${sessionId}`);
+  if (error) return { error: error.message, retryable: true };
+  return { ok: true };
+}
+
 export async function swapExercise(
   sessionId: string,
   originalExerciseId: string,

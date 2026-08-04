@@ -20,6 +20,14 @@ export type Runners = {
     sessionId: string;
     originalExerciseId: string;
   }): Promise<RunResult>;
+  updateSet(p: {
+    id: string;
+    sessionId: string;
+    reps: number;
+    weight: number;
+    rirLow: number | null;
+    rirHigh: number | null;
+  }): Promise<RunResult>;
 };
 
 let running = false;
@@ -37,6 +45,9 @@ async function runOne(runners: Runners, op: QueuedOp): Promise<RunResult> {
   }
   if (op.type === "undoSwap") {
     return runners.undoSwap({ ...op.payload, sessionId: op.sessionId });
+  }
+  if (op.type === "updateSet") {
+    return runners.updateSet({ ...op.payload, sessionId: op.sessionId });
   }
   return runners.finishSession({ sessionId: op.sessionId });
 }

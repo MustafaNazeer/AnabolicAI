@@ -4,6 +4,7 @@ import {
   seedSession,
   logSetLocal,
   deleteSetLocal,
+  editSetLocal,
   finishLocal,
   nextSetNumber,
   swapLocal,
@@ -226,5 +227,92 @@ describe("logSetLocal with a range", () => {
     const set = await store.getSet("blank-id");
     expect(set?.rirLow).toBeNull();
     expect(set?.rirHigh).toBeNull();
+  });
+});
+
+describe("editSetLocal", () => {
+  it("changes the local row straight away so the screen updates offline", async () => {
+    const store = createMemoryStore();
+    await store.putSet(synced("a"));
+
+    await editSetLocal(store, "a", {
+      reps: 6,
+      weight: 155,
+      rirLow: 1,
+      rirHigh: 2,
+    });
+
+    const row = await store.getSet("a");
+    expect(row?.reps).toBe(6);
+    expect(row?.weight).toBe(155);
+    expect(row?.rirLow).toBe(1);
+    expect(row?.rirHigh).toBe(2);
+    // Set number and exercise are not editable.
+    expect(row?.setNumber).toBe(1);
+    expect(row?.exerciseId).toBe("e1");
+  });
+
+  it("queues an update for a set the server already has", async () => {
+    const store = createMemoryStore();
+    await store.putSet(synced("a"));
+
+    await editSetLocal(store, "a", {
+      reps: 6,
+      weight: 155,
+      rirLow: null,
+      rirHigh: null,
+    });
+
+    const ops = await store.listOutbox();
+    expect(ops).toHaveLength(1);
+    expect(ops[0].type).toBe("updateSet");
+    expect(ops[0].payload).toMatchObject({ id: "a", reps: 6, weight: 155 });
+  });
+
+  // logSet upserts with ignoreDuplicates, so replacing a queued insert would be
+  // ignored if that insert had already landed, leaving the server on the old
+  // numbers. The insert is left alone and the update runs after it.
+  it("leaves a queued insert in place and queues the update behind it", async () => {
+    const store = createMemoryStore();
+    const snapshot: Snapshot = {
+      sessionId: "s1",
+      routineName: "Push",
+      restSeconds: 120,
+      exercises: [],
+      lastByExercise: {},
+      swaps: [],
+      library: [],
+    };
+    await seedSession(store, snapshot, []);
+    const logged = await logSetLocal(
+      store,
+      "s1",
+      "e1",
+      { reps: 8, weight: 135, rirLow: null, rirHigh: null },
+      idGen,
+    );
+
+    await editSetLocal(store, logged.id, {
+      reps: 8,
+      weight: 155,
+      rirLow: null,
+      rirHigh: null,
+    });
+
+    const ops = await store.listOutbox();
+    expect(ops.map((o) => o.type)).toEqual(["logSet", "updateSet"]);
+    expect((await store.getSet(logged.id))?.weight).toBe(155);
+    expect((await store.getSet(logged.id))?.syncState).toBe("pending");
+  });
+
+  it("does nothing for an id that is not there", async () => {
+    const store = createMemoryStore();
+    await editSetLocal(store, "missing", {
+      reps: 1,
+      weight: 1,
+      rirLow: null,
+      rirHigh: null,
+    });
+    expect(await store.listOutbox()).toHaveLength(0);
   });
 });

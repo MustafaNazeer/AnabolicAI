@@ -81,6 +81,32 @@ export async function deleteSetLocal(
   });
 }
 
+export async function editSetLocal(
+  store: OfflineStore,
+  id: string,
+  input: {
+    reps: number;
+    weight: number;
+    rirLow: number | null;
+    rirHigh: number | null;
+  },
+): Promise<void> {
+  const set = await store.getSet(id);
+  if (!set) return;
+  await store.putSet({ ...set, ...input });
+  // A queued insert is deliberately NOT cancelled. logSet upserts with
+  // ignoreDuplicates, so a replacement insert for a row that already landed is
+  // ignored and the server would keep the old numbers forever. Queueing an
+  // update instead is correct in every case: the insert runs first and this
+  // corrects it, or there is no insert, or the insert was dropped as invalid
+  // and this matches zero rows, which is a success rather than an error.
+  await store.enqueue({
+    type: "updateSet",
+    sessionId: set.sessionId,
+    payload: { id, ...input },
+  });
+}
+
 // The swap is applied to the cached snapshot immediately so the screen reacts
 // with no connection, and queued for the server. Sets never reference a swap
 // row, so a swap arriving after its own sets is harmless.

@@ -71,6 +71,17 @@ export type OutboxOp =
       type: "undoSwap";
       sessionId: string;
       payload: { originalExerciseId: string };
+    }
+  | {
+      type: "updateSet";
+      sessionId: string;
+      payload: {
+        id: string;
+        reps: number;
+        weight: number;
+        rirLow: number | null;
+        rirHigh: number | null;
+      };
     };
 
 export type QueuedOp = OutboxOp & { seq: number };

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Spectral } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import { AppearanceProvider } from "@/components/AppearanceProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -43,11 +44,12 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en"
@@ -58,7 +60,7 @@ export default function RootLayout({
     >
       <SplashLinks />
       <body className="min-h-full flex flex-col">
-        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
         <AppearanceProvider>
           <ThemeProvider>
             {children}

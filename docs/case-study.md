@@ -33,9 +33,9 @@ I tested that rather than assuming it. Signed in as the seeded demo account, I r
 another account's routine and workout session directly by id. Both returned 404, the same
 path the database takes for "this does not exist" and for "this is not yours".
 
-The suite runs 410 tests across 84 files, covering 67 percent of the application logic. The
+The suite runs 507 tests across 94 files, covering 68 percent of the application logic. The
 data access layer, 15 files of server actions, queries and clients, is left to integration
-testing rather than mocked, which is why overall coverage reads 50 percent. Every push to
+testing rather than mocked, which is why overall coverage reads 52 percent. Every push to
 main type checks, lints, runs the suite, and builds.
 
 ## The hardest problem, logging with no signal

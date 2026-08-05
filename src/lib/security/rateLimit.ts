@@ -20,7 +20,8 @@ const RULES = {
   restComplete: { limit: 60, window: "1 m" },
 } as const;
 
-// Vercel appends to x-forwarded-for, so the leftmost entry is the client.
+// Vercel overwrites x-forwarded-for with the client's public IP and does not
+// forward external values, so the first entry is not spoofable here.
 export function clientIpFrom(forwardedFor: string | null): string {
   const first = forwardedFor?.split(",")[0]?.trim();
   return first ? first : "unknown";

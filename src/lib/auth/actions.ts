@@ -5,12 +5,22 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { validateCredentials } from "@/lib/auth/validation";
 import { isEmailAllowed } from "@/lib/auth/allowlist";
+import { checkRateLimit, clientIpFrom } from "@/lib/security/rateLimit";
+
+const LIMITED = "Too many attempts. Try again in a few minutes.";
+
+async function clientIp(): Promise<string> {
+  return clientIpFrom((await headers()).get("x-forwarded-for"));
+}
 
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const invalid = validateCredentials(email, password);
   if (invalid) return { error: invalid };
+  if (!(await checkRateLimit("signIn", await clientIp()))) {
+    return { error: LIMITED };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -23,6 +33,9 @@ export async function signUp(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const invalid = validateCredentials(email, password);
   if (invalid) return { error: invalid };
+  if (!(await checkRateLimit("signUp", await clientIp()))) {
+    return { error: LIMITED };
+  }
   if (!isEmailAllowed(email, process.env.ALLOWED_EMAILS)) {
     return { error: "This email is not on the invite list." };
   }
@@ -39,6 +52,10 @@ export async function signUp(formData: FormData) {
 }
 
 export async function signInAsDemo() {
+  if (!(await checkRateLimit("demo", await clientIp()))) {
+    return { error: LIMITED };
+  }
+
   const email = process.env.DEMO_EMAIL;
   const password = process.env.DEMO_PASSWORD;
   // Both are server only and must never be prefixed NEXT_PUBLIC_, or the demo

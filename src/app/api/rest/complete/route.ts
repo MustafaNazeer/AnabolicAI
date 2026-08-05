@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendToUserWith } from "@/lib/notifications/push";
 import { restCompletePayload } from "@/lib/notifications/payloads";
 import { isRestLive, shouldSendRestPush } from "@/lib/notifications/restPush";
+import { checkRateLimit, clientIpFrom } from "@/lib/security/rateLimit";
 
 // This endpoint always answers 200, including when it deliberately sends
 // nothing, so its outcome is otherwise invisible in the logs. Every exit
@@ -91,6 +92,14 @@ async function handler(request: Request) {
 // The keys carry the integration's STORAGE_ prefix, so the SDK's own defaults
 // would find nothing and are passed explicitly.
 export async function POST(request: Request): Promise<Response> {
+  const ip = clientIpFrom(request.headers.get("x-forwarded-for"));
+  if (!(await checkRateLimit("restComplete", ip))) {
+    // 429 makes the scheduler retry later, which is the correct behaviour
+    // if a real flood ever trips this; normal delivery volume never gets
+    // near sixty calls a minute from one address.
+    return Response.json({ error: "Too many requests." }, { status: 429 });
+  }
+
   const currentSigningKey = process.env.STORAGE_QSTASH_CURRENT_SIGNING_KEY;
   const nextSigningKey = process.env.STORAGE_QSTASH_NEXT_SIGNING_KEY;
   if (!currentSigningKey || !nextSigningKey) {

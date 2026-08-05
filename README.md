@@ -84,6 +84,21 @@ is needed because the scheduler calls back to an absolute URL.
 
 Scheduling only works on a deployed environment, not on localhost.
 
+### Rate limiting (optional)
+
+Sign in attempts and the rest callback are rate limited through Upstash Redis. Add an Upstash
+Redis resource and set these on the deployed environment:
+
+```
+KV_REST_API_URL
+KV_REST_API_TOKEN
+```
+
+These are the names the Vercel integration provisions, and they are the REST pair rather than
+the TCP connection string. The code passes them explicitly instead of calling the SDK's
+`fromEnv` helper. Without them the app runs with rate limiting disabled, which is the normal
+state for local development.
+
 ## Tests
 
 ```bash

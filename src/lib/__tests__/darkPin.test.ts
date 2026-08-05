@@ -5,6 +5,8 @@ import { describe, it, expect } from "vitest";
 const css = readFileSync(resolve(__dirname, "../../app/globals.css"), "utf8");
 
 function block(selector: string): string {
+  // Every selector is a literal written in this file, so no untrusted input reaches the pattern.
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   const re = new RegExp(
     `${selector.replace(/[[\]"=]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
   );
@@ -13,6 +15,8 @@ function block(selector: string): string {
   return m[1];
 }
 function pick(body: string, name: string): string | null {
+  // Every name is a literal written in this file, so no untrusted input reaches the pattern.
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   const m = body.match(new RegExp(`--${name}:\\s*([^;]+);`));
   return m ? m[1].trim() : null;
 }

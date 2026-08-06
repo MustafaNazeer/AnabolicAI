@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   gate:
     name: Type check, lint, test and build
@@ -50,7 +53,7 @@ jobs:
         run: npm audit --audit-level=high
 
   secrets:
-    name: Scan history for secrets
+    name: Scan the pushed commits for secrets
     runs-on: ubuntu-latest
     steps:
       - name: Check out the full history

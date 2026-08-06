@@ -9,8 +9,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     // Hidden directories hold local tooling state, including copies of this
-    // tree, so collecting tests from them would run the wrong files.
-    exclude: [...configDefaults.exclude, "**/.*/**"],
+    // tree, so collecting tests from them would run the wrong files. The end to
+    // end specs need a browser and a running server, so they are excluded by
+    // pattern rather than by directory, which keeps e2e/setup unit testable.
+    exclude: [...configDefaults.exclude, "**/.*/**", "e2e/**/*.spec.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary"],

@@ -61,3 +61,10 @@ skills-lock.json
 
 # lighthouse raw reports, roughly half a megabyte per run
 lighthouse-reports/
+
+# end to end test artifacts
+playwright-report/
+test-results/
+
+# saved sessions for the end to end suite, these hold real auth cookies
+e2e/.auth/

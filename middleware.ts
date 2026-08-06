@@ -21,8 +21,11 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
+// Only genuine static files are excluded. An earlier blanket ".*\.png$" also
+// excluded every nonexistent ".png" path, and those fall through to the app's
+// 404, which is a real HTML document that then rendered without a CSP.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|icons/.*|.*\\.png$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|icons/.*|splash/.*|apple-icon\\.png$|icon\\.svg$).*)",
   ],
 };

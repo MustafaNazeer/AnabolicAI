@@ -106,12 +106,41 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-05: 520 tests across 97 files, covering 69 percent of the application logic.
+As of 2026-08-06: 527 tests across 98 files, covering 69 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a
 real database rather than a mock. Counting those 15 files, overall statement coverage is
 52 percent.
+
+### End to end tests
+
+```bash
+npm run test:e2e
+```
+
+Playwright drives a real browser against a production build. It covers two things unit tests
+cannot reach: the request layer, and the offline logging round trip.
+
+The request layer guards check that every private route redirects a signed out visitor, that
+the security headers the config declares actually arrive, that a per request nonce reaches
+every script tag, that a nonexistent image path still goes through the middleware rather than
+around it, and that the scheduler callback rejects an unsigned request instead of redirecting
+it. These need no account.
+
+The offline round trip logs sets with the network disabled, reloads to prove they survived,
+reconnects, and then confirms from a second browser context with an empty local database that
+the sets reached the server. It needs a real database and two dedicated accounts named by
+`E2E_EMAIL_CHROMIUM` and `E2E_EMAIL_WEBKIT`. **Those accounts are wiped and reseeded on every
+run**, so neither may be your own or the demo account. Node 20.12 or newer is required here,
+above the 20.9 the app itself needs.
+
+Only Chromium runs by default. The WebKit projects are configured and current, but Playwright's
+prebuilt WebKit is linked against Ubuntu 24.04 system libraries and will not launch on newer
+releases; on a supported OS, run `npx playwright test --project=webkit-public --project=webkit`.
+
+These do not run in CI. They need a live database and a browser, and the seven checks on every
+push stay fast and self contained.
 
 ## Performance and accessibility
 

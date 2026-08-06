@@ -20,7 +20,7 @@ Onyx is a private app for a small group of users. Each person has their own acco
 
 ## Prerequisites
 
-- Node.js 18 or newer
+- Node.js 20.9 or newer (what Next.js 16 requires; CI and Vercel run 24)
 - A free Supabase account
 - A free Vercel account (for deployment)
 

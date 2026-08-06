@@ -58,7 +58,21 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: "retain-on-failure",
   },
+  // Specs are split by whether they need an account, and the projects follow
+  // that split. e2e/public describes what a signed out stranger gets, so it
+  // takes no setup dependency and no saved session: dragging an account reset
+  // into a test about redirects would couple two unrelated things.
+  // e2e/session needs a signed in account and therefore the reset.
   projects: [
+    {
+      name: "chromium-public",
+      testMatch: /public\/.*\.spec\.ts/,
+      use: {
+        ...PHONE,
+        defaultBrowserType: "chromium",
+        launchOptions: { args: CHROMIUM_ARGS },
+      },
+    },
     {
       name: "chromium-setup",
       testMatch: /auth\.setup\.ts/,
@@ -71,13 +85,18 @@ export default defineConfig({
     {
       name: "chromium",
       dependencies: ["chromium-setup"],
-      testMatch: /.*\.spec\.ts/,
+      testMatch: /session\/.*\.spec\.ts/,
       use: {
         ...PHONE,
         defaultBrowserType: "chromium",
         launchOptions: { args: CHROMIUM_ARGS },
         storageState: "e2e/.auth/chromium.json",
       },
+    },
+    {
+      name: "webkit-public",
+      testMatch: /public\/.*\.spec\.ts/,
+      use: { ...PHONE },
     },
     {
       name: "webkit-setup",
@@ -87,7 +106,7 @@ export default defineConfig({
     {
       name: "webkit",
       dependencies: ["webkit-setup"],
-      testMatch: /.*\.spec\.ts/,
+      testMatch: /session\/.*\.spec\.ts/,
       use: { ...PHONE, storageState: "e2e/.auth/webkit.json" },
     },
   ],

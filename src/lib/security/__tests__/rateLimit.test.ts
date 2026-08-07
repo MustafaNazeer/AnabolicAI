@@ -20,6 +20,7 @@ vi.mock("@upstash/ratelimit", () => {
 import {
   checkRateLimit,
   clientIpFrom,
+  limitMessage,
   resetRateLimiting,
 } from "@/lib/security/rateLimit";
 
@@ -76,5 +77,23 @@ describe("checkRateLimit", () => {
     process.env[TOKEN_ENV] = "token";
     limitMock.mockRejectedValue(new Error("redis down"));
     await expect(checkRateLimit("signIn", "1.2.3.4")).resolves.toBe(true);
+  });
+});
+
+describe("limitMessage", () => {
+  it("promises minutes only for the window actually measured in minutes", () => {
+    expect(limitMessage("signIn")).toContain("few minutes");
+  });
+
+  it("promises an hour for both hour long windows", () => {
+    expect(limitMessage("signUp")).toContain("an hour");
+    expect(limitMessage("demo")).toContain("an hour");
+  });
+
+  // The whole point of the change. Telling someone to come back in a few
+  // minutes when the window is an hour sends them into a wall repeatedly.
+  it("never tells a user to return sooner than the window allows", () => {
+    expect(limitMessage("signUp")).not.toContain("few minutes");
+    expect(limitMessage("demo")).not.toContain("few minutes");
   });
 });

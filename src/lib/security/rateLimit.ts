@@ -20,6 +20,24 @@ const RULES = {
   restComplete: { limit: 60, window: "1 m" },
 } as const;
 
+// The rest callback answers with a status code and no copy, so it has no
+// message and asking for one is a compile error rather than a silent default.
+export type MessagedSurface = Exclude<LimitSurface, "restComplete">;
+
+// The copy lives beside the windows above so the two cannot drift. "A few
+// minutes" is true of sign in and false of the two hour long windows, and the
+// demo line is phrased for a recruiter who hit a shared limit rather than for
+// someone being turned away.
+const MESSAGES: Record<MessagedSurface, string> = {
+  signIn: "Too many attempts. Try again in a few minutes.",
+  signUp: "Too many sign up attempts. Try again in an hour.",
+  demo: "The demo is busy right now. Try again in an hour.",
+};
+
+export function limitMessage(surface: MessagedSurface): string {
+  return MESSAGES[surface];
+}
+
 // Vercel overwrites x-forwarded-for with the client's public IP and does not
 // forward external values, so the first entry is not spoofable here.
 export function clientIpFrom(forwardedFor: string | null): string {

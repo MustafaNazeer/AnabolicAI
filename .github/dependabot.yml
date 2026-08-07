@@ -1,0 +1,17 @@
+# GitHub Actions only. Every action in ci.yml is SHA pinned with a version
+# comment, which is correct and also means nothing ever moves them again
+# without this file.
+#
+# npm is deliberately absent. `npm audit --audit-level=high` already gates
+# every push and sits at zero findings at every level, and `next` is pinned
+# exactly at 16.3.0 for a security reason, so npm pull requests would mostly
+# propose moving a pin that was set on purpose.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore"

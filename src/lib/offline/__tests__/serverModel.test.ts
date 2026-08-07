@@ -8,6 +8,8 @@ import {
   applyUndoSwap,
   applyFinishSession,
   swapKey,
+  swapSession,
+  swapOriginal,
 } from "@/lib/offline/__tests__/serverModel";
 
 const row = {
@@ -109,5 +111,11 @@ describe("the reference server model", () => {
     });
     expect(res).toEqual({ ok: false, retryable: false });
     expect(m.swaps.size).toBe(0);
+  });
+
+  it("reads both halves back out of a swap key", () => {
+    const k = swapKey("sess1", "r0");
+    expect(swapSession(k)).toBe("sess1");
+    expect(swapOriginal(k)).toBe("r0");
   });
 });

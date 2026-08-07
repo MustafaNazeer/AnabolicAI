@@ -1,6 +1,6 @@
 // The static header set, applied to every route by next.config.ts. The CSP
 // is deliberately absent: it carries a per request nonce and is set by the
-// middleware instead. This module is imported by next.config.ts, so it must
+// proxy instead. This module is imported by next.config.ts, so it must
 // stay free of any server-only or app dependency.
 export const STATIC_SECURITY_HEADERS: { key: string; value: string }[] = [
   {

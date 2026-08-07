@@ -26,9 +26,9 @@ test("serves the sign in page itself", async ({ request }) => {
 // root layout, which then carried no policy at all.
 //
 // Signed out the redirect fires before the 404 is ever rendered, and that is
-// what makes this a good guard: a 307 here proves the middleware SEES the path.
+// what makes this a good guard: a 307 here proves the proxy SEES the path.
 // If the blanket exclusion came back, this would be a 404 with no policy.
-test("runs the middleware on a nonexistent png rather than excluding it", async ({ request }) => {
+test("runs the proxy on a nonexistent png rather than excluding it", async ({ request }) => {
   const response = await request.get("/definitely-not-a-real-file.png", { maxRedirects: 0 });
   expect(response.status(), "an excluded path would 404 instead").toBe(307);
   expect(response.headers()["content-security-policy"]).toBeTruthy();
@@ -116,10 +116,10 @@ test("rejects an unsigned scheduler callback rather than redirecting it", async 
 // app's 404, a real HTML document rendered through the root layout, which then
 // carried no policy. Same defect class as the blanket png exclusion above, one
 // directory narrower.
-test("runs the middleware on a nonexistent brand asset rather than excluding it", async ({ request }) => {
+test("runs the proxy on a nonexistent brand asset rather than excluding it", async ({ request }) => {
   for (const path of ["/splash/nope.png", "/icons/nope.png", "/sw.js.map"]) {
     const response = await request.get(path, { maxRedirects: 0 });
-    expect(response.status(), `${path} should reach the middleware`).toBe(307);
+    expect(response.status(), `${path} should reach the proxy`).toBe(307);
     expect(
       response.headers()["content-security-policy"],
       `${path} should carry a policy`,

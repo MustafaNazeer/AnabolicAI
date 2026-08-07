@@ -32,7 +32,7 @@ describe("generated brand assets", () => {
     }
   });
 
-  // The middleware matcher excludes these two directories by filename shape,
+  // The proxy matcher excludes these two directories by filename shape,
   // and Next requires that matcher to be a constant, so it cannot import this
   // table and will drift silently when a device is added or an icon renamed.
   // A file that stops matching the shape would start being redirected to
@@ -40,9 +40,10 @@ describe("generated brand assets", () => {
   // before. This is where that drift gets caught.
   //
   // Both patterns are written as literals, deliberately. Semgrep's
-  // detect-non-literal-regexp rule blocks building one from a variable and it
-  // cannot be run locally on this machine.
-  it("names every generated asset in the shape the middleware matcher excludes", () => {
+  // detect-non-literal-regexp rule blocks building one from a variable. Run
+  // that gate before pushing with "pip install semgrep==1.172.0", the version
+  // the workflow container pins, then "semgrep scan --config p/default --error".
+  it("names every generated asset in the shape the proxy matcher excludes", () => {
     for (const d of IPHONE_SPLASH) {
       expect(splashFile(d), `${d.name} generates a name the matcher misses`).toMatch(
         /^splash-\d+x\d+\.png$/,

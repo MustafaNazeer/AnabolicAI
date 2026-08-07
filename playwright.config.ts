@@ -1,9 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // The suite drives a production build, not the dev server. Turbopack dev here
-// applies no middleware response at all, proven with a zero dependency
-// middleware, so the policy and redirect guards would silently have nothing to
-// assert against.
+// applies no proxy response at all, proven with a zero dependency proxy, so
+// the policy and redirect guards would silently have nothing to assert
+// against.
 //
 // Port 3100 rather than 3000, so a dev server left running cannot be mistaken
 // for the thing under test.

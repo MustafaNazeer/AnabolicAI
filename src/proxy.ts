@@ -1,8 +1,8 @@
 import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { updateSession } from "@/lib/supabase/proxy";
 import { buildCsp } from "@/lib/security/csp";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Minted per request. The CSP travels on the request headers because Next
   // reads it there during rendering to stamp the nonce onto its own inline
   // scripts; the copy on the response is what the browser enforces.

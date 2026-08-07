@@ -130,7 +130,7 @@ cannot reach: the request layer, and the offline logging round trip.
 
 The request layer guards check that every private route redirects a signed out visitor, that
 the security headers the config declares actually arrive, that a per request nonce reaches
-every script tag, that a nonexistent image path still goes through the middleware rather than
+every script tag, that a nonexistent image path still goes through the proxy rather than
 around it, and that the scheduler callback rejects an unsigned request instead of redirecting
 it. These need no account.
 

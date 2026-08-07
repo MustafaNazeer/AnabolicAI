@@ -268,7 +268,7 @@ src/lib/          Domain logic by concern: data access and server actions,
 supabase/         SQL migrations and the exercise library seed
 public/           Service worker, manifest, icons, splash images
 scripts/          Build time asset generation
-middleware.ts     Session refresh on every request
+proxy.ts          Session refresh and the policy header on every request
 ```
 
 Derived values (estimated one rep max, volume, personal record detection, trend direction) are computed by pure modules under `src/lib/`, so they can be unit tested without a database or a browser. Tests live in `__tests__` folders beside the code they cover and run under Vitest with `npm test`.

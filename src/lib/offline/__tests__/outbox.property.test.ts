@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   deleteSetLocal,
   editSetLocal,
@@ -221,5 +221,54 @@ describe("the offline outbox converges with the server", () => {
     expect(new Set(all).size).toBe(all.length);
     // Every slot has a pool, so no generated swap falls through to undefined.
     expect(SLOTS.every((s) => (REPLACEMENTS[s]?.length ?? 0) > 0)).toBe(true);
+  });
+});
+
+describe("a dropped op never wedges the queue", () => {
+  it("discards the op and still drains everything behind it", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(fc.tuple(fc.nat(), repsArb, weightArb), {
+          minLength: 1,
+          maxLength: 8,
+        }),
+        fc.nat(),
+        async (logs, dropAt) => {
+          const warn = vi
+            .spyOn(console, "warn")
+            .mockImplementation(() => undefined);
+          try {
+            // Exactly one call is dropped. Every other call succeeds.
+            const weather: Outcome[] = new Array(logs.length).fill("ok");
+            weather[dropAt % logs.length] = "drop";
+            const ctx = await createContext(weather);
+            for (const [slot, reps, weight] of logs) {
+              await logSetLocal(
+                ctx.store,
+                SESSION,
+                SLOTS[slot % SLOTS.length],
+                { reps, weight, rirLow: null, rirHigh: null },
+                ctx.nextId,
+              );
+            }
+            // Drain once under the crafted weather, which is what consumes the
+            // injected drop. quiesce then restores the connection, and by that
+            // point the queue should already be empty.
+            await drainOutbox(ctx.store, ctx.runners);
+            await quiesce(ctx);
+
+            // The queue emptied rather than retrying the dropped op forever.
+            expect(await ctx.store.listOutbox()).toEqual([]);
+            // Every op except the dropped one reached the server.
+            expect(ctx.server.sets.size).toBe(logs.length - 1);
+            // The drop was reported rather than swallowed.
+            expect(warn).toHaveBeenCalled();
+          } finally {
+            warn.mockRestore();
+          }
+        },
+      ),
+      { numRuns: 100 },
+    );
   });
 });

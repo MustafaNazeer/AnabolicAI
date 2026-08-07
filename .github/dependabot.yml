@@ -12,6 +12,13 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # A freshly published action version is the one most likely to be
+    # compromised or broken, and every action here is SHA pinned, so waiting a
+    # week before proposing a move costs nothing and skips that window.
+    # `p/default` blocks a dependabot config without this, which is how the
+    # first version of this file turned CI red.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
     commit-message:
       prefix: "chore"

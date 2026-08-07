@@ -136,25 +136,56 @@ class Drain implements Cmd {
   toString = () => "drain";
 }
 
+const logArb = fc
+  .tuple(fc.nat(), repsArb, weightArb, rirArb)
+  .map(([s, r, w, rir]) => new LogSet(s, r, w, rir));
+const deleteArb = fc.nat().map((p) => new DeleteSet(p));
+const editArb = fc
+  .tuple(fc.nat(), repsArb, weightArb)
+  .map(([p, r, w]) => new EditSet(p, r, w));
+const swapArb = fc.tuple(fc.nat(), fc.nat()).map(([s, p]) => new Swap(s, p));
+const undoSwapArb = fc.nat().map((s) => new UndoSwap(s));
+const finishArb = fc.constant(new Finish());
+const drainArb = fc.constant(new Drain());
+
 // All three type parameters are required here: with only two, TypeScript
 // resolves the overload for synchronous Command instead of AsyncCommand,
 // because a function returning Promise<void> is still assignable where void
 // is expected.
+//
+// Logging is weighted well above every other command, because delete and edit
+// each depend on a set already sitting on the device when they run. With every
+// command equally likely, a delete or edit was generated before any log had
+// landed often enough that it hit the empty-list no-op, which left
+// deleteSetLocal's cancel-a-pending-insert path and editSetLocal's deliberate
+// no-cancel path barely exercised. A single fc.oneof with explicit weights
+// keeps every ratio in one place rather than spreading it across repeated
+// array entries.
+//
+// size is raised to "max" alongside the weighting. fc.commands defaults to
+// its "small" size, which caps the generated sequence length at 10 regardless
+// of maxCommands, so a run averaged around 5 commands; that is too short for
+// a heavier log weight to reliably land before a delete or edit even shows up.
+// Measured before this change: 33/200 runs (16.5%) contained a real delete,
+// 37/200 (18.5%) a real edit. After weighting alone (no size change), the
+// measured ceiling across several weight combinations stayed in the 35 to 47
+// percent range, matching a Monte Carlo model of the same length distribution.
+// With size raised to "max" as well, measured runs with a real delete and a
+// real edit both landed in the 64 to 80 percent range across repeated
+// 200-run samples.
 const commandsArb = fc.commands<object, Ctx, false>(
   [
-    fc
-      .tuple(fc.nat(), repsArb, weightArb, rirArb)
-      .map(([s, r, w, rir]) => new LogSet(s, r, w, rir)),
-    fc.nat().map((p) => new DeleteSet(p)),
-    fc
-      .tuple(fc.nat(), repsArb, weightArb)
-      .map(([p, r, w]) => new EditSet(p, r, w)),
-    fc.tuple(fc.nat(), fc.nat()).map(([s, p]) => new Swap(s, p)),
-    fc.nat().map((s) => new UndoSwap(s)),
-    fc.constant(new Finish()),
-    fc.constant(new Drain()),
+    fc.oneof(
+      { weight: 9, arbitrary: logArb },
+      { weight: 5, arbitrary: deleteArb },
+      { weight: 5, arbitrary: editArb },
+      { weight: 1, arbitrary: swapArb },
+      { weight: 1, arbitrary: undoSwapArb },
+      { weight: 1, arbitrary: finishArb },
+      { weight: 1, arbitrary: drainArb },
+    ),
   ],
-  { maxCommands: 30 },
+  { maxCommands: 30, size: "max" },
 );
 
 describe("the offline outbox converges with the server", () => {

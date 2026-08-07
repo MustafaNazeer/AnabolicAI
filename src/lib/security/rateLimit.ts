@@ -85,8 +85,15 @@ export async function checkRateLimit(
       console.log("rate-limit: blocked", JSON.stringify({ surface }));
     }
     return success;
-  } catch {
-    console.log("rate-limit: check failed", JSON.stringify({ surface }));
+  } catch (error) {
+    // The cause is kept because a rotated or revoked token disables limiting
+    // everywhere and, without it, looks identical in the logs to a transient
+    // blip. The MESSAGE only: not the error object, not its stack, not a
+    // spread of its properties, any of which a client library could fill with
+    // more than intended. An Upstash message can carry the REST URL, which is
+    // accepted; it cannot carry the token, and the address is never logged.
+    const cause = error instanceof Error ? error.message : "unknown";
+    console.log("rate-limit: check failed", JSON.stringify({ surface, cause }));
     return true;
   }
 }

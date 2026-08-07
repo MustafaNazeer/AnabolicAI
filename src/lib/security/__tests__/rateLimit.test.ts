@@ -78,6 +78,36 @@ describe("checkRateLimit", () => {
     limitMock.mockRejectedValue(new Error("redis down"));
     await expect(checkRateLimit("signIn", "1.2.3.4")).resolves.toBe(true);
   });
+
+  it("records why a check failed, so a rotated token is diagnosable", async () => {
+    process.env[URL_ENV] = "https://example.upstash.io";
+    process.env[TOKEN_ENV] = "token";
+    limitMock.mockRejectedValue(new Error("WRONGPASS invalid credentials"));
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await expect(checkRateLimit("signIn", "1.2.3.4")).resolves.toBe(true);
+
+    expect(log).toHaveBeenCalledWith(
+      "rate-limit: check failed",
+      JSON.stringify({ surface: "signIn", cause: "WRONGPASS invalid credentials" }),
+    );
+    log.mockRestore();
+  });
+
+  // The privacy rail, and the reason the cause is extracted rather than the
+  // whole error being logged. A limiter that leaks the addresses it is
+  // protecting against is worse than one that says nothing.
+  it("never logs the client address when a check fails", async () => {
+    process.env[URL_ENV] = "https://example.upstash.io";
+    process.env[TOKEN_ENV] = "token";
+    limitMock.mockRejectedValue(new Error("connection reset"));
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await expect(checkRateLimit("signIn", "203.0.113.7")).resolves.toBe(true);
+
+    expect(JSON.stringify(log.mock.calls)).not.toContain("203.0.113.7");
+    log.mockRestore();
+  });
 });
 
 describe("limitMessage", () => {

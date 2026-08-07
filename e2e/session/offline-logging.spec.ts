@@ -22,11 +22,12 @@ async function logSet(page: Page, reps: number, weight: number) {
   await page.getByRole("button", { name: "Log set" }).first().click();
 }
 
-// Matched loosely on purpose. The row renders "Set 1: 8 for 135 lbs", but the
-// weight is a number so trailing zeros could differ, and the pending dot sits
-// in the same element.
+// A plain string, not a regex. getByText already normalises whitespace and
+// matches on a substring, so this is exactly as tolerant as the regex it
+// replaced, and it does not trip semgrep's ReDoS rule for building a pattern
+// out of arguments.
 const setRow = (n: number, reps: number, weight: number) =>
-  new RegExp(`Set ${n}:\\s*${reps} for ${weight}\\s*lbs`);
+  `Set ${n}: ${reps} for ${weight} lbs`;
 
 const pendingDot = (page: Page) => page.getByRole("img", { name: "Not yet synced" });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { statSync } from "node:fs";
+import { statSync, readdirSync } from "node:fs";
 import sharp from "sharp";
 import { IPHONE_SPLASH, splashFile } from "../devices";
 
@@ -29,6 +29,34 @@ describe("generated brand assets", () => {
       const m = await sharp(f).metadata();
       expect(m.width).toBe(d.cssWidth * d.ratio);
       expect(m.height).toBe(d.cssHeight * d.ratio);
+    }
+  });
+
+  // The middleware matcher excludes these two directories by filename shape,
+  // and Next requires that matcher to be a constant, so it cannot import this
+  // table and will drift silently when a device is added or an icon renamed.
+  // A file that stops matching the shape would start being redirected to
+  // /sign-in for signed out visitors, which is how the favicon broke once
+  // before. This is where that drift gets caught.
+  //
+  // Both patterns are written as literals, deliberately. Semgrep's
+  // detect-non-literal-regexp rule blocks building one from a variable and it
+  // cannot be run locally on this machine.
+  it("names every generated asset in the shape the middleware matcher excludes", () => {
+    for (const d of IPHONE_SPLASH) {
+      expect(splashFile(d), `${d.name} generates a name the matcher misses`).toMatch(
+        /^splash-\d+x\d+\.png$/,
+      );
+    }
+    for (const f of readdirSync("public/splash")) {
+      expect(f, `${f} is shipped but the matcher does not exclude it`).toMatch(
+        /^splash-\d+x\d+\.png$/,
+      );
+    }
+    for (const f of readdirSync("public/icons")) {
+      expect(f, `${f} is shipped but the matcher does not exclude it`).toMatch(
+        /^icon-(?:192|512|maskable-512)\.png$/,
+      );
     }
   });
 });

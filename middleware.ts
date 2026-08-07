@@ -21,11 +21,22 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// Only genuine static files are excluded. An earlier blanket ".*\.png$" also
-// excluded every nonexistent ".png" path, and those fall through to the app's
-// 404, which is a real HTML document that then rendered without a CSP.
+// Only genuine static files are excluded, and only the ones that actually
+// exist. An earlier blanket ".*\.png$" excluded every nonexistent ".png" path,
+// and the "icons/" and "splash/" directory prefixes that replaced it did the
+// same thing one directory narrower. Both fall through to the app's 404, which
+// is a real HTML document that then rendered without a policy.
+//
+// Next requires this matcher to be a constant, so it cannot import
+// IPHONE_SPLASH and will drift silently when a device is added. That drift is
+// caught by a case in src/lib/brand/__tests__/generated-assets.test.ts.
+//
+// Keep the "$" anchors and keep this matching the pathname only. Next stamps a
+// cache busting query on metadata icon hrefs, so the browser requests
+// "/icon.svg?icon.<hash>.svg", and an anchored pattern run against a full URL
+// would never match.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|icons/.*|splash/.*|apple-icon\\.png$|icon\\.svg$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|sw\\.js|manifest\\.webmanifest|icons/icon-(?:192|512|maskable-512)\\.png$|splash/splash-\\d+x\\d+\\.png$|apple-icon\\.png$|icon\\.svg$).*)",
   ],
 };

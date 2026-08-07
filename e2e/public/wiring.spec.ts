@@ -110,3 +110,35 @@ test("rejects an unsigned scheduler callback rather than redirecting it", async 
     400,
   );
 });
+
+// The directory prefixes "icons/.*" and "splash/.*" excluded every path under
+// both, including ones with no file behind them. Those fall through to the
+// app's 404, a real HTML document rendered through the root layout, which then
+// carried no policy. Same defect class as the blanket png exclusion above, one
+// directory narrower.
+test("runs the middleware on a nonexistent brand asset rather than excluding it", async ({ request }) => {
+  for (const path of ["/splash/nope.png", "/icons/nope.png"]) {
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(response.status(), `${path} should reach the middleware`).toBe(307);
+    expect(
+      response.headers()["content-security-policy"],
+      `${path} should carry a policy`,
+    ).toBeTruthy();
+  }
+});
+
+// The counterpart guard, and the reason the pattern is narrow rather than
+// absent. Tightening the matcher must never start redirecting the real files,
+// or a cold install gets no icon and no splash screen.
+test("still serves the real brand assets to a signed out visitor", async ({ request }) => {
+  const real = [
+    "/icons/icon-192.png",
+    "/icons/icon-512.png",
+    "/icons/icon-maskable-512.png",
+    "/splash/splash-1170x2532.png",
+  ];
+  for (const path of real) {
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(response.status(), `${path} should be served, not redirected`).toBe(200);
+  }
+});

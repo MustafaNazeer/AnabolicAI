@@ -117,7 +117,7 @@ test("rejects an unsigned scheduler callback rather than redirecting it", async 
 // carried no policy. Same defect class as the blanket png exclusion above, one
 // directory narrower.
 test("runs the middleware on a nonexistent brand asset rather than excluding it", async ({ request }) => {
-  for (const path of ["/splash/nope.png", "/icons/nope.png"]) {
+  for (const path of ["/splash/nope.png", "/icons/nope.png", "/sw.js.map"]) {
     const response = await request.get(path, { maxRedirects: 0 });
     expect(response.status(), `${path} should reach the middleware`).toBe(307);
     expect(

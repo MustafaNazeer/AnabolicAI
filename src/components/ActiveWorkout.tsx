@@ -196,11 +196,13 @@ export function ActiveWorkout({
   }, [store, runners, refresh]);
 
   // Seed the local store from the server snapshot on mount, render from it,
-  // then flush anything already queued.
+  // then flush anything already queued. Being offline here means the worker
+  // served this document from the cache, so the props came out of HTML frozen
+  // at warm time and cannot be fresher than what the device already holds.
   useEffect(() => {
     let active = true;
     (async () => {
-      await seedSession(store, snapshot, serverSets);
+      await seedSession(store, snapshot, serverSets, !navigator.onLine);
       if (!active) return;
       await refresh();
       if (navigator.onLine) await sync();

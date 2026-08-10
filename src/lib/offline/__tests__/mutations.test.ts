@@ -212,6 +212,61 @@ describe("mutations", () => {
 
     expect((await store.getSnapshot("s3"))?.swaps).toEqual(fromServer.swaps);
   });
+
+  // The reachable version of the swap bug. A swap made while online syncs
+  // straight away, so by the time the device reloads there is nothing queued
+  // to prove it is ahead, yet the cached document was captured before the
+  // swap. The outbox rule alone would hand authority to that document and drop
+  // the swap, and every set logged afterwards would be filed under the
+  // exercise that was swapped away.
+  it("keeps a local swap on an offline reload once the swap has synced", async () => {
+    const store = createMemoryStore();
+    const cached: Snapshot = {
+      sessionId: "s4",
+      routineName: "Push Day",
+      restSeconds: 120,
+      exercises: [],
+      lastByExercise: {},
+      swaps: [],
+      library: [],
+    };
+    await store.putSnapshot(cached);
+    await swapLocal(store, "s4", "e1", "e2");
+    for (const op of await store.listOutbox()) await store.dequeue(op.seq);
+    expect(await store.listOutbox()).toEqual([]);
+
+    await seedSession(store, cached, [], true);
+
+    expect((await store.getSnapshot("s4"))?.swaps).toEqual([
+      { originalExerciseId: "e1", replacementExerciseId: "e2" },
+    ]);
+  });
+
+  // The other half of the same rule: a live render is authoritative, so a swap
+  // made on another device still overwrites a drained local one.
+  it("lets a server swap win on an online mount with a drained outbox", async () => {
+    const store = createMemoryStore();
+    const base: Snapshot = {
+      sessionId: "s5",
+      routineName: "Push Day",
+      restSeconds: 120,
+      exercises: [],
+      lastByExercise: {},
+      swaps: [],
+      library: [],
+    };
+    await store.putSnapshot(base);
+    await swapLocal(store, "s5", "e1", "e2");
+    for (const op of await store.listOutbox()) await store.dequeue(op.seq);
+
+    const fromServer: Snapshot = {
+      ...base,
+      swaps: [{ originalExerciseId: "e3", replacementExerciseId: "e4" }],
+    };
+    await seedSession(store, fromServer, [], false);
+
+    expect((await store.getSnapshot("s5"))?.swaps).toEqual(fromServer.swaps);
+  });
 });
 
 const swapSnapshot: Snapshot = {

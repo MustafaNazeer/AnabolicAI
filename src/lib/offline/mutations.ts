@@ -4,17 +4,24 @@ export function nextSetNumber(sets: LocalSet[], exerciseId: string): number {
   return sets.filter((s) => s.exerciseId === exerciseId).length + 1;
 }
 
+// servedOffline says the document this render came from could not have been
+// fetched just now, so it must have been served from the cache.
 export async function seedSession(
   store: OfflineStore,
   snapshot: Snapshot,
   serverSets: LocalSet[],
+  servedOffline = false,
 ): Promise<void> {
-  // The outbox is exactly the record of what the server has not seen yet, so
-  // it is what tells us which side of a swap is fresher. While the device
-  // still holds unsynced swap work for this session, its swaps are ahead of
-  // the server's and must survive being reseeded from an older snapshot. Once
-  // that work has drained, the device has nothing the server does not already
-  // know, so the server snapshot is the fresher copy and wins, including a
+  // The incoming snapshot is only authoritative when it is a live render, and
+  // two things can make the local copy the fresher one. First, the outbox is
+  // exactly the record of what the server has not seen yet, so while the
+  // device still holds unsynced swap work for this session its swaps are ahead
+  // of the server's. Second, a page served offline came out of the cache
+  // frozen at whatever it held when it was warmed, so it is older than local
+  // state however empty the outbox is: a swap made online drains immediately
+  // and leaves nothing queued, yet the cached document still predates it.
+  // Outside both cases the device has nothing the server does not already
+  // know, so the incoming snapshot is the fresher copy and wins, including a
   // swap or undo made elsewhere that this device has never seen.
   const local = await store.getSnapshot(snapshot.sessionId);
   const pending = (await store.listOutbox()).some(
@@ -22,7 +29,11 @@ export async function seedSession(
       op.sessionId === snapshot.sessionId &&
       (op.type === "swapExercise" || op.type === "undoSwap"),
   );
-  await store.putSnapshot(local && pending ? { ...snapshot, swaps: local.swaps } : snapshot);
+  await store.putSnapshot(
+    local && (pending || servedOffline)
+      ? { ...snapshot, swaps: local.swaps }
+      : snapshot,
+  );
   const existing = new Set(
     (await store.listSets(snapshot.sessionId)).map((s) => s.id),
   );

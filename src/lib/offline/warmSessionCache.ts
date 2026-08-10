@@ -30,6 +30,12 @@ export async function warmSessionCache(path: string): Promise<void> {
     await navigator.serviceWorker.ready;
     const response = await fetch(path);
     if (!response.ok) return;
+    // A redirect means the workout page is not what came back. An expired
+    // session is sent to /sign-in by the proxy, and fetch follows that, so
+    // this is a 200 carrying the wrong page. Stored under the /log/ key it
+    // would be replayed as the workout on the next offline reload. The
+    // worker's navigate branch already refuses these, via response.type.
+    if (response.redirected) return;
     const cache = await caches.open(PAGE_CACHE);
     // A relative path is correct here and must not be "fixed" to an absolute
     // URL. cache.put builds a Request from it, which resolves against the

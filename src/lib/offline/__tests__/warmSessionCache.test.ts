@@ -16,7 +16,10 @@ function setup(over: { online?: boolean; hasServiceWorker?: boolean } = {}) {
     nav.serviceWorker = { ready: Promise.resolve() };
   }
   vi.stubGlobal("navigator", nav);
-  globalThis.fetch = vi.fn(async () => ({ ok: true })) as unknown as typeof fetch;
+  globalThis.fetch = vi.fn(async () => ({
+    ok: true,
+    redirected: false,
+  })) as unknown as typeof fetch;
 }
 
 afterEach(() => {
@@ -78,6 +81,19 @@ describe("warmSessionCache", () => {
 
   it("does not store a failed response", async () => {
     globalThis.fetch = vi.fn(async () => ({ ok: false })) as unknown as typeof fetch;
+    await warmSessionCache("/log/abc");
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  // An expired session is redirected to /sign-in, and fetch follows redirects,
+  // so this arrives as a 200 holding the wrong page. Caching it under the
+  // workout's key would replay a sign-in page as the workout on the next
+  // offline reload.
+  it("does not store a response that was redirected elsewhere", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      redirected: true,
+    })) as unknown as typeof fetch;
     await warmSessionCache("/log/abc");
     expect(put).not.toHaveBeenCalled();
   });

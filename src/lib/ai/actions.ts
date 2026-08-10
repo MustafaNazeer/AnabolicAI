@@ -87,7 +87,12 @@ export async function parseQuickEntry(raw: string): Promise<QuickEntryResult> {
   return { ok: true, sets };
 }
 
-export async function setAiQuickEntry(enabled: boolean) {
+// The return type is annotated rather than inferred: without it the union
+// widens to `{ error?: undefined }` on the success arm, and a caller narrowing
+// with `"error" in result` gets `string | undefined` instead of `string`.
+export async function setAiQuickEntry(
+  enabled: boolean,
+): Promise<{ ok: true } | { error: string }> {
   const supabase = await createClient();
   const {
     data: { user },

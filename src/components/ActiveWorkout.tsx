@@ -139,12 +139,14 @@ export function ActiveWorkout({
   startedAt,
   stale = false,
   restAlert = true,
+  aiQuickEntry = false,
 }: {
   snapshot: Snapshot;
   serverSets: LocalSet[];
   startedAt?: string;
   stale?: boolean;
   restAlert?: boolean;
+  aiQuickEntry?: boolean;
 }) {
   const router = useRouter();
   const online = useOnline();
@@ -154,6 +156,9 @@ export function ActiveWorkout({
   const [swaps, setSwaps] = useState(snapshot.swaps);
   // The routine exercise whose slot the picker is currently choosing for.
   const [picking, setPicking] = useState<string | null>(null);
+  // Consent is read once on the server and then held here, so enabling it from
+  // one card's notice turns quick entry on for every card without a reload.
+  const [aiEnabled, setAiEnabled] = useState(aiQuickEntry);
   const sessionId = snapshot.sessionId;
 
   // The last committed state, held in a ref so the commit and refresh callbacks
@@ -436,6 +441,8 @@ export function ActiveWorkout({
                 ? () => void handleUndoSwap(c.slotExerciseId)
                 : undefined
             }
+            aiEnabled={aiEnabled}
+            onAiEnabled={() => setAiEnabled(true)}
           />
         ))}
       </div>

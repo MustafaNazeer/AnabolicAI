@@ -9,6 +9,7 @@ import type { LocalSet } from "@/lib/offline/store";
 import { pluralize } from "@/lib/format/plural";
 import { viewTransitionName } from "@/lib/motion/viewTransitionName";
 import { Card } from "@/components/ui/Card";
+import { QuickEntry } from "@/components/QuickEntry";
 
 const fieldStyle = {
   background: "var(--surface-sunken)",
@@ -30,6 +31,8 @@ export function ExerciseLogCard({
   onSwap,
   onUndoSwap,
   onEdit,
+  aiEnabled,
+  onAiEnabled,
 }: {
   exerciseName: string;
   defaultSets: number;
@@ -57,6 +60,10 @@ export function ExerciseLogCard({
       rirHigh: number | null;
     },
   ) => void;
+  // Both are absent on the orphan "Also logged this session" cards, which is
+  // what keeps quick entry off a card that cannot be logged to.
+  aiEnabled?: boolean;
+  onAiEnabled?: () => void;
 }) {
   const readOnly = role === "swappedOutOriginal";
   const [reps, setReps] = useState("");
@@ -314,6 +321,16 @@ export function ExerciseLogCard({
           </li>
         ))}
       </ul>
+
+      {!readOnly && aiEnabled !== undefined && onAiEnabled ? (
+        <div className="mt-3">
+          <QuickEntry
+            aiEnabled={aiEnabled}
+            onAiEnabled={onAiEnabled}
+            onLog={onLog}
+          />
+        </div>
+      ) : null}
 
       {readOnly ? null : !showInputs ? (
         <div className="flex items-center justify-between mt-3">

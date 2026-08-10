@@ -1,6 +1,6 @@
 // src/lib/offline/__tests__/warmSessionCache.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { warmSessionCache } from "@/lib/offline/warmSessionCache";
+import { warmSessionCache, PAGE_CACHE } from "@/lib/offline/warmSessionCache";
 
 const put = vi.fn();
 const originalFetch = globalThis.fetch;
@@ -30,7 +30,15 @@ describe("warmSessionCache", () => {
   it("fetches the path and stores the response", async () => {
     await warmSessionCache("/log/abc");
     expect(globalThis.fetch).toHaveBeenCalledWith("/log/abc");
+    // The entry is useless anywhere but the cache the worker reads.
+    expect(caches.open).toHaveBeenCalledWith(PAGE_CACHE);
     expect(put).toHaveBeenCalledTimes(1);
+    // The key is the relative path, which cache.put resolves against the
+    // document base, producing the same absolute URL the worker later looks up
+    // for the navigation. Rebuilding it as an absolute URL here, which reads
+    // like a tidy-up, can key the entry differently and the offline reload
+    // then misses.
+    expect(put).toHaveBeenCalledWith("/log/abc", expect.anything());
   });
 
   it("does nothing while offline", async () => {

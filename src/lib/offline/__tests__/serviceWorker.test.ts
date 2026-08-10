@@ -177,6 +177,22 @@ describe("service worker", () => {
     );
   });
 
+  // The static branch is cache first and never revalidates, and the cache is
+  // only pruned when this worker's own bytes change, so a non-200 stored under
+  // a chunk URL would be served in place of the real asset for as long as the
+  // worker stands. The ok guard is what stops that.
+  it("does not store a static asset the server did not serve", async () => {
+    const { listeners, fetchMock, stores } = loadWorker({ "onyx-shell-v4": [] });
+    fetchMock.mockResolvedValue({ ok: false, clone: () => "cloned" });
+    const { event, result } = fetchEvent(`${ORIGIN}/_next/static/chunks/bad.ghi.js`, {
+      mode: "no-cors",
+    });
+    listeners.fetch(event);
+    await result();
+    await Promise.resolve();
+    expect([...stores.get("onyx-shell-v4")!.keys()]).toEqual([]);
+  });
+
   // Growth has to be bounded by construction, not by remembering to bump a
   // constant. Every deploy mints new hashed filenames and nothing else removes
   // the old ones.

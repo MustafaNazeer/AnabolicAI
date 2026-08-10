@@ -1,6 +1,7 @@
 // src/lib/offline/__tests__/serviceWorker.test.ts
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import { PAGE_CACHE } from "@/lib/offline/warmSessionCache";
 
 type Handler = (event: unknown) => void;
 
@@ -172,5 +173,12 @@ describe("service worker", () => {
     listeners.activate({ waitUntil: (p: unknown) => (waited = p) });
     await waited;
     expect([...stores.keys()]).toEqual(["onyx-shell-v4"]);
+  });
+
+  // public/sw.js cannot import from src/, so the cache name lives in two
+  // places. This is the only thing stopping them drifting apart silently.
+  it("uses the same cache name the client warms into", () => {
+    const src = readFileSync("public/sw.js", "utf8");
+    expect(src).toContain(`const CACHE = "${PAGE_CACHE}"`);
   });
 });

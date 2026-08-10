@@ -8,7 +8,12 @@ import { Redis } from "@upstash/redis";
 const URL_ENV = "KV_REST_API_URL";
 const TOKEN_ENV = "KV_REST_API_TOKEN";
 
-export type LimitSurface = "signIn" | "signUp" | "demo" | "restComplete";
+export type LimitSurface =
+  | "signIn"
+  | "signUp"
+  | "demo"
+  | "restComplete"
+  | "quickEntry";
 
 // Sign in is the brute force target. The demo button is the recruiter path
 // and stays lenient. The rest callback limit is defense in depth in front
@@ -18,6 +23,9 @@ const RULES = {
   signUp: { limit: 5, window: "1 h" },
   demo: { limit: 30, window: "1 h" },
   restComplete: { limit: 60, window: "1 m" },
+  // Quick entry parses are user initiated and paid per call, so this bounds
+  // one account's spend. Keyed by user id: the caller is always signed in.
+  quickEntry: { limit: 30, window: "10 m" },
 } as const;
 
 // The rest callback answers with a status code and no copy, so it has no
@@ -32,6 +40,7 @@ const MESSAGES: Record<MessagedSurface, string> = {
   signIn: "Too many attempts. Try again in a few minutes.",
   signUp: "Too many sign up attempts. Try again in an hour.",
   demo: "The demo is busy right now. Try again in an hour.",
+  quickEntry: "Quick entry is catching its breath. Try again in a few minutes.",
 };
 
 export function limitMessage(surface: MessagedSurface): string {

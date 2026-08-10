@@ -108,6 +108,16 @@ describe("checkRateLimit", () => {
     expect(JSON.stringify(log.mock.calls)).not.toContain("203.0.113.7");
     log.mockRestore();
   });
+
+  // Quick entry is the one surface keyed by user id rather than client IP,
+  // because every caller of it is already signed in.
+  it("checks the quickEntry surface against the store", async () => {
+    process.env[URL_ENV] = "https://example.upstash.io";
+    process.env[TOKEN_ENV] = "token";
+    limitMock.mockResolvedValue({ success: false });
+    await expect(checkRateLimit("quickEntry", "user-123")).resolves.toBe(false);
+    expect(limitMock).toHaveBeenCalledWith("user-123");
+  });
 });
 
 describe("limitMessage", () => {
@@ -125,5 +135,11 @@ describe("limitMessage", () => {
   it("never tells a user to return sooner than the window allows", () => {
     expect(limitMessage("signUp")).not.toContain("few minutes");
     expect(limitMessage("demo")).not.toContain("few minutes");
+  });
+
+  // The window is 10 minutes, so "few minutes" is truthful for this surface,
+  // unlike the hour long ones above.
+  it("promises minutes for quick entry, whose window is minutes", () => {
+    expect(limitMessage("quickEntry")).toContain("few minutes");
   });
 });

@@ -9,7 +9,12 @@ export async function seedSession(
   snapshot: Snapshot,
   serverSets: LocalSet[],
 ): Promise<void> {
-  await store.putSnapshot(snapshot);
+  // The server snapshot can be older than the device's, because a cached page
+  // is served on an offline reload. Sets are safe (only unseen ids are added
+  // below), but swaps live in the snapshot, so an unconditional write would
+  // drop a swap made offline from the screen while it was still queued.
+  const local = await store.getSnapshot(snapshot.sessionId);
+  await store.putSnapshot(local ? { ...snapshot, swaps: local.swaps } : snapshot);
   const existing = new Set(
     (await store.listSets(snapshot.sessionId)).map((s) => s.id),
   );

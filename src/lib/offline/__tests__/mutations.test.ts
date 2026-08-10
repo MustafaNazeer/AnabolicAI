@@ -123,6 +123,68 @@ describe("mutations", () => {
     const ob = await store.listOutbox();
     expect(ob[0]).toMatchObject({ type: "finishSession", sessionId: "s1" });
   });
+
+  // swapLocal stores swaps inside the snapshot. Seeding from a cached page
+  // carries a server snapshot from before the swap, and an unconditional
+  // putSnapshot would drop it from the screen while it sat queued in the
+  // outbox. Only observable once an offline reload renders at all.
+  it("keeps a local swap when seeding a server snapshot that predates it", async () => {
+    const store = createMemoryStore();
+    const snapshot: Snapshot = {
+      sessionId: "s1",
+      routineName: "Push Day",
+      restSeconds: 120,
+      exercises: [],
+      lastByExercise: {},
+      swaps: [],
+      library: [],
+    };
+    await store.putSnapshot(snapshot);
+    await swapLocal(store, "s1", "e1", "e2");
+
+    await seedSession(store, snapshot, []);
+
+    const after = await store.getSnapshot("s1");
+    expect(after?.swaps).toEqual([
+      { originalExerciseId: "e1", replacementExerciseId: "e2" },
+    ]);
+  });
+
+  it("takes the server snapshot's other fields even while keeping local swaps", async () => {
+    const store = createMemoryStore();
+    const base: Snapshot = {
+      sessionId: "s1",
+      routineName: "Push Day",
+      restSeconds: 120,
+      exercises: [],
+      lastByExercise: {},
+      swaps: [],
+      library: [],
+    };
+    await store.putSnapshot(base);
+    await swapLocal(store, "s1", "e1", "e2");
+
+    await seedSession(store, { ...base, restSeconds: 180 }, []);
+
+    const after = await store.getSnapshot("s1");
+    expect(after?.restSeconds).toBe(180);
+    expect(after?.swaps).toHaveLength(1);
+  });
+
+  it("uses the server snapshot wholesale when nothing is stored yet", async () => {
+    const store = createMemoryStore();
+    const snapshot: Snapshot = {
+      sessionId: "s2",
+      routineName: "Pull Day",
+      restSeconds: 90,
+      exercises: [],
+      lastByExercise: {},
+      swaps: [{ originalExerciseId: "a", replacementExerciseId: "b" }],
+      library: [],
+    };
+    await seedSession(store, snapshot, []);
+    expect((await store.getSnapshot("s2"))?.swaps).toEqual(snapshot.swaps);
+  });
 });
 
 const swapSnapshot: Snapshot = {

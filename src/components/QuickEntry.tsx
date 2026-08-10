@@ -63,7 +63,9 @@ export function QuickEntry({
 }: {
   aiEnabled: boolean;
   onAiEnabled: () => void;
-  onLog: (input: LogInput) => void;
+  // Awaitable on purpose. See confirm(): the logging path derives a set number
+  // from a read of the store, so these must not overlap.
+  onLog: (input: LogInput) => void | Promise<void>;
 }) {
   const online = useOnline();
   const [text, setText] = useState("");
@@ -112,8 +114,8 @@ export function QuickEntry({
     );
   }
 
-  function confirm() {
-    if (!rows) return;
+  async function confirm() {
+    if (!rows || busy) return;
     const inputs: LogInput[] = [];
     for (const row of rows) {
       const parsed = fromDraft(row);
@@ -123,7 +125,13 @@ export function QuickEntry({
       }
       inputs.push(parsed);
     }
-    for (const input of inputs) onLog(input);
+    // ONE AT A TIME, AWAITED. logSetLocal derives the set number by reading the
+    // store and counting, so firing these together makes every row read the
+    // same count and land as "Set 1". That shipped to a device and was caught
+    // there, because a mocked onLog cannot observe set numbers at all.
+    setBusy(true);
+    for (const input of inputs) await onLog(input);
+    setBusy(false);
     setRows(null);
     setText("");
     setError(null);
@@ -246,7 +254,8 @@ export function QuickEntry({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={confirm}
+              onClick={() => void confirm()}
+              disabled={busy}
               className="px-3 py-2 text-sm font-medium"
               style={fieldStyle}
             >

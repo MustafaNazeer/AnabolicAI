@@ -428,7 +428,7 @@ export function ActiveWorkout({
             originalName={c.originalName}
             loggedSets={sets.filter((s) => s.exerciseId === c.exerciseId)}
             lastSets={snapshot.lastByExercise[c.exerciseId] ?? []}
-            onLog={(input) => void handleLog(c.exerciseId, input)}
+            onLog={(input) => handleLog(c.exerciseId, input)}
             onDelete={(setId) => void handleDelete(setId)}
             onEdit={(setId, input) => void handleEdit(setId, input)}
             onSwap={

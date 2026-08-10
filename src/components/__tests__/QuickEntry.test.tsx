@@ -105,11 +105,40 @@ describe("QuickEntry", () => {
     typeAndParse("185 for 5, then 4 at 2 RIR");
     await waitFor(() => screen.getByRole("button", { name: /log 2 sets/i }));
     fireEvent.click(screen.getByRole("button", { name: /log 2 sets/i }));
+    await waitFor(() => expect(onLog).toHaveBeenCalledTimes(2));
     expect(onLog).toHaveBeenNthCalledWith(1, TWO_SETS[0]);
     expect(onLog).toHaveBeenNthCalledWith(2, TWO_SETS[1]);
     await waitFor(() =>
       expect(screen.queryByLabelText(/preview reps/i)).not.toBeInTheDocument(),
     );
+  });
+
+  // The invariant behind the "every set said Set 1" defect. logSetLocal reads
+  // the store to derive a set number, so a second call must not begin until
+  // the first has finished writing.
+  it("does not start the next row until the previous one has settled", async () => {
+    let releaseFirst!: () => void;
+    const first = new Promise<void>((res) => {
+      releaseFirst = res;
+    });
+    const onLog = vi.fn().mockImplementationOnce(() => first);
+    render(
+      <QuickEntry aiEnabled={true} onAiEnabled={() => {}} onLog={onLog} />,
+    );
+    fireEvent.change(screen.getByPlaceholderText(/185 for 5/i), {
+      target: { value: "185 for 5, then 4" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /add sets/i }));
+    await waitFor(() => screen.getByRole("button", { name: /log 2 sets/i }));
+    fireEvent.click(screen.getByRole("button", { name: /log 2 sets/i }));
+
+    await waitFor(() => expect(onLog).toHaveBeenCalledTimes(1));
+    // The first is still pending, so the second must not have been attempted.
+    await Promise.resolve();
+    expect(onLog).toHaveBeenCalledTimes(1);
+
+    releaseFirst();
+    await waitFor(() => expect(onLog).toHaveBeenCalledTimes(2));
   });
 
   it("an edited preview row logs the edited numbers", async () => {

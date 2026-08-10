@@ -38,12 +38,14 @@ export function ExerciseLogCard({
   defaultSets: number;
   loggedSets: LocalSet[];
   lastSets: LastSet[];
+  // Returns a promise from ActiveWorkout so QuickEntry can log a batch one at
+  // a time. The manual input row ignores the return, which is fine.
   onLog: (input: {
     reps: number;
     weight: number;
     rirLow: number | null;
     rirHigh: number | null;
-  }) => void;
+  }) => void | Promise<void>;
   onDelete: (setId: string) => void;
   // "swappedOutOriginal" is a read-only card kept on screen so sets logged
   // before the swap stay visible. It shows what was logged and nothing else.

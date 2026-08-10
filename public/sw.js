@@ -41,7 +41,13 @@ self.addEventListener("fetch", (event) => {
           fetch(request).then((response) => {
             if (response.ok) {
               const copy = response.clone();
-              caches.open(CACHE).then((c) => c.put(request, copy));
+              // A failed write (quota on iOS Safari, eviction) is not
+              // actionable: the response is already on its way to the page,
+              // and the next request simply tries again.
+              caches
+                .open(CACHE)
+                .then((c) => c.put(request, copy))
+                .catch(() => {});
             }
             return response;
           }),
@@ -62,7 +68,11 @@ self.addEventListener("fetch", (event) => {
           const path = new URL(request.url).pathname;
           if (response.ok && response.type === "basic" && path.startsWith("/log/")) {
             const copy = response.clone();
-            caches.open(CACHE).then((c) => c.put(request, copy));
+            // Not actionable either, for the same reason.
+            caches
+              .open(CACHE)
+              .then((c) => c.put(request, copy))
+              .catch(() => {});
           }
           return response;
         })

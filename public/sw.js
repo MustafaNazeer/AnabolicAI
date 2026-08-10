@@ -1,4 +1,4 @@
-const CACHE = "onyx-shell-v3";
+const CACHE = "onyx-shell-v4";
 const SHELL = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -8,9 +8,21 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    )
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+      // Every deploy mints new content hashed filenames and nothing else
+      // removes the old ones, so a long lived cache would grow without bound
+      // on the one platform this app targets. Starting each worker clean makes
+      // the growth bounded by construction; the assets repopulate as the user
+      // browses, which costs exactly what today costs, since nothing is cached
+      // today at all.
+      const cache = await caches.open(CACHE);
+      const stale = (await cache.keys()).filter((req) =>
+        new URL(req.url).pathname.startsWith("/_next/static/"),
+      );
+      await Promise.all(stale.map((req) => cache.delete(req)));
+    })(),
   );
   self.clients.claim();
 });
@@ -18,6 +30,26 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
+
+  // Build output is content hashed, so a given URL's bytes can never change
+  // and cache first cannot serve anything stale. This is what lets a cached
+  // page hydrate offline, which is what reads IndexedDB.
+  if (new URL(request.url).pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((response) => {
+            if (response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE).then((c) => c.put(request, copy));
+            }
+            return response;
+          }),
+      ),
+    );
+    return;
+  }
 
   // Navigations (e.g. reloading /log/<id> while offline): try the network,
   // cache the result for next time, and fall back to the cached page or the

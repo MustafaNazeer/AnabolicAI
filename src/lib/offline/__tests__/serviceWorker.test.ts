@@ -98,7 +98,7 @@ describe("service worker", () => {
 
   it("falls back to the shell when an offline navigation is not cached", async () => {
     const { listeners, fetchMock } = loadWorker({
-      "onyx-shell-v3": [`${ORIGIN}/`, `${ORIGIN}/manifest.webmanifest`],
+      "onyx-shell-v4": [`${ORIGIN}/`, `${ORIGIN}/manifest.webmanifest`],
     });
     fetchMock.mockRejectedValue(new Error("offline"));
     const { event, result } = fetchEvent(`${ORIGIN}/log/abc`);
@@ -110,11 +110,67 @@ describe("service worker", () => {
   // when the page was somehow already cached, which in practice never happens.
   it("serves a cached page for an offline navigation when one exists", async () => {
     const { listeners, fetchMock } = loadWorker({
-      "onyx-shell-v3": [`${ORIGIN}/`, `${ORIGIN}/log/abc`],
+      "onyx-shell-v4": [`${ORIGIN}/`, `${ORIGIN}/log/abc`],
     });
     fetchMock.mockRejectedValue(new Error("offline"));
     const { event, result } = fetchEvent(`${ORIGIN}/log/abc`);
     listeners.fetch(event);
     await expect(result()).resolves.toBe(`body:${ORIGIN}/log/abc`);
+  });
+
+  it("serves a static asset from the cache without hitting the network", async () => {
+    const { listeners, fetchMock } = loadWorker({
+      "onyx-shell-v4": [`${ORIGIN}/_next/static/chunks/main.abc.js`],
+    });
+    const { event, result } = fetchEvent(`${ORIGIN}/_next/static/chunks/main.abc.js`, {
+      mode: "no-cors",
+    });
+    listeners.fetch(event);
+    await expect(result()).resolves.toBe(`body:${ORIGIN}/_next/static/chunks/main.abc.js`);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("stores a static asset the first time it is fetched", async () => {
+    const { listeners, fetchMock, stores } = loadWorker({ "onyx-shell-v4": [] });
+    fetchMock.mockResolvedValue({ ok: true, clone: () => "cloned" });
+    const { event, result } = fetchEvent(`${ORIGIN}/_next/static/chunks/new.def.js`, {
+      mode: "no-cors",
+    });
+    listeners.fetch(event);
+    await result();
+    await Promise.resolve();
+    expect([...stores.get("onyx-shell-v4")!.keys()]).toContain(
+      `${ORIGIN}/_next/static/chunks/new.def.js`,
+    );
+  });
+
+  // Growth has to be bounded by construction, not by remembering to bump a
+  // constant. Every deploy mints new hashed filenames and nothing else removes
+  // the old ones.
+  it("prunes stale static assets on activate but keeps the shell", async () => {
+    const { listeners, stores } = loadWorker({
+      "onyx-shell-v4": [
+        `${ORIGIN}/`,
+        `${ORIGIN}/manifest.webmanifest`,
+        `${ORIGIN}/_next/static/chunks/old.111.js`,
+        `${ORIGIN}/log/abc`,
+      ],
+    });
+    let waited: unknown;
+    listeners.activate({ waitUntil: (p: unknown) => (waited = p) });
+    await waited;
+    const left = [...stores.get("onyx-shell-v4")!.keys()].sort();
+    expect(left).toEqual([`${ORIGIN}/`, `${ORIGIN}/log/abc`, `${ORIGIN}/manifest.webmanifest`]);
+  });
+
+  it("deletes caches from older versions on activate", async () => {
+    const { listeners, stores } = loadWorker({
+      "onyx-shell-v3": [`${ORIGIN}/`],
+      "onyx-shell-v4": [`${ORIGIN}/`],
+    });
+    let waited: unknown;
+    listeners.activate({ waitUntil: (p: unknown) => (waited = p) });
+    await waited;
+    expect([...stores.keys()]).toEqual(["onyx-shell-v4"]);
   });
 });

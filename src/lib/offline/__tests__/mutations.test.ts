@@ -185,6 +185,33 @@ describe("mutations", () => {
     await seedSession(store, snapshot, []);
     expect((await store.getSnapshot("s2"))?.swaps).toEqual(snapshot.swaps);
   });
+
+  // A local snapshot existing is not enough on its own: it could just be stale,
+  // written before a swap happened on another device. The outbox is what says
+  // whether the device is actually ahead. With nothing queued for this
+  // session, the device has no swap work the server has not seen, so the
+  // server snapshot is the fresher copy and its swaps should win.
+  it("uses the server's swaps when the local outbox holds no swap work", async () => {
+    const store = createMemoryStore();
+    const stale: Snapshot = {
+      sessionId: "s3",
+      routineName: "Leg Day",
+      restSeconds: 90,
+      exercises: [],
+      lastByExercise: {},
+      swaps: [{ originalExerciseId: "old", replacementExerciseId: "stale" }],
+      library: [],
+    };
+    await store.putSnapshot(stale);
+
+    const fromServer: Snapshot = {
+      ...stale,
+      swaps: [{ originalExerciseId: "c", replacementExerciseId: "d" }],
+    };
+    await seedSession(store, fromServer, []);
+
+    expect((await store.getSnapshot("s3"))?.swaps).toEqual(fromServer.swaps);
+  });
 });
 
 const swapSnapshot: Snapshot = {

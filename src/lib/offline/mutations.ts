@@ -9,12 +9,20 @@ export async function seedSession(
   snapshot: Snapshot,
   serverSets: LocalSet[],
 ): Promise<void> {
-  // The server snapshot can be older than the device's, because a cached page
-  // is served on an offline reload. Sets are safe (only unseen ids are added
-  // below), but swaps live in the snapshot, so an unconditional write would
-  // drop a swap made offline from the screen while it was still queued.
+  // The outbox is exactly the record of what the server has not seen yet, so
+  // it is what tells us which side of a swap is fresher. While the device
+  // still holds unsynced swap work for this session, its swaps are ahead of
+  // the server's and must survive being reseeded from an older snapshot. Once
+  // that work has drained, the device has nothing the server does not already
+  // know, so the server snapshot is the fresher copy and wins, including a
+  // swap or undo made elsewhere that this device has never seen.
   const local = await store.getSnapshot(snapshot.sessionId);
-  await store.putSnapshot(local ? { ...snapshot, swaps: local.swaps } : snapshot);
+  const pending = (await store.listOutbox()).some(
+    (op) =>
+      op.sessionId === snapshot.sessionId &&
+      (op.type === "swapExercise" || op.type === "undoSwap"),
+  );
+  await store.putSnapshot(local && pending ? { ...snapshot, swaps: local.swaps } : snapshot);
   const existing = new Set(
     (await store.listSets(snapshot.sessionId)).map((s) => s.id),
   );

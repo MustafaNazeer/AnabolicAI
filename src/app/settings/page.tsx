@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getNotificationSettings } from "@/lib/notifications/queries";
+import { getAiQuickEntry } from "@/lib/ai/queries";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { AiQuickEntryToggle } from "@/components/AiQuickEntryToggle";
 import { SignOutButton } from "@/components/SignOutButton";
 import { ThemePicker } from "@/components/ThemePicker";
 import { AppearanceControl } from "@/components/AppearanceControl";
@@ -11,6 +13,7 @@ export default async function SettingsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   const settings = await getNotificationSettings();
+  const aiQuickEntry = await getAiQuickEntry();
 
   return (
     <main className="px-5 pt-12 pb-24">
@@ -32,6 +35,11 @@ export default async function SettingsPage() {
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-3">Theme</h2>
         <ThemePicker />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-3">AI</h2>
+        <AiQuickEntryToggle initial={aiQuickEntry} />
       </section>
 
       <NotificationSettings initial={settings} />

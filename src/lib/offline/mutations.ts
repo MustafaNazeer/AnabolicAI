@@ -35,11 +35,25 @@ export async function seedSession(
       ? { ...snapshot, swaps: local.swaps }
       : snapshot,
   );
-  // A set deleted here is absent from listSets, so an id the incoming render
-  // still carries would look unseen and be put back as synced. Nothing would
-  // ever remove it again, because draining a deleteSet only dequeues it, and
-  // it would keep counting toward the set numbering. The queued deletes are
-  // the record of exactly which ids that applies to.
+  // Offline, the props came out of a cached document, and every id in it was
+  // already seeded at the mount that warmed it. So the loop below can only put
+  // back rows this device has deliberately deleted since, never anything new,
+  // and there is nothing to gain by running it at all. A queued delete alone
+  // is not enough to protect against that: a delete made online drains and
+  // dequeues, leaving no tombstone behind, while the cached document still
+  // carries the row. Re-adding it would be invisible, since it comes back as
+  // synced with no pending dot, and permanent, because draining a deleteSet
+  // takes no local action. It would also inflate nextSetNumber, so the next
+  // real set would sync to the server under the wrong set number.
+  //
+  // The accepted cost: a device whose IndexedDB was cleared while this cached
+  // document survived renders an empty workout offline. That is the honest
+  // state, the sets really are gone from this device, and the next online
+  // render restores all of them.
+  if (servedOffline) return;
+  // Online the render is live, but a delete can still be queued and unsent, so
+  // the server legitimately returns a row this device has already removed. The
+  // queued deletes are the record of exactly which ids that applies to.
   const deleted = new Set<string>();
   for (const op of outbox) {
     if (op.type === "deleteSet" && op.sessionId === snapshot.sessionId) {

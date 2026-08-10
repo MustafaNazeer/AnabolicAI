@@ -302,6 +302,38 @@ describe("mutations", () => {
 
     expect((await store.listSets("s1")).map((s) => s.id)).toEqual(["kept"]);
   });
+
+  // The queued delete only guards the window before it drains. Deleting while
+  // online drains immediately and leaves no tombstone, yet a document warmed
+  // before the delete still carries the row, so an offline reload would put it
+  // back as synced with no pending dot and nothing would ever remove it. It
+  // would then count toward nextSetNumber and the next real set would reach
+  // the server under the wrong set number.
+  it("does not resurrect a set deleted online once the delete has synced", async () => {
+    const store = createMemoryStore();
+    await store.putSet(synced("gone"));
+    await deleteSetLocal(store, "gone");
+    for (const op of await store.listOutbox()) await store.dequeue(op.seq);
+    expect(await store.listOutbox()).toEqual([]);
+
+    await seedSession(store, seedSnapshot, [synced("gone")], true);
+
+    expect(await store.listSets("s1")).toEqual([]);
+  });
+
+  // The accepted cost of that rule, written down so it stays a decision rather
+  // than becoming an accident. Offline the props come from a cached document
+  // whose ids were all seeded at the mount that warmed it, so seeding nothing
+  // loses nothing in the normal case. A device whose IndexedDB was cleared
+  // while the cached document survived is the exception, and it renders an
+  // empty workout until the next online render.
+  it("seeds no server sets at all when served offline", async () => {
+    const store = createMemoryStore();
+
+    await seedSession(store, seedSnapshot, [synced("unseen")], true);
+
+    expect(await store.listSets("s1")).toEqual([]);
+  });
 });
 
 const swapSnapshot: Snapshot = {

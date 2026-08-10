@@ -47,6 +47,13 @@ beforeEach(() => {
 
 describe("ActiveWorkout motion", () => {
   it("does not animate when a refresh changes nothing", async () => {
+    // Mounted online, unlike the case below. Server sets are only ever handed
+    // to a live render, and an offline mount deliberately seeds none of them,
+    // because offline the props come from a cached document whose sets were
+    // already stored at the mount that warmed it. Offline here would leave an
+    // empty store for the refresh to read back, which is a different scenario
+    // than the one this test is about.
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(true);
     render(
       <ActiveWorkout
         snapshot={snapshot}

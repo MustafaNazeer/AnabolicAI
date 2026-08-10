@@ -49,10 +49,15 @@ beforeEach(() => {
 });
 
 describe("QuickEntry", () => {
-  it("disables the parse action with a hint while offline", () => {
+  // Offline was reported on device as reading fine but LOOKING unchanged: the
+  // button was inert and still styled as if it worked. The class is pinned
+  // because being disabled and looking disabled are separate facts.
+  it("disables the parse action with a hint while offline, and looks disabled", () => {
     useOnlineMock.mockReturnValue(false);
     setup();
-    expect(screen.getByRole("button", { name: /add sets/i })).toBeDisabled();
+    const button = screen.getByRole("button", { name: /add sets/i });
+    expect(button).toBeDisabled();
+    expect(button).toHaveClass("disabled:opacity-60");
     expect(screen.getByText(/back online/i)).toBeInTheDocument();
   });
 

@@ -145,7 +145,7 @@ export function QuickEntry({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder='Quick entry: "185 for 5, then 5, then 4"'
-          className="flex-1 px-3 text-sm"
+          className="flex-1 px-3 text-sm disabled:opacity-60"
           style={fieldStyle}
           disabled={busy}
         />
@@ -153,7 +153,7 @@ export function QuickEntry({
           type="button"
           onClick={() => void submit()}
           disabled={!online || busy || text.trim() === ""}
-          className="px-3 text-sm font-medium"
+          className="px-3 text-sm font-medium disabled:opacity-60"
           style={fieldStyle}
         >
           Add sets
@@ -256,7 +256,7 @@ export function QuickEntry({
               type="button"
               onClick={() => void confirm()}
               disabled={busy}
-              className="px-3 py-2 text-sm font-medium"
+              className="px-3 py-2 text-sm font-medium disabled:opacity-60"
               style={fieldStyle}
             >
               Log {rows.length} {rows.length === 1 ? "set" : "sets"}

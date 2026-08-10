@@ -5,13 +5,17 @@ import { warmSessionCache } from "@/lib/offline/warmSessionCache";
 const put = vi.fn();
 const originalFetch = globalThis.fetch;
 
-function setup(over: { online?: boolean; controlled?: boolean } = {}) {
+function setup(over: { online?: boolean; hasServiceWorker?: boolean } = {}) {
   put.mockReset();
   vi.stubGlobal("caches", { open: vi.fn(async () => ({ put })) });
-  vi.stubGlobal("navigator", {
-    onLine: over.online ?? true,
-    serviceWorker: { controller: (over.controlled ?? true) ? {} : null },
-  });
+  const nav: Record<string, unknown> = { onLine: over.online ?? true };
+  // Omitting the key entirely (rather than setting it to undefined) is what
+  // makes "serviceWorker" in navigator false, matching a browser with no
+  // support at all.
+  if (over.hasServiceWorker ?? true) {
+    nav.serviceWorker = { ready: Promise.resolve() };
+  }
+  vi.stubGlobal("navigator", nav);
   globalThis.fetch = vi.fn(async () => ({ ok: true })) as unknown as typeof fetch;
 }
 
@@ -36,10 +40,32 @@ describe("warmSessionCache", () => {
     expect(put).not.toHaveBeenCalled();
   });
 
-  it("does nothing when no service worker controls the page", async () => {
-    setup({ controlled: false });
+  it("does nothing when the browser has no service worker support", async () => {
+    setup({ hasServiceWorker: false });
     await warmSessionCache("/log/abc");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
     expect(put).not.toHaveBeenCalled();
+  });
+
+  // A fresh install (registration in flight) and a fresh Playwright context
+  // (no prior registration at all) both start with no controller yet. The
+  // fetch must wait for navigator.serviceWorker.ready rather than firing
+  // before, or racing, whatever claims the page.
+  it("waits for the service worker to become ready before fetching", async () => {
+    let resolveReady!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      resolveReady = resolve;
+    });
+    vi.stubGlobal("navigator", { onLine: true, serviceWorker: { ready } });
+
+    const promise = warmSessionCache("/log/abc");
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+
+    resolveReady();
+    await promise;
+    expect(globalThis.fetch).toHaveBeenCalledWith("/log/abc");
   });
 
   it("does not store a failed response", async () => {

@@ -9,13 +9,25 @@ export const PAGE_CACHE = "onyx-shell-v4";
 // worker's navigate branch never fires and a session page reached by tapping
 // a routine is never cached. Measured 2026-08-10. This warms it explicitly.
 //
+// Warming does not need a controller: the Cache API belongs to the page
+// itself, so an entry can be written before any worker exists. What matters
+// is only that a worker will eventually be there to read it, so this waits
+// for one to become active rather than bailing when none has claimed the
+// page yet. Skipping on an absent controller would race register, install,
+// activate and claim, and losing that race means a brand new install, or a
+// fresh browser context that has no prior registration at all, never gets
+// warmed.
+//
 // Best effort throughout: every failure leaves the app exactly as it behaves
 // without this function, so nothing here may throw to the caller.
 export async function warmSessionCache(path: string): Promise<void> {
   try {
     if (typeof caches === "undefined") return;
     if (!navigator.onLine) return;
-    if (!navigator.serviceWorker?.controller) return;
+    if (!("serviceWorker" in navigator)) return;
+    // Wait for an active worker rather than skipping when none has claimed
+    // this page yet.
+    await navigator.serviceWorker.ready;
     const response = await fetch(path);
     if (!response.ok) return;
     const cache = await caches.open(PAGE_CACHE);

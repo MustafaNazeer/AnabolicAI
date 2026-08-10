@@ -75,6 +75,22 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Below the navigate branch on purpose: an offline navigation to /log/ must
+  // still be answered from the cache, which is the whole feature, and only
+  // requests that are not navigations reach this far.
+  //
+  // The only non-navigate GET for a session page is the client warming this
+  // cache. Answering that from the cache would hand the warm the entry it
+  // wrote itself, so it would re-store an identical body and the page would
+  // stay pinned to the session's first mount forever. A soft navigation's RSC
+  // request carries _rsc in the query, so it is a different key that misses
+  // here anyway and already went to the network.
+  const path = new URL(request.url).pathname;
+  if (path.startsWith("/log/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => cached || fetch(request))
   );

@@ -109,6 +109,9 @@ describe("service worker", () => {
 
   // The behaviour this whole change exists to produce. It passes today only
   // when the page was somehow already cached, which in practice never happens.
+  // It also pins the ordering of the two /log/ branches: the network-first one
+  // below sends session pages straight out, so were it to sit above this, an
+  // offline navigation would fail instead of rendering from the cache.
   it("serves a cached page for an offline navigation when one exists", async () => {
     const { listeners, fetchMock } = loadWorker({
       "onyx-shell-v4": [`${ORIGIN}/`, `${ORIGIN}/log/abc`],
@@ -117,6 +120,35 @@ describe("service worker", () => {
     const { event, result } = fetchEvent(`${ORIGIN}/log/abc`);
     listeners.fetch(event);
     await expect(result()).resolves.toBe(`body:${ORIGIN}/log/abc`);
+  });
+
+  // The client warms this cache with a plain fetch, which is a GET with mode
+  // "cors" rather than "navigate", so it lands in the generic fallback. Cache
+  // first there served the warm the entry it had written itself: it never
+  // reached the network, re-stored an identical body, and the cached page
+  // stayed frozen at the session's first mount.
+  it("sends a non-navigate request for a session page to the network", async () => {
+    const { listeners, fetchMock } = loadWorker({
+      "onyx-shell-v4": [`${ORIGIN}/log/abc`],
+    });
+    fetchMock.mockResolvedValue("fresh");
+    const { event, result } = fetchEvent(`${ORIGIN}/log/abc`, { mode: "cors" });
+    listeners.fetch(event);
+    await expect(result()).resolves.toBe("fresh");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  // Everything else keeps the cache-first fallback it has always had.
+  it("still answers other non-navigate requests from the cache", async () => {
+    const { listeners, fetchMock } = loadWorker({
+      "onyx-shell-v4": [`${ORIGIN}/manifest.webmanifest`],
+    });
+    const { event, result } = fetchEvent(`${ORIGIN}/manifest.webmanifest`, {
+      mode: "cors",
+    });
+    listeners.fetch(event);
+    await expect(result()).resolves.toBe(`body:${ORIGIN}/manifest.webmanifest`);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("serves a static asset from the cache without hitting the network", async () => {

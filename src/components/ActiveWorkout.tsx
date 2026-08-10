@@ -33,6 +33,7 @@ import {
 } from "@/lib/offline/mutations";
 import { drainOutbox, type Runners } from "@/lib/offline/sync";
 import { useOnline } from "@/lib/offline/useOnline";
+import { warmSessionCache } from "@/lib/offline/warmSessionCache";
 import { runViewTransition } from "@/lib/motion/viewTransition";
 import {
   readSessionState,
@@ -203,6 +204,10 @@ export function ActiveWorkout({
       if (!active) return;
       await refresh();
       if (navigator.onLine) await sync();
+      // Last, and deliberately unawaited by anything above it: warming is the
+      // only work here the user cannot perceive, so it must never sit in front
+      // of rendering or syncing.
+      void warmSessionCache(window.location.pathname);
     })();
     return () => {
       active = false;

@@ -6,6 +6,8 @@ A dark, iPhone first strength progress tracker, built as an installable Progress
 
 Onyx is a private app for a small group of users. Each person has their own account and their own isolated data, enforced at the database level.
 
+An optional AI quick entry field on each exercise card turns a typed line like "185 for 5, then 5, then 4" into sets. The parse is schema constrained, every number is re-validated against the same rules the logging path enforces, and the result lands as editable preview rows that only reach your log once you confirm them. It is off until you turn it on, and the only thing that ever leaves the device is the text you type.
+
 [docs/case-study.md](docs/case-study.md) is a short account of how it was built, centered on the hardest part: making the workout logging screen work with no connection.
 
 ## Tech stack
@@ -16,6 +18,7 @@ Onyx is a private app for a small group of users. Each person has their own acco
 - Recharts for progress charts
 - Web Push (VAPID) for notifications
 - Upstash QStash to schedule the rest timer notification
+- Claude Haiku with structured outputs for AI quick entry
 - Vercel for hosting
 
 ## Prerequisites
@@ -99,6 +102,24 @@ the TCP connection string. The code passes them explicitly instead of calling th
 `fromEnv` helper. Without them the app runs with rate limiting disabled, which is the normal
 state for local development.
 
+### AI quick entry (optional)
+
+The typed set parser on each exercise card calls the Claude API. Create a key in the Console
+at https://platform.claude.com/settings/keys and set it on the deployed environment:
+
+```
+ANTHROPIC_API_KEY
+```
+
+Without it the field still renders and fails with a friendly message, and every other way of
+logging a set is unaffected. The key is read in exactly one place and the client is
+constructed per request, so a build with no key configured still succeeds.
+
+The feature is off per user until they turn it on, either from the notice shown the first
+time they use the field or from the switch in Settings. Only the typed text and fixed parsing
+instructions are sent; no exercise names, identifiers, or history leave the app. Requests are
+limited to 30 per 10 minutes per account.
+
 ## Tests
 
 ```bash
@@ -106,12 +127,12 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-07: 553 tests across 103 files, covering 69 percent of the application logic.
+As of 2026-08-09: 595 tests across 108 files, covering 71 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a
 real database rather than a mock. Counting those 15 files, overall statement coverage is
-53 percent.
+56 percent.
 
 The offline outbox is additionally checked with property based tests. Generated sequences
 of logging, editing, deleting, swapping and finishing are run against a reference model of

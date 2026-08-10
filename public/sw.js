@@ -11,12 +11,11 @@ self.addEventListener("activate", (event) => {
     (async () => {
       const keys = await caches.keys();
       await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
-      // Every deploy mints new content hashed filenames and nothing else
-      // removes the old ones, so a long lived cache would grow without bound
-      // on the one platform this app targets. Starting each worker clean makes
-      // the growth bounded by construction; the assets repopulate as the user
-      // browses, which costs exactly what today costs, since nothing is cached
-      // today at all.
+      // Assets repopulate as the user browses. This resets the static cache
+      // whenever this worker's bytes change, which is NOT every deploy: sw.js
+      // is a static file, so a new worker installs only when this file is
+      // edited. Growth between those edits is therefore not bounded here, and
+      // is accepted for an app of this size.
       const cache = await caches.open(CACHE);
       const stale = (await cache.keys()).filter((req) =>
         new URL(req.url).pathname.startsWith("/_next/static/"),

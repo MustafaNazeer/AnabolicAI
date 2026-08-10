@@ -24,7 +24,8 @@ export async function seedSession(
   // know, so the incoming snapshot is the fresher copy and wins, including a
   // swap or undo made elsewhere that this device has never seen.
   const local = await store.getSnapshot(snapshot.sessionId);
-  const pending = (await store.listOutbox()).some(
+  const outbox = await store.listOutbox();
+  const pending = outbox.some(
     (op) =>
       op.sessionId === snapshot.sessionId &&
       (op.type === "swapExercise" || op.type === "undoSwap"),
@@ -34,11 +35,24 @@ export async function seedSession(
       ? { ...snapshot, swaps: local.swaps }
       : snapshot,
   );
+  // A set deleted here is absent from listSets, so an id the incoming render
+  // still carries would look unseen and be put back as synced. Nothing would
+  // ever remove it again, because draining a deleteSet only dequeues it, and
+  // it would keep counting toward the set numbering. The queued deletes are
+  // the record of exactly which ids that applies to.
+  const deleted = new Set<string>();
+  for (const op of outbox) {
+    if (op.type === "deleteSet" && op.sessionId === snapshot.sessionId) {
+      deleted.add(op.payload.id);
+    }
+  }
   const existing = new Set(
     (await store.listSets(snapshot.sessionId)).map((s) => s.id),
   );
   for (const s of serverSets) {
-    if (!existing.has(s.id)) await store.putSet({ ...s, syncState: "synced" });
+    if (!existing.has(s.id) && !deleted.has(s.id)) {
+      await store.putSet({ ...s, syncState: "synced" });
+    }
   }
 }
 

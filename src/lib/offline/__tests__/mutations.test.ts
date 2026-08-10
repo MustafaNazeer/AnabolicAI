@@ -27,6 +27,16 @@ const synced = (id: string, over: Partial<LocalSet> = {}): LocalSet => ({
   ...over,
 });
 
+const seedSnapshot: Snapshot = {
+  sessionId: "s1",
+  routineName: "Push",
+  restSeconds: 120,
+  exercises: [],
+  lastByExercise: {},
+  swaps: [],
+  library: [],
+};
+
 describe("mutations", () => {
   it("nextSetNumber counts only that exercise's sets", () => {
     const sets = [
@@ -266,6 +276,31 @@ describe("mutations", () => {
     await seedSession(store, fromServer, [], false);
 
     expect((await store.getSnapshot("s5"))?.swaps).toEqual(fromServer.swaps);
+  });
+
+  // A set deleted here is gone locally but still present in the server sets a
+  // cached document carries, so seeding would put it back as synced, with no
+  // pending dot to explain it. Nothing would ever remove it again: draining a
+  // deleteSet only dequeues the op, it takes no local action. The row would go
+  // on counting toward the set numbering for the rest of the session.
+  it("does not re-seed a set that is queued for deletion", async () => {
+    const store = createMemoryStore();
+    await store.putSet(synced("gone"));
+    await deleteSetLocal(store, "gone");
+
+    await seedSession(store, seedSnapshot, [synced("gone")]);
+
+    expect(await store.listSets("s1")).toEqual([]);
+  });
+
+  it("still seeds a server set that was never deleted here", async () => {
+    const store = createMemoryStore();
+    await store.putSet(synced("gone"));
+    await deleteSetLocal(store, "gone");
+
+    await seedSession(store, seedSnapshot, [synced("gone"), synced("kept")]);
+
+    expect((await store.listSets("s1")).map((s) => s.id)).toEqual(["kept"]);
   });
 });
 

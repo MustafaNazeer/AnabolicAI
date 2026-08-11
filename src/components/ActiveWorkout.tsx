@@ -304,6 +304,20 @@ export function ActiveWorkout({
 
   const hasPending = sets.some((s) => s.syncState === "pending");
 
+  // The effect above is the only reconnect signal this component listens
+  // for, and it is missable: measured 2026-08-10 with a Playwright probe, a
+  // document that loads while already offline never observes an `offline`
+  // event, so no `online` event follows once connectivity actually returns,
+  // and nothing else would ever retry. While anything is pending this polls
+  // instead, so a missed event costs seconds rather than forever.
+  useEffect(() => {
+    if (!hasPending) return;
+    const id = setInterval(() => {
+      if (navigator.onLine) void sync();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [hasPending, sync]);
+
   const setCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const s of sets) counts[s.exerciseId] = (counts[s.exerciseId] ?? 0) + 1;

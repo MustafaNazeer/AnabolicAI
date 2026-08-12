@@ -51,6 +51,12 @@ describe("slopeInterval", () => {
     expect(low).toBeCloseTo(5, 10);
     expect(high).toBeCloseTo(5, 10);
   });
+  it("collapses to a point for a two point fit, which has no spare degrees of freedom", () => {
+    const fit = fitSlope([135, 140])!;
+    const { low, high } = slopeInterval(fit, 0.2);
+    expect(low).toBeCloseTo(5, 10);
+    expect(high).toBeCloseTo(5, 10);
+  });
   it("straddles zero when four points scatter", () => {
     const fit = fitSlope([135, 150, 140, 155])!;
     const { low, high } = slopeInterval(fit, 0.2);

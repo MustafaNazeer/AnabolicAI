@@ -1,26 +1,38 @@
+import { fitSlope, slopeInterval } from "@/lib/progress/regression";
+
 export type TrendDirection = "up" | "flat" | "down";
 
-function slope(values: number[]): number {
-  const n = values.length;
-  const meanX = (n - 1) / 2;
-  const meanY = values.reduce((a, b) => a + b, 0) / n;
-  let num = 0;
-  let den = 0;
-  for (let i = 0; i < n; i++) {
-    num += (i - meanX) * (values[i] - meanY);
-    den += (i - meanX) ** 2;
-  }
-  return den === 0 ? 0 : num / den;
+// The last four sessions, which is what SPEC.md section 7 publishes.
+const WINDOW = 4;
+
+// Deliberately permissive, and this is a product decision rather than a
+// statistical one. This is a direction hint read on a phone between sets, not
+// a published finding. Four points leave two degrees of freedom, so the
+// conventional 0.05 needs |t| > 4.30, and a real progression of
+// 135, 140, 140, 145 comes out at 4.24 and would read as holding steady.
+// Measured 2026-08-11.
+const ALPHA = 0.2;
+
+// The smallest change worth calling a direction, unchanged from the threshold
+// this file used before confidence was added. Confidence alone is not enough:
+// a perfectly linear 100, 100.1, 100.2, 100.3 has zero residuals and therefore
+// total confidence in a slope of 0.1, which is not progress anyone can feel.
+function meaningfulSlope(values: number[]): number {
+  const avg = values.reduce((a, b) => a + b, 0) / values.length;
+  return Math.max(0.5, avg * 0.01);
 }
 
 export function trendDirection(values: number[]): TrendDirection {
-  const recent = values.slice(-4);
-  if (recent.length < 2) return "flat";
-  const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
-  const threshold = Math.max(0.5, avg * 0.01);
-  const s = slope(recent);
-  if (s > threshold) return "up";
-  if (s < -threshold) return "down";
+  const recent = values.slice(-WINDOW);
+  const fit = fitSlope(recent);
+  if (!fit) return "flat";
+  const delta = meaningfulSlope(recent);
+  const { low, high } = slopeInterval(fit, ALPHA);
+  // A direction is claimed only when the whole interval clears the meaningful
+  // slope, so a large slope drawn through scattered sessions reads as steady
+  // rather than overstating what four points can support.
+  if (low > delta) return "up";
+  if (high < -delta) return "down";
   return "flat";
 }
 

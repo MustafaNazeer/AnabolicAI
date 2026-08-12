@@ -13,6 +13,8 @@ import {
 } from "@/lib/progress/progressMetric";
 import { RoutineVolumeChart } from "@/components/RoutineVolumeChart";
 import { GoalCard } from "@/components/GoalCard";
+import { PlateauCard } from "@/components/PlateauCard";
+import { plateauStatus } from "@/lib/progress/plateau";
 import type { ProgressData, ProgressPoint, RoutineVolumeData } from "@/lib/progress/types";
 import type { GoalWithProgress } from "@/lib/goals/types";
 import type { MetricKey } from "@/components/ChartCanvases";
@@ -76,16 +78,19 @@ export function ProgressView({
   data,
   routineVolume,
   goals,
+  aiPlateau,
 }: {
   data: ProgressData;
   routineVolume: RoutineVolumeData;
   goals: Record<string, { active: GoalWithProgress | null; achieved: GoalWithProgress[] }>
+  aiPlateau: boolean;
 }) {
   const [selected, setSelected] = useState(data.exercises[0]?.id ?? "");
   const { metric, setMetric } = useProgressMetric();
   const [routineId, setRoutineId] = useState(
     routineVolume.routines[0]?.id ?? "",
   );
+  const [plateauEnabled, setPlateauEnabled] = useState(aiPlateau);
 
   if (data.exercises.length === 0) {
     return (
@@ -99,6 +104,14 @@ export function ProgressView({
   const chartData = points.map((p) => ({ ...p, label: shortDate(p.date) }));
   const config = METRIC_CONFIG[metric];
   const trendValues = points.map(config.select);
+  const selectedName =
+    data.exercises.find((ex) => ex.id === selected)?.name ?? "this lift";
+  // Detection always runs on estimated 1RM regardless of the selected chart
+  // metric: the card is a claim about the lift, not about the chart view.
+  const status = plateauStatus(
+    points.map((p) => ({ date: p.date, value: p.e1rm })),
+    new Date(),
+  );
 
   const routine = routineVolume.series[routineId];
   const routineTrend = routine ? routine.points.map((p) => p.total) : [];
@@ -148,6 +161,15 @@ export function ProgressView({
           unit={config.unit}
         />
       </section>
+
+      <PlateauCard
+        key={selected}
+        exerciseId={selected}
+        exerciseName={selectedName}
+        status={status}
+        aiEnabled={plateauEnabled}
+        onAiEnabled={() => setPlateauEnabled(true)}
+      />
 
       <section>
         <div className="flex items-center justify-between mb-2">

@@ -1,12 +1,14 @@
 import { getProgressData, getRoutineVolumeData } from "@/lib/progress/queries";
 import { getGoalsByExercise } from "@/lib/goals/queries";
+import { getAiPlateau } from "@/lib/ai/queries";
 import { ProgressView } from "@/components/ProgressView";
 
 export default async function ProgressPage() {
-  const [data, routineVolume, goals] = await Promise.all([
+  const [data, routineVolume, goals, aiPlateau] = await Promise.all([
     getProgressData(),
     getRoutineVolumeData(),
     getGoalsByExercise(),
+    getAiPlateau(),
   ]);
   return (
     <main className="px-5 pt-12 pb-24">
@@ -16,7 +18,12 @@ export default async function ProgressPage() {
       >
         Progress
       </h1>
-      <ProgressView data={data} routineVolume={routineVolume} goals={goals} />
+      <ProgressView
+        data={data}
+        routineVolume={routineVolume}
+        goals={goals}
+        aiPlateau={aiPlateau}
+      />
     </main>
   );
 }

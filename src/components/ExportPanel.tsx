@@ -95,7 +95,7 @@ export function ExportPanel() {
       {/* Selection as pressed buttons rather than checkboxes, following
           ThemePicker one section above: this is how the app already lets you
           pick from a set, and a grid stays compact where nine rows would not. */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {columns.map((c) => {
           const on = keys.includes(c.key);
           return (

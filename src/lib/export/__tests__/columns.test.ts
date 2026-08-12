@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { SET_COLUMNS, SESSION_COLUMNS, selectColumns, type SetRow } from "@/lib/export/columns";
-import { estimatedOneRepMax, setVolume } from "@/lib/progress/strength";
+import { setVolume } from "@/lib/progress/strength";
 
 const TZ = "America/Chicago";
 
@@ -51,12 +51,23 @@ describe("set columns", () => {
   });
 
   // Derived columns must agree with the app rather than with a copied number.
-  it("derives the estimated one rep max from the real helper", () => {
-    expect(valueOf("e1rm", ROW)).toBe(String(estimatedOneRepMax(185, 5)));
-  });
-
   it("derives volume from the real helper", () => {
     expect(valueOf("volume", ROW)).toBe(String(setVolume(185, 5)));
+  });
+
+  // Removed on Mustafa's request 2026-08-12. Pinned so it cannot drift back in
+  // unnoticed, since the catalogue is what the export offers.
+  it("does not offer an estimated one rep max column", () => {
+    expect(SET_COLUMNS.map((c) => c.key)).toEqual([
+      "date",
+      "routine",
+      "exercise",
+      "setNumber",
+      "reps",
+      "weight",
+      "rir",
+      "volume",
+    ]);
   });
 });
 

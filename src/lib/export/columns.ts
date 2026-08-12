@@ -1,4 +1,4 @@
-import { estimatedOneRepMax, setVolume } from "@/lib/progress/strength";
+import { setVolume } from "@/lib/progress/strength";
 import { dateKeyInZone } from "@/lib/progress/matrix";
 
 export type Dataset = "sets" | "sessions";
@@ -46,11 +46,9 @@ export const SET_COLUMNS: Column<SetRow>[] = [
   { key: "reps", header: "Reps", value: (r) => String(r.reps) },
   { key: "weight", header: "Weight (lbs)", value: (r) => String(r.weight) },
   { key: "rir", header: "RIR", value: (r) => rirText(r.rirLow, r.rirHigh) },
-  {
-    key: "e1rm",
-    header: "Estimated 1RM",
-    value: (r) => String(estimatedOneRepMax(r.weight, r.reps)),
-  },
+  // No estimated one rep max column. Removed on Mustafa's request 2026-08-12:
+  // it is a derived figure the Progress screen already presents in plain
+  // language, and a spreadsheet can compute it from reps and weight.
   { key: "volume", header: "Volume", value: (r) => String(setVolume(r.weight, r.reps)) },
 ];
 

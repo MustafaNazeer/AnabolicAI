@@ -42,6 +42,25 @@ export async function warmSessionCache(path: string): Promise<void> {
     // document base, so the stored key is the same absolute URL the worker
     // later looks up with caches.match(navigationRequest).
     await cache.put(path, response);
+    // Bound the cache to the one open workout. startSession, at
+    // src/lib/workout/actions.ts:18, redirects to an already open session
+    // rather than inserting a second, so every other /log/ entry belongs to a
+    // workout that is finished, discarded or abandoned and can never be
+    // navigated to again.
+    //
+    // Compared on pathname rather than on the whole URL, deliberately. This
+    // warm stores a relative key, the worker's navigate branch stores a full
+    // request URL, and a soft navigation's RSC request carries a query. Only a
+    // pathname comparison sees all three as one page. `path` arrives from
+    // window.location.pathname, so it never carries a query itself.
+    //
+    // After the put, never before: if the put fails, the entry that was
+    // already working has to survive.
+    for (const req of await cache.keys()) {
+      const cached = new URL(req.url).pathname;
+      if (cached === path || !cached.startsWith("/log/")) continue;
+      await cache.delete(req);
+    }
   } catch {
     // Deliberately silent. See above.
   }

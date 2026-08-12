@@ -137,4 +137,51 @@ describe("warmSessionCache", () => {
     vi.stubGlobal("caches", undefined);
     await expect(warmSessionCache("/log/abc")).resolves.toBeUndefined();
   });
+
+  // startSession redirects to an already open session rather than inserting a
+  // second, so every other /log/ entry belongs to a workout that can never be
+  // navigated to again.
+  it("evicts a session page belonging to an older workout", async () => {
+    seed("/log/a");
+    await warmSessionCache("/log/b");
+    expect(stored()).toEqual([`${ORIGIN}/log/b`]);
+  });
+
+  // The eviction must not widen into the shell or the build output, which is
+  // what lets a cached page hydrate with no connection.
+  it("leaves the shell and the build output alone", async () => {
+    seed("/", "/_next/static/chunks/main.abc.js");
+    await warmSessionCache("/log/b");
+    expect(stored()).toEqual([
+      `${ORIGIN}/`,
+      `${ORIGIN}/_next/static/chunks/main.abc.js`,
+      `${ORIGIN}/log/b`,
+    ]);
+  });
+
+  // A soft navigation's RSC request carries a query, so the same page appears
+  // under a second key. Comparing whole URLs would keep it forever.
+  it("evicts an older workout keyed with an RSC query", async () => {
+    seed("/log/a?_rsc=abc123");
+    await warmSessionCache("/log/b");
+    expect(stored()).toEqual([`${ORIGIN}/log/b`]);
+  });
+
+  // Warming is best effort throughout. A failed eviction must leave the app
+  // exactly as it behaves without this function, and must not undo the put
+  // that already succeeded.
+  it("never rejects when the eviction fails", async () => {
+    // This stub hardcodes keys(), so there is nothing to seed.
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({
+        put,
+        keys: async () => [{ url: `${ORIGIN}/log/a` }],
+        delete: async () => {
+          throw new Error("quota");
+        },
+      })),
+    });
+    await expect(warmSessionCache("/log/b")).resolves.toBeUndefined();
+    expect(put).toHaveBeenCalledTimes(1);
+  });
 });

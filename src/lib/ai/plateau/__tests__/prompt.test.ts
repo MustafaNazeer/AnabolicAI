@@ -60,6 +60,7 @@ describe("buildPlateauMessage", () => {
   it("constrains the answer to one change and two sentences", () => {
     expect(PLATEAU_SYSTEM_PROMPT).toContain("exactly one change");
     expect(PLATEAU_SYSTEM_PROMPT).toContain("At most two sentences");
+    expect(PLATEAU_SYSTEM_PROMPT).toContain("at most 10 percent");
   });
 
   it("collapses newlines in exercise names to a single line", () => {

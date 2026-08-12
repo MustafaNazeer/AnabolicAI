@@ -52,4 +52,15 @@ describe("suggestWithModel", () => {
     );
     await expect(suggestWithModel(client, "x")).resolves.toBeNull();
   });
+
+  it("pins the model and the token budget", () => {
+    expect(PLATEAU_MODEL).toBe("claude-sonnet-5");
+    expect(PLATEAU_MAX_TOKENS).toBe(300);
+  });
+
+  it("lets a transport error propagate to the caller", async () => {
+    const create = vi.fn().mockRejectedValue(new Error("529 overloaded"));
+    const client = { messages: { create } } as unknown as SuggestClient;
+    await expect(suggestWithModel(client, "x")).rejects.toThrow("529 overloaded");
+  });
 });

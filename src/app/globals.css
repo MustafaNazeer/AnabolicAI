@@ -152,6 +152,26 @@ body {
   }
 }
 
+/* A settings group opening and closing, animating a height the component
+   measures. Two simpler approaches were tried on 2026-08-12 and both were
+   measured to be wrong.
+
+   A view transition captured the whole document, so collapsing a group painted
+   two complete page images offset by the collapsed height, ghosting through
+   each other.
+
+   grid-template-rows from 0fr to 1fr does not interpolate the item linearly:
+   the panel height fell linearly while the visible content fell as its SQUARE,
+   showing 25 percent of the content at 50 percent height. Measured exactly,
+   every sample matching height x r^2.
+
+   Reduced motion is already handled by the global rule below, which drops
+   every transition-duration to 0.01ms. */
+.onyx-collapsible {
+  overflow: hidden;
+  transition: height 220ms ease;
+}
+
 /* Motion: default root cross-fade for view transitions */
 ::view-transition-old(root),
 ::view-transition-new(root) {

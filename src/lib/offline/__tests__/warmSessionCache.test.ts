@@ -4,10 +4,36 @@ import { warmSessionCache, PAGE_CACHE } from "@/lib/offline/warmSessionCache";
 
 const put = vi.fn();
 const originalFetch = globalThis.fetch;
+const ORIGIN = "http://x";
+
+// Backed by a real map so keys() and delete() mean something. The previous
+// stub exposed put alone, and because the whole function body sits in one
+// try, a missing method threw into its own catch and every test passed while
+// the eviction never ran.
+let entries: Map<string, unknown>;
+
+function seed(...paths: string[]) {
+  for (const p of paths) entries.set(new URL(p, ORIGIN).href, `body:${p}`);
+}
+
+function stored(): string[] {
+  return [...entries.keys()].sort();
+}
 
 function setup(over: { online?: boolean; hasServiceWorker?: boolean } = {}) {
   put.mockReset();
-  vi.stubGlobal("caches", { open: vi.fn(async () => ({ put })) });
+  entries = new Map();
+  // cache.put resolves a relative key against the document base, and that
+  // absolute URL is what the worker later looks up. The map mirrors it.
+  put.mockImplementation(async (key: string, res: unknown) => {
+    entries.set(new URL(key, ORIGIN).href, res);
+  });
+  const cache = {
+    put,
+    keys: async () => [...entries.keys()].map((url) => ({ url })),
+    delete: async (req: { url: string }) => entries.delete(req.url),
+  };
+  vi.stubGlobal("caches", { open: vi.fn(async () => cache) });
   const nav: Record<string, unknown> = { onLine: over.online ?? true };
   // Omitting the key entirely (rather than setting it to undefined) is what
   // makes "serviceWorker" in navigator false, matching a browser with no

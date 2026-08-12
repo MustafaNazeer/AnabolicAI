@@ -4,6 +4,7 @@ import { getAiQuickEntry } from "@/lib/ai/queries";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { AiQuickEntryToggle } from "@/components/AiQuickEntryToggle";
 import { ExportPanel } from "@/components/ExportPanel";
+import { SettingsSection } from "@/components/ui/SettingsSection";
 import { SignOutButton } from "@/components/SignOutButton";
 import { ThemePicker } from "@/components/ThemePicker";
 import { AppearanceControl } from "@/components/AppearanceControl";
@@ -28,27 +29,25 @@ export default async function SettingsPage() {
         Signed in as {user?.email ?? "unknown"}
       </p>
 
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">Appearance</h2>
+      <SettingsSection title="Appearance">
         <AppearanceControl />
-      </section>
+      </SettingsSection>
 
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">Theme</h2>
+      <SettingsSection title="Theme">
         <ThemePicker />
-      </section>
+      </SettingsSection>
 
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">AI</h2>
+      <SettingsSection title="Notifications">
+        <NotificationSettings initial={settings} />
+      </SettingsSection>
+
+      <SettingsSection title="AI">
         <AiQuickEntryToggle initial={aiQuickEntry} />
-      </section>
+      </SettingsSection>
 
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">Export</h2>
+      <SettingsSection title="Export">
         <ExportPanel />
-      </section>
-
-      <NotificationSettings initial={settings} />
+      </SettingsSection>
 
       <div className="mt-8">
         <SignOutButton />

@@ -156,12 +156,10 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
     }
   }
 
+  // No heading and no section element of its own: SettingsSection owns both,
+  // so this renders only its rows.
   return (
-    <section>
-      <h2 className="text-lg font-semibold mb-3" style={{ color: "var(--text)" }}>
-        Notifications
-      </h2>
-
+    <div>
       <Row
         label="Enable notifications"
         note="Requires installing the app to your home screen"
@@ -259,6 +257,6 @@ export function NotificationSettings({ initial }: { initial: Settings }) {
           onRetry={() => onMasterChange(true)}
         />
       ) : null}
-    </section>
+    </div>
   );
 }

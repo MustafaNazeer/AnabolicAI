@@ -7,7 +7,7 @@ export type TrendDirection = "up" | "flat" | "down";
 // criticalT accepts only df 1 or 2 and throws for anything else, so a window
 // of 5 would throw during server rendering of the Progress screen. Widen
 // criticalT's domain first.
-const WINDOW = 4;
+export const WINDOW = 4;
 
 // Deliberately permissive, and this is a product decision rather than a
 // statistical one. This is a direction hint read on a phone between sets, not
@@ -15,13 +15,13 @@ const WINDOW = 4;
 // conventional 0.05 needs |t| > 4.30, and a real progression of
 // 135, 140, 140, 145 comes out at 4.24 and would read as holding steady.
 // Measured 2026-08-11.
-const ALPHA = 0.2;
+export const ALPHA = 0.2;
 
 // The smallest change worth calling a direction, unchanged from the threshold
 // this file used before confidence was added. Confidence alone is not enough:
 // a perfectly linear 100, 100.1, 100.2, 100.3 has zero residuals and therefore
 // total confidence in a slope of 0.1, which is not progress anyone can feel.
-function meaningfulSlope(values: number[]): number {
+export function meaningfulSlope(values: number[]): number {
   const avg = values.reduce((a, b) => a + b, 0) / values.length;
   return Math.max(0.5, avg * 0.01);
 }

@@ -127,12 +127,12 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-10: 630 tests across 112 files, covering 72 percent of the application logic.
+As of 2026-08-12: 651 tests across 113 files, covering 72 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a
 real database rather than a mock. Counting those 15 files, overall statement coverage is
-56 percent.
+57 percent.
 
 The offline outbox is additionally checked with property based tests. Generated sequences
 of logging, editing, deleting, swapping and finishing are run against a reference model of

@@ -3,7 +3,7 @@
 
 // Duplicated from public/sw.js, which is a static file and cannot be imported.
 // serviceWorker.test.ts asserts the two agree.
-export const PAGE_CACHE = "onyx-shell-v4";
+export const PAGE_CACHE = "onyx-shell-v5";
 
 // A soft navigation issues an RSC fetch, not a document request, so the
 // worker's navigate branch never fires and a session page reached by tapping

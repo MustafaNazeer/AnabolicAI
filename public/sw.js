@@ -1,4 +1,4 @@
-const CACHE = "onyx-shell-v4";
+const CACHE = "onyx-shell-v5";
 const SHELL = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

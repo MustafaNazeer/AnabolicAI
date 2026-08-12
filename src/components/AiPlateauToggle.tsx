@@ -1,0 +1,15 @@
+"use client";
+
+import { setAiPlateau } from "@/lib/ai/plateau/actions";
+import { AiToggle } from "@/components/AiToggle";
+
+export function AiPlateauToggle({ initial }: { initial: boolean }) {
+  return (
+    <AiToggle
+      label="Plateau suggestions"
+      description="Suggests a next step when a lift stalls. Sends that lift's recent sessions, only when you ask."
+      initial={initial}
+      save={setAiPlateau}
+    />
+  );
+}

@@ -2,7 +2,11 @@ import { fitSlope, slopeInterval } from "@/lib/progress/regression";
 
 export type TrendDirection = "up" | "flat" | "down";
 
-// The last four sessions, which is what SPEC.md section 7 publishes.
+// The last four sessions, which is what SPEC.md section 7 publishes. Raising
+// this is not a local change: four points leave two degrees of freedom, and
+// criticalT accepts only df 1 or 2 and throws for anything else, so a window
+// of 5 would throw during server rendering of the Progress screen. Widen
+// criticalT's domain first.
 const WINDOW = 4;
 
 // Deliberately permissive, and this is a product decision rather than a

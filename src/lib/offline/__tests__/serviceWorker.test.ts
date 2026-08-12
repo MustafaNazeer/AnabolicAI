@@ -81,6 +81,14 @@ function fetchEvent(url: string, over: Record<string, unknown> = {}) {
   return { event, result: () => responded };
 }
 
+// The store runs in a promise chain the handler does not await, so an
+// assertion has to come after those microtasks. Draining a fixed number of
+// ticks is deterministic and, unlike counting them exactly, does not pin the
+// test to the handler's internal shape.
+async function flush() {
+  for (let i = 0; i < 5; i++) await Promise.resolve();
+}
+
 describe("service worker", () => {
   it("registers every listener the app relies on", () => {
     const { listeners } = loadWorker();
@@ -226,6 +234,60 @@ describe("service worker", () => {
     listeners.activate({ waitUntil: (p: unknown) => (waited = p) });
     await waited;
     expect([...stores.keys()]).toEqual([CACHE_NAME]);
+  });
+
+  // install writes the shell once and nothing replaced it, so a worker
+  // installed before a deploy served that build's document for its whole
+  // life. On 2026-08-12 that meant an installed app running a client bundle
+  // with a deactivated Supabase key inlined into it.
+  it("refreshes the shell on a successful navigation", async () => {
+    const { listeners, fetchMock, stores } = loadWorker({ [CACHE_NAME]: [] });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      type: "basic",
+      redirected: false,
+      clone: () => "fresh-shell",
+    });
+    const { event, result } = fetchEvent(`${ORIGIN}/`);
+    listeners.fetch(event);
+    await result();
+    await flush();
+    expect(stores.get(CACHE_NAME)!.get(`${ORIGIN}/`)).toBe("fresh-shell");
+  });
+
+  // A signed out visitor is sent to /sign-in by the proxy, and the worker's
+  // fetch follows that, so the response arrives ok and basic while carrying
+  // the wrong page. Stored under / it would be replayed as the app shell.
+  it("does not store a shell navigation that was redirected", async () => {
+    const { listeners, fetchMock, stores } = loadWorker({ [CACHE_NAME]: [] });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      type: "basic",
+      redirected: true,
+      clone: () => "sign-in-page",
+    });
+    const { event, result } = fetchEvent(`${ORIGIN}/`);
+    listeners.fetch(event);
+    await result();
+    await flush();
+    expect([...stores.get(CACHE_NAME)!.keys()]).toEqual([]);
+  });
+
+  // The same hole, and it ships today: an expired session navigating to a
+  // workout URL would cache the sign-in page under that workout's key.
+  it("does not store a session navigation that was redirected", async () => {
+    const { listeners, fetchMock, stores } = loadWorker({ [CACHE_NAME]: [] });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      type: "basic",
+      redirected: true,
+      clone: () => "sign-in-page",
+    });
+    const { event, result } = fetchEvent(`${ORIGIN}/log/abc`);
+    listeners.fetch(event);
+    await result();
+    await flush();
+    expect([...stores.get(CACHE_NAME)!.keys()]).toEqual([]);
   });
 
   // public/sw.js cannot import from src/, so the cache name lives in two

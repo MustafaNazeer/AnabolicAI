@@ -63,10 +63,22 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Only cache successful same-origin workout pages, so a redirect to
-          // /sign-in or an error page is never stored and replayed offline.
+          // Only cache successful, same-origin, non redirected pages, so a
+          // 307 to /sign-in or an error page is never stored and replayed
+          // offline. fetch follows redirects, so a signed out navigation
+          // arrives ok and basic while carrying the wrong document, and
+          // response.redirected is the only thing that separates them.
+          //
+          // The shell is included because install writes it once and nothing
+          // else ever replaces it, so without this a worker serves its
+          // install-time build forever.
           const path = new URL(request.url).pathname;
-          if (response.ok && response.type === "basic" && path.startsWith("/log/")) {
+          if (
+            response.ok &&
+            response.type === "basic" &&
+            !response.redirected &&
+            (path === "/" || path.startsWith("/log/"))
+          ) {
             const copy = response.clone();
             // Not actionable either, for the same reason.
             caches

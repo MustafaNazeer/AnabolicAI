@@ -83,6 +83,11 @@ describe("PlateauCard", () => {
     expect(suggestMock).toHaveBeenCalledWith(PROPS.exerciseId);
   });
 
+  it("mounts the status region before any fetch, so a screen reader has something to observe", () => {
+    render(<PlateauCard {...PROPS} status="stalled" />);
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
   it("lands the suggestion in a status region labeled as AI", async () => {
     render(<PlateauCard {...PROPS} status="stalled" />);
     await userEvent.click(screen.getByRole("button", { name: "What should I try?" }));

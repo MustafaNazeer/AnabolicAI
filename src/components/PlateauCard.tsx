@@ -102,15 +102,13 @@ export function PlateauCard({
 
       {busy ? <Skeleton className="w-full mt-3" style={{ height: 20 }} /> : null}
 
-      {error ? (
-        <p
-          className="text-xs mt-2"
-          role="alert"
-          style={{ color: "var(--danger, #b91c1c)" }}
-        >
-          {error}
-        </p>
-      ) : null}
+      <div role="alert">
+        {error ? (
+          <p className="text-xs mt-2" style={{ color: "var(--danger, #b91c1c)" }}>
+            {error}
+          </p>
+        ) : null}
+      </div>
 
       {notice ? (
         <div
@@ -148,14 +146,18 @@ export function PlateauCard({
         </div>
       ) : null}
 
-      {suggestion !== null ? (
-        <div role="status" className="mt-3">
-          <p className="text-xs" style={{ color: "var(--text-dim)" }}>
-            AI suggestion
-          </p>
-          <p style={{ color: "var(--text)" }}>{suggestion}</p>
-        </div>
-      ) : null}
+      {/* The region exists before there is anything to say, because a live
+          region that appears already populated is often not announced at all. */}
+      <div role="status" className={suggestion !== null ? "mt-3" : undefined}>
+        {suggestion !== null ? (
+          <>
+            <p className="text-xs" style={{ color: "var(--text-dim)" }}>
+              AI suggestion
+            </p>
+            <p style={{ color: "var(--text)" }}>{suggestion}</p>
+          </>
+        ) : null}
+      </div>
     </section>
   );
 }

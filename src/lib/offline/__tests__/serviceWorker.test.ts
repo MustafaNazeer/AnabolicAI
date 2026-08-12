@@ -7,6 +7,11 @@ type Handler = (event: unknown) => void;
 
 const ORIGIN = "http://x";
 
+// Derived rather than typed out. A version bump is then one line in
+// warmSessionCache.ts and one in public/sw.js, not thirteen here, and the
+// pin at the bottom of this file is what proves the two agree.
+const CACHE_NAME = PAGE_CACHE;
+
 // public/sw.js is a static file that cannot be imported, so it is read as
 // text and evaluated with a fake worker scope. This tests the file that
 // actually ships rather than a reimplementation of it.
@@ -99,7 +104,7 @@ describe("service worker", () => {
 
   it("falls back to the shell when an offline navigation is not cached", async () => {
     const { listeners, fetchMock } = loadWorker({
-      "onyx-shell-v4": [`${ORIGIN}/`, `${ORIGIN}/manifest.webmanifest`],
+      [CACHE_NAME]: [`${ORIGIN}/`, `${ORIGIN}/manifest.webmanifest`],
     });
     fetchMock.mockRejectedValue(new Error("offline"));
     const { event, result } = fetchEvent(`${ORIGIN}/log/abc`);
@@ -114,7 +119,7 @@ describe("service worker", () => {
   // offline navigation would fail instead of rendering from the cache.
   it("serves a cached page for an offline navigation when one exists", async () => {
     const { listeners, fetchMock } = loadWorker({
-      "onyx-shell-v4": [`${ORIGIN}/`, `${ORIGIN}/log/abc`],
+      [CACHE_NAME]: [`${ORIGIN}/`, `${ORIGIN}/log/abc`],
     });
     fetchMock.mockRejectedValue(new Error("offline"));
     const { event, result } = fetchEvent(`${ORIGIN}/log/abc`);
@@ -129,7 +134,7 @@ describe("service worker", () => {
   // stayed frozen at the session's first mount.
   it("sends a non-navigate request for a session page to the network", async () => {
     const { listeners, fetchMock } = loadWorker({
-      "onyx-shell-v4": [`${ORIGIN}/log/abc`],
+      [CACHE_NAME]: [`${ORIGIN}/log/abc`],
     });
     fetchMock.mockResolvedValue("fresh");
     const { event, result } = fetchEvent(`${ORIGIN}/log/abc`, { mode: "cors" });
@@ -141,7 +146,7 @@ describe("service worker", () => {
   // Everything else keeps the cache-first fallback it has always had.
   it("still answers other non-navigate requests from the cache", async () => {
     const { listeners, fetchMock } = loadWorker({
-      "onyx-shell-v4": [`${ORIGIN}/manifest.webmanifest`],
+      [CACHE_NAME]: [`${ORIGIN}/manifest.webmanifest`],
     });
     const { event, result } = fetchEvent(`${ORIGIN}/manifest.webmanifest`, {
       mode: "cors",
@@ -153,7 +158,7 @@ describe("service worker", () => {
 
   it("serves a static asset from the cache without hitting the network", async () => {
     const { listeners, fetchMock } = loadWorker({
-      "onyx-shell-v4": [`${ORIGIN}/_next/static/chunks/main.abc.js`],
+      [CACHE_NAME]: [`${ORIGIN}/_next/static/chunks/main.abc.js`],
     });
     const { event, result } = fetchEvent(`${ORIGIN}/_next/static/chunks/main.abc.js`, {
       mode: "no-cors",
@@ -164,7 +169,7 @@ describe("service worker", () => {
   });
 
   it("stores a static asset the first time it is fetched", async () => {
-    const { listeners, fetchMock, stores } = loadWorker({ "onyx-shell-v4": [] });
+    const { listeners, fetchMock, stores } = loadWorker({ [CACHE_NAME]: [] });
     fetchMock.mockResolvedValue({ ok: true, clone: () => "cloned" });
     const { event, result } = fetchEvent(`${ORIGIN}/_next/static/chunks/new.def.js`, {
       mode: "no-cors",
@@ -172,7 +177,7 @@ describe("service worker", () => {
     listeners.fetch(event);
     await result();
     await Promise.resolve();
-    expect([...stores.get("onyx-shell-v4")!.keys()]).toContain(
+    expect([...stores.get(CACHE_NAME)!.keys()]).toContain(
       `${ORIGIN}/_next/static/chunks/new.def.js`,
     );
   });
@@ -182,7 +187,7 @@ describe("service worker", () => {
   // a chunk URL would be served in place of the real asset for as long as the
   // worker stands. The ok guard is what stops that.
   it("does not store a static asset the server did not serve", async () => {
-    const { listeners, fetchMock, stores } = loadWorker({ "onyx-shell-v4": [] });
+    const { listeners, fetchMock, stores } = loadWorker({ [CACHE_NAME]: [] });
     fetchMock.mockResolvedValue({ ok: false, clone: () => "cloned" });
     const { event, result } = fetchEvent(`${ORIGIN}/_next/static/chunks/bad.ghi.js`, {
       mode: "no-cors",
@@ -190,7 +195,7 @@ describe("service worker", () => {
     listeners.fetch(event);
     await result();
     await Promise.resolve();
-    expect([...stores.get("onyx-shell-v4")!.keys()]).toEqual([]);
+    expect([...stores.get(CACHE_NAME)!.keys()]).toEqual([]);
   });
 
   // Growth has to be bounded by construction, not by remembering to bump a
@@ -198,7 +203,7 @@ describe("service worker", () => {
   // the old ones.
   it("prunes stale static assets on activate but keeps the shell", async () => {
     const { listeners, stores } = loadWorker({
-      "onyx-shell-v4": [
+      [CACHE_NAME]: [
         `${ORIGIN}/`,
         `${ORIGIN}/manifest.webmanifest`,
         `${ORIGIN}/_next/static/chunks/old.111.js`,
@@ -208,19 +213,19 @@ describe("service worker", () => {
     let waited: unknown;
     listeners.activate({ waitUntil: (p: unknown) => (waited = p) });
     await waited;
-    const left = [...stores.get("onyx-shell-v4")!.keys()].sort();
+    const left = [...stores.get(CACHE_NAME)!.keys()].sort();
     expect(left).toEqual([`${ORIGIN}/`, `${ORIGIN}/log/abc`, `${ORIGIN}/manifest.webmanifest`]);
   });
 
   it("deletes caches from older versions on activate", async () => {
     const { listeners, stores } = loadWorker({
       "onyx-shell-v3": [`${ORIGIN}/`],
-      "onyx-shell-v4": [`${ORIGIN}/`],
+      [CACHE_NAME]: [`${ORIGIN}/`],
     });
     let waited: unknown;
     listeners.activate({ waitUntil: (p: unknown) => (waited = p) });
     await waited;
-    expect([...stores.keys()]).toEqual(["onyx-shell-v4"]);
+    expect([...stores.keys()]).toEqual([CACHE_NAME]);
   });
 
   // public/sw.js cannot import from src/, so the cache name lives in two

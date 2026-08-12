@@ -64,23 +64,54 @@ describe("ExportPanel", () => {
 
   // Being disabled and looking disabled are separate facts, and only one of
   // them had a test when this bit the quick entry work on 2026-08-09.
-  it("disables Export, visibly, when no column is ticked", async () => {
+  it("disables Export, visibly, when no column is selected", async () => {
     const user = userEvent.setup();
     render(<ExportPanel />);
-    for (const box of screen.getAllByRole("checkbox")) {
-      if ((box as HTMLInputElement).checked) await user.click(box);
+    for (const toggle of screen.getAllByRole("button", { pressed: true })) {
+      await user.click(toggle);
     }
     const button = screen.getByRole("button", { name: "Export" });
     expect(button).toBeDisabled();
     expect(button.className).toContain("disabled:opacity-60");
   });
 
+  // The same control the Appearance section uses, so the two cannot drift.
+  it("chooses the dataset with a segmented control, like Appearance", async () => {
+    const user = userEvent.setup();
+    render(<ExportPanel />);
+    expect(screen.getByRole("tab", { name: "Sets" })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("tab", { name: "Sessions" }));
+    expect(screen.getByRole("tab", { name: "Sessions" })).toHaveAttribute("aria-selected", "true");
+  });
+
   it("swaps the column list when the dataset changes", async () => {
     const user = userEvent.setup();
     render(<ExportPanel />);
-    expect(screen.getByLabelText("Exercise")).toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: "Sessions" }));
-    expect(screen.queryByLabelText("Exercise")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Total sets")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exercise" })).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Sessions" }));
+    expect(screen.queryByRole("button", { name: "Exercise" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Total sets" })).toBeInTheDocument();
+  });
+
+  // The ThemePicker pattern: selection is aria-pressed, not a checkbox.
+  it("toggles a column with a pressed button", async () => {
+    const user = userEvent.setup();
+    render(<ExportPanel />);
+    const reps = screen.getByRole("button", { name: "Reps" });
+    expect(reps).toHaveAttribute("aria-pressed", "true");
+    await user.click(reps);
+    expect(reps).toHaveAttribute("aria-pressed", "false");
+  });
+
+  // Being selected and LOOKING selected are separate facts, and the accent
+  // border is the only thing on screen that says which columns you will get.
+  // Added after a teeth check found that deleting it broke no test at all.
+  it("shows a selected column as selected", async () => {
+    const user = userEvent.setup();
+    render(<ExportPanel />);
+    const reps = screen.getByRole("button", { name: "Reps" });
+    expect(reps.style.border).toContain("var(--accent)");
+    await user.click(reps);
+    expect(reps.style.border).not.toContain("var(--accent)");
   });
 });

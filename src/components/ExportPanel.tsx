@@ -3,16 +3,22 @@
 import { useState } from "react";
 import { exportCsv } from "@/lib/export/actions";
 import { columnsFor, type Dataset } from "@/lib/export/columns";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 
 const DATASETS: { value: Dataset; label: string }[] = [
   { value: "sets", label: "Sets" },
   { value: "sessions", label: "Sessions" },
 ];
 
+// The tile convention every other surface in the app uses, blur included.
+// AiQuickEntryToggle, the notification rows and the finish button all carry
+// it, and its absence is what made this panel read as foreign.
 const tile = {
   background: "var(--surface)",
   border: "1px solid var(--surface-border)",
   borderRadius: "var(--radius-tile)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
 } as const;
 
 // A download does not work from a standalone iOS PWA, which is how this app is
@@ -42,8 +48,8 @@ export function ExportPanel() {
   const [error, setError] = useState<string | null>(null);
 
   const columns = columnsFor(dataset);
-  // Declared before run() uses it. It reads the same on every render and needs
-  // no state: the device's zone does not change mid session.
+  // Read on every render rather than held in state: the device's zone does not
+  // change mid session.
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   function changeDataset(next: Dataset) {
@@ -76,70 +82,75 @@ export function ExportPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-3" style={tile}>
-      <fieldset className="flex gap-4">
-        <legend className="sr-only">What to export</legend>
-        {DATASETS.map((d) => (
-          <label key={d.value} className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="export-dataset"
-              checked={dataset === d.value}
-              onChange={() => changeDataset(d.value)}
-              style={{ accentColor: "var(--accent)" }}
-            />
-            <span style={{ color: "var(--text)" }}>{d.label}</span>
-          </label>
-        ))}
-      </fieldset>
+    <div className="flex flex-col gap-4">
+      {/* The same component the Appearance section renders, so the two cannot
+          drift apart. */}
+      <SegmentedControl<Dataset>
+        label="What to export"
+        value={dataset}
+        onChange={changeDataset}
+        options={DATASETS}
+      />
 
-      <fieldset className="flex flex-wrap gap-x-4 gap-y-2">
-        <legend className="sr-only">Columns</legend>
-        {columns.map((c) => (
-          <label key={c.key} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={keys.includes(c.key)}
-              onChange={() => toggle(c.key)}
-              aria-label={c.header}
-              style={{ accentColor: "var(--accent)" }}
-            />
-            <span style={{ color: "var(--text-dim)" }}>{c.header}</span>
-          </label>
-        ))}
-      </fieldset>
+      {/* Selection as pressed buttons rather than checkboxes, following
+          ThemePicker one section above: this is how the app already lets you
+          pick from a set, and a grid stays compact where nine rows would not. */}
+      <div className="grid grid-cols-3 gap-2">
+        {columns.map((c) => {
+          const on = keys.includes(c.key);
+          return (
+            <button
+              key={c.key}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggle(c.key)}
+              className="text-[11px] font-medium px-2 py-2"
+              style={{
+                ...tile,
+                minHeight: 44,
+                border: `2px solid ${on ? "var(--accent)" : "transparent"}`,
+                color: on ? "var(--text)" : "var(--text-dim)",
+              }}
+            >
+              {c.header}
+            </button>
+          );
+        })}
+      </div>
 
-      <div className="flex flex-wrap gap-3">
-        <label className="text-sm" style={{ color: "var(--text-dim)" }}>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs" style={{ color: "var(--text-dim)" }}>
           Start date
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             aria-label="Start date"
-            className="block mt-1 px-3 py-2"
+            className="block w-full mt-1 px-3"
             style={{ ...tile, color: "var(--text)", minHeight: 44 }}
           />
         </label>
-        <label className="text-sm" style={{ color: "var(--text-dim)" }}>
+        <label className="text-xs" style={{ color: "var(--text-dim)" }}>
           End date
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             aria-label="End date"
-            className="block mt-1 px-3 py-2"
+            className="block w-full mt-1 px-3"
             style={{ ...tile, color: "var(--text)", minHeight: 44 }}
           />
         </label>
       </div>
 
+      {/* The app's primary action button, copied from the finish button in
+          ActiveWorkout rather than invented here. */}
       <button
         type="button"
         onClick={() => void run()}
         disabled={busy || keys.length === 0 || !startDate || !endDate}
-        className="disabled:opacity-60"
-        style={{ ...tile, color: "var(--text)", minHeight: 44 }}
+        className="font-semibold py-3 w-full disabled:opacity-60"
+        style={{ ...tile, color: "var(--text)", minHeight: 48 }}
       >
         Export
       </button>

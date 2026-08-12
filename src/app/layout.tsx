@@ -6,6 +6,7 @@ import { AppearanceProvider } from "@/components/AppearanceProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabs } from "@/components/BottomTabs";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { HostWarning } from "@/components/HostWarning";
 import { SplashLinks } from "@/components/SplashLinks";
 import { NO_FLASH_SCRIPT } from "@/app/noFlashScript";
 
@@ -63,6 +64,15 @@ export default async function RootLayout({
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
         <AppearanceProvider>
           <ThemeProvider>
+            {/* Above the page rather than in Settings, because the case this
+                exists for is someone staring at a screen that looks fine and
+                having no reason to go looking. Both values are read here
+                because the layout is a server component; the client only ever
+                supplies its own host. */}
+            <HostWarning
+              canonicalHost={process.env.VERCEL_PROJECT_PRODUCTION_URL}
+              vercelEnv={process.env.VERCEL_ENV}
+            />
             {children}
             <BottomTabs />
             <ServiceWorkerRegister />

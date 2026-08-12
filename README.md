@@ -8,6 +8,8 @@ Onyx is a private app for a small group of users. Each person has their own acco
 
 An optional AI quick entry field on each exercise card turns a typed line like "185 for 5, then 5, then 4" into sets. The parse is schema constrained, every number is re-validated against the same rules the logging path enforces, and the result lands as editable preview rows that only reach your log once you confirm them. It is off until you turn it on, and the only thing that ever leaves the device is the text you type.
 
+Settings can export your training history as a CSV. Choose sets or sessions, tick the columns you want, pick a date range, and the file is named for both. On an installed iPhone app it opens the share sheet rather than downloading, because a direct download does not work from a home screen app; in a browser tab it downloads normally.
+
 [docs/case-study.md](docs/case-study.md) is a short account of how it was built, centered on the hardest part: making the workout logging screen work with no connection.
 
 ## Tech stack
@@ -127,12 +129,12 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-12: 668 tests across 115 files, covering 73 percent of the application logic.
+As of 2026-08-12: 700 tests across 119 files, covering 73 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a
 real database rather than a mock. Counting those 15 files, overall statement coverage is
-57 percent.
+58 percent.
 
 The offline outbox is additionally checked with property based tests. Generated sequences
 of logging, editing, deleting, swapping and finishing are run against a reference model of

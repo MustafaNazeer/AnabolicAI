@@ -3,6 +3,7 @@ import { getNotificationSettings } from "@/lib/notifications/queries";
 import { getAiQuickEntry } from "@/lib/ai/queries";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { AiQuickEntryToggle } from "@/components/AiQuickEntryToggle";
+import { ExportPanel } from "@/components/ExportPanel";
 import { SignOutButton } from "@/components/SignOutButton";
 import { ThemePicker } from "@/components/ThemePicker";
 import { AppearanceControl } from "@/components/AppearanceControl";
@@ -40,6 +41,11 @@ export default async function SettingsPage() {
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-3">AI</h2>
         <AiQuickEntryToggle initial={aiQuickEntry} />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-3">Export</h2>
+        <ExportPanel />
       </section>
 
       <NotificationSettings initial={settings} />

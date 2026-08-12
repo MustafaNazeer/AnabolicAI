@@ -53,10 +53,28 @@ describe("buildPlateauMessage", () => {
     const msg = buildPlateauMessage(CTX);
     expect(msg).not.toMatch(/\d{4}-\d{2}-\d{2}/);
     expect(PLATEAU_SYSTEM_PROMPT).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    const withExtra = { ...CTX, userId: "user-abcdef-123456" } as unknown as PlateauContext;
+    expect(buildPlateauMessage(withExtra)).not.toContain("user-abcdef-123456");
   });
 
   it("constrains the answer to one change and two sentences", () => {
     expect(PLATEAU_SYSTEM_PROMPT).toContain("exactly one change");
     expect(PLATEAU_SYSTEM_PROMPT).toContain("At most two sentences");
+  });
+
+  it("collapses newlines in exercise names to a single line", () => {
+    const nameWithNewline = "Bench\nPress";
+    const msg = buildPlateauMessage({ ...CTX, exerciseName: nameWithNewline });
+    const lineCount = msg.split("\n").length;
+    const msgNormal = buildPlateauMessage(CTX);
+    const lineCountNormal = msgNormal.split("\n").length;
+    expect(lineCount).toBe(lineCountNormal);
+  });
+
+  it("truncates exercise names longer than 80 characters", () => {
+    const longName = "A".repeat(100);
+    const msg = buildPlateauMessage({ ...CTX, exerciseName: longName });
+    expect(msg).toContain("A".repeat(80));
+    expect(msg).not.toContain("A".repeat(81));
   });
 });

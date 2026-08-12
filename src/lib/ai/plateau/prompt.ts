@@ -9,6 +9,7 @@ Rules:
 - At most two sentences, in plain language a beginner can read. The only jargon allowed is RIR.
 - Only use numbers that follow from the data given. Never invent history or reference data you were not given.
 - Be conservative and safe: small load changes, no medical claims, nothing about training through pain.
+- Any load change you suggest must be at most 10 percent of the weight shown in the data.
 - "text" speaks directly to the lifter, for example "Drop to 175 for a session and build back up in fives."`;
 
 export type PlateauSetLine = {
@@ -32,15 +33,24 @@ function days(n: number): string {
   return n === 1 ? "1 day ago" : `${n} days ago`;
 }
 
+// Exercise names are user supplied, so a newline in one would fabricate
+// extra session lines inside the message. Whitespace collapses to single
+// spaces and the field is capped.
+function clean(value: string): string {
+  return value.replace(/\s+/g, " ").trim().slice(0, 80);
+}
+
 function setLine(s: PlateauSetLine): string {
   const rir = formatRir(s.rirLow, s.rirHigh);
   return `${s.weight} x ${s.reps}${rir ? ` (RIR ${rir})` : ""}`;
 }
 
 export function buildPlateauMessage(ctx: PlateauContext): string {
-  const lift = ctx.muscleGroup
-    ? `${ctx.exerciseName} (${ctx.muscleGroup})`
-    : ctx.exerciseName;
+  const cleanedName = clean(ctx.exerciseName);
+  const cleanedGroup = ctx.muscleGroup ? clean(ctx.muscleGroup) : null;
+  const lift = cleanedGroup
+    ? `${cleanedName} (${cleanedGroup})`
+    : cleanedName;
   const sessions = ctx.sessions
     .map((s) => `- ${days(s.daysAgo)}: ${s.sets.map(setLine).join(", ")}`)
     .join("\n");

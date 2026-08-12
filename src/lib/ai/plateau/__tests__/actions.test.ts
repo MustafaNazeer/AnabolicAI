@@ -131,19 +131,27 @@ describe("suggestForPlateau", () => {
 
   // The message is the billed side of the call and a session can carry an
   // unbounded number of sets. The detector still sees every one of them,
-  // since it takes a maximum and dropping any could change the verdict, so
-  // the max-holding first set keeps the series reading as stalled here.
+  // since it takes a maximum and dropping any could change the verdict. The
+  // heaviest set sits at index 15, past the cap, on purpose: if the cap ever
+  // spread to the detector too, it would never see this set, the series
+  // would no longer read as stalled, and the call would be refused instead
+  // of succeeding.
   it("caps the sets rendered per session in the message but not what the detector sees", async () => {
     signedIn();
     consent(true);
-    const manySets = [
-      { reps: 1, weight: 185, rir_low: null, rir_high: null },
-      ...Array.from({ length: 19 }, (_, i) => ({
+    const filler = (start: number, count: number) =>
+      Array.from({ length: count }, (_, i) => ({
         reps: 1,
-        weight: 101 + i,
+        weight: start + i,
         rir_low: null,
         rir_high: null,
-      })),
+      }));
+    const withinCap = filler(101, 12); // indices 0-11, weights 101-112
+    const manySets = [
+      ...withinCap,
+      ...filler(120, 3), // indices 12-14, past the cap
+      { reps: 1, weight: 185, rir_low: null, rir_high: null }, // index 15, the heaviest, past the cap
+      ...filler(123, 4), // indices 16-19, past the cap
     ];
     const base = stalledData();
     getPlateauDataMock.mockResolvedValue({
@@ -153,13 +161,19 @@ describe("suggestForPlateau", () => {
         { ...base.sessions[3], sets: manySets },
       ],
     });
-    await expect(suggestForPlateau(EXERCISE_ID)).resolves.toEqual({
-      ok: true,
-      suggestion: SUGGESTION,
-    });
+
+    const result = await suggestForPlateau(EXERCISE_ID);
+
+    // The outcome still reflects the heaviest set: this only reads as
+    // stalled, and only succeeds, because the detector saw the 185 at
+    // index 15 rather than stopping at the cap.
+    expect(result).toEqual({ ok: true, suggestion: SUGGESTION });
+
+    // The message still stops at the cap: the twelfth set survives, the
+    // thirteenth does not.
     const message = suggestWithModelMock.mock.calls[0][1];
-    expect(message).toContain("111 x 1");
-    expect(message).not.toContain("112 x 1");
+    expect(message).toContain("112 x 1");
+    expect(message).not.toContain("120 x 1");
   });
 
   it("fails closed when signed out and never queries or calls the model", async () => {

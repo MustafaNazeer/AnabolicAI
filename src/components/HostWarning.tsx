@@ -43,9 +43,13 @@ export function HostWarning({
         color: "var(--text-dim)",
       }}
     >
+      {/* The environment is a label in brackets rather than a clause, because
+          "this is not the live app, which is a production build" reads as a
+          contradiction, and a stale production deployment URL is one of the
+          two ways to end up here. Found by looking at it in a browser; the
+          unit tests assert the words are present and cannot see this. */}
       <p>
-        This is not the live app. You are on {verdict.actual}, which is a {verdict.environment}{" "}
-        build.
+        This is not the live app. You are on {verdict.actual} ({verdict.environment}).
       </p>
       <p className="mt-2">Open {verdict.canonical} instead, and reinstall from there.</p>
     </div>

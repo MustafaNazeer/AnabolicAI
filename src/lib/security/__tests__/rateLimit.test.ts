@@ -118,6 +118,16 @@ describe("checkRateLimit", () => {
     await expect(checkRateLimit("quickEntry", "user-123")).resolves.toBe(false);
     expect(limitMock).toHaveBeenCalledWith("user-123");
   });
+
+  // Plateau suggestions are also keyed by user id, the same as quick entry,
+  // because every caller of it is already signed in.
+  it("checks the plateau surface against the store", async () => {
+    process.env[URL_ENV] = "https://example.upstash.io";
+    process.env[TOKEN_ENV] = "token";
+    limitMock.mockResolvedValue({ success: false });
+    await expect(checkRateLimit("plateau", "user-123")).resolves.toBe(false);
+    expect(limitMock).toHaveBeenCalledWith("user-123");
+  });
 });
 
 describe("limitMessage", () => {
@@ -141,5 +151,10 @@ describe("limitMessage", () => {
   // unlike the hour long ones above.
   it("promises minutes for quick entry, whose window is minutes", () => {
     expect(limitMessage("quickEntry")).toContain("few minutes");
+  });
+
+  // Plateau's window is also 10 minutes, the same as quick entry.
+  it("promises minutes for plateau, whose window is minutes", () => {
+    expect(limitMessage("plateau")).toContain("few minutes");
   });
 });

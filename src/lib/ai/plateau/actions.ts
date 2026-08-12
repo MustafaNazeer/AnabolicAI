@@ -22,6 +22,12 @@ const NO_SUGGESTION = "Could not come up with a suggestion. Try again in a momen
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// The message is the billed side of this call and a session can hold an
+// unbounded number of sets, so the rendering is capped. The detector still
+// sees every set, because it takes a maximum and dropping one could change
+// the verdict.
+const MAX_SETS_PER_SESSION = 12;
+
 // Outcome codes only, never the data and never the prompt, per the quick
 // entry precedent.
 function logOutcome(outcome: string, extra?: Record<string, number | string>) {
@@ -61,6 +67,12 @@ export async function suggestForPlateau(
     return { ok: false, error: limitMessage("plateau") };
   }
 
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    logOutcome("no-key");
+    return { ok: false, error: UNAVAILABLE };
+  }
+
   // The client sends only the id. Everything the model sees is re-derived
   // here, and the stall is re-checked, so this action can never be used as a
   // proxy for arbitrary content and never speaks about a lift that is not
@@ -71,27 +83,30 @@ export async function suggestForPlateau(
     logOutcome("not-stalled", { reason: "no-data" });
     return { ok: false, error: NOT_STALLED };
   }
+  // One derived list feeds both the detector and the message, so they can
+  // never disagree about which sessions exist or what order they are in.
+  // Sorted here rather than trusting the query: if the read ever stopped
+  // returning oldest first, the slope would silently flip sign and a
+  // declining lift would read as improving.
+  //
   // Math.max over an empty array is negative infinity, which would flow into
   // the detector as a real number and produce a nonsense verdict instead of
   // an error, so a session with no sets is dropped before that reduction.
-  const points = data.sessions
+  const sessions = data.sessions
     .filter((s) => s.sets.length > 0)
-    .map((s) => ({
-      date: s.completedAt,
-      value: Math.round(
-        Math.max(...s.sets.map((x) => estimatedOneRepMax(x.weight, x.reps))),
-      ),
-    }));
+    .slice()
+    .sort((a, b) => (a.completedAt < b.completedAt ? -1 : 1));
+
+  const points = sessions.map((s) => ({
+    date: s.completedAt,
+    value: Math.round(
+      Math.max(...s.sets.map((x) => estimatedOneRepMax(x.weight, x.reps))),
+    ),
+  }));
   const status = plateauStatus(points, new Date());
   if (status !== "stalled" && status !== "declining") {
     logOutcome("not-stalled", { status });
     return { ok: false, error: NOT_STALLED };
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    logOutcome("no-key");
-    return { ok: false, error: UNAVAILABLE };
   }
 
   const today = Date.now();
@@ -99,12 +114,12 @@ export async function suggestForPlateau(
     exerciseName: data.exerciseName,
     muscleGroup: data.muscleGroup,
     restSeconds: data.restSeconds,
-    sessions: data.sessions.map((s) => ({
+    sessions: sessions.map((s) => ({
       daysAgo: Math.max(
         0,
         Math.floor((today - new Date(s.completedAt).getTime()) / 86_400_000),
       ),
-      sets: s.sets.map((x) => ({
+      sets: s.sets.slice(0, MAX_SETS_PER_SESSION).map((x) => ({
         reps: x.reps,
         weight: x.weight,
         rirLow: x.rir_low,

@@ -14,8 +14,27 @@ export function moveItem<T>(
   return next;
 }
 
-export function filterExercises(list: Exercise[], query: string): Exercise[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return list;
-  return list.filter((e) => e.name.toLowerCase().includes(q));
+export type ExerciseFilter = {
+  query?: string;
+  group?: string | null;
+  equipment?: string | null;
+};
+
+// Three independent dimensions, all optional. A null or absent dimension is no
+// filter at all, which is how the picker clears a chip. An exercise missing the
+// field a dimension asks about never matches that dimension, because the app
+// does not know the answer and guessing would be worse than omitting it.
+export function filterExercises(
+  list: Exercise[],
+  options: ExerciseFilter,
+): Exercise[] {
+  const q = (options.query ?? "").trim().toLowerCase();
+  const group = options.group ?? null;
+  const equipment = options.equipment ?? null;
+  return list.filter((e) => {
+    if (q && !e.name.toLowerCase().includes(q)) return false;
+    if (group && e.muscle_group !== group) return false;
+    if (equipment && e.equipment !== equipment) return false;
+    return true;
+  });
 }

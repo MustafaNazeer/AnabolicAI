@@ -40,7 +40,7 @@ const snapshot: Snapshot = {
   lastByExercise: {},
   swaps: [{ originalExerciseId: "pecdeck", replacementExerciseId: "bench" }],
   library: [
-    { id: "bench", name: "Barbell Bench", muscle_group: "chest", is_default: true },
+    { id: "bench", name: "Barbell Bench", muscle_group: "chest", equipment: null, is_default: true },
   ] as Snapshot["library"],
 };
 

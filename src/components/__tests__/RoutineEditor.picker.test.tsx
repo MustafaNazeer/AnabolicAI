@@ -16,12 +16,13 @@ const bench: Exercise = {
   id: "bench",
   name: "Bench Press",
   muscle_group: "chest",
+  equipment: null,
   is_default: true,
 };
 
 const library: Exercise[] = [
   bench,
-  { id: "fly", name: "Cable Fly", muscle_group: "chest", is_default: true },
+  { id: "fly", name: "Cable Fly", muscle_group: "chest", equipment: null, is_default: true },
 ];
 
 // The editor reads only exercise and default_sets off each item, so the other

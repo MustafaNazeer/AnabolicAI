@@ -14,8 +14,8 @@ const slots: SlotExercise[] = [
 ];
 
 const library: Exercise[] = [
-  { id: "bench", name: "Barbell Bench", muscle_group: "chest", is_default: true },
-  { id: "machine", name: "Machine Press", muscle_group: "chest", is_default: true },
+  { id: "bench", name: "Barbell Bench", muscle_group: "chest", equipment: null, is_default: true },
+  { id: "machine", name: "Machine Press", muscle_group: "chest", equipment: null, is_default: true },
 ] as Exercise[];
 
 describe("buildEffectiveCards", () => {

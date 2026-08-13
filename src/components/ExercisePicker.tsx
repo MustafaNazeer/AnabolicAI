@@ -20,7 +20,7 @@ export function ExercisePicker({
 }) {
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
-  const results = filterExercises(library, query).filter(
+  const results = filterExercises(library, { query }).filter(
     (e) => !takenIds.has(e.id),
   );
   const showCreate =

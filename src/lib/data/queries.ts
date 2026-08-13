@@ -10,7 +10,7 @@ export async function getExercises(): Promise<Exercise[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("exercises")
-    .select("id, name, muscle_group, is_default")
+    .select("id, name, muscle_group, equipment, is_default")
     .order("muscle_group", { ascending: true })
     .order("name", { ascending: true });
   return (data ?? []) as Exercise[];

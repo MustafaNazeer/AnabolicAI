@@ -2,6 +2,7 @@ export type Exercise = {
   id: string;
   name: string;
   muscle_group: string | null;
+  equipment: string | null;
   is_default: boolean;
 };
 

@@ -143,7 +143,7 @@ export async function createExercise(
       muscle_group: muscleGroup?.trim() || null,
       is_default: false,
     })
-    .select("id, name, muscle_group, is_default")
+    .select("id, name, muscle_group, equipment, is_default")
     .single();
 
   if (error || !data) {

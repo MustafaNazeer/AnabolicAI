@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 vi.mock("@/lib/data/actions", () => ({
   createExercise: vi.fn(async () => ({ exercise: undefined })),
 }));
 
-import { ExercisePicker } from "@/components/ExercisePicker";
+import { ExercisePicker, GROUPS, EQUIPMENT } from "@/components/ExercisePicker";
 import type { Exercise } from "@/lib/data/types";
 
 const ex = (
@@ -124,6 +126,38 @@ describe("ExercisePicker filters", () => {
   it("says so when the filters exclude everything", async () => {
     setup();
     await userEvent.click(screen.getByRole("button", { name: "Core" }));
-    expect(screen.getByText("No exercises match those filters.")).toBeInTheDocument();
+    expect(screen.getByText("No exercises match.")).toBeInTheDocument();
+  });
+
+  it("gives every chip a 44px minimum tap target", () => {
+    setup();
+    expect(screen.getByRole("button", { name: "Legs" })).toHaveStyle({
+      minHeight: "44px",
+    });
+  });
+
+  it("groups the chip rows under their own accessible names", () => {
+    setup();
+    expect(
+      screen.getByRole("group", { name: "Muscle group" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Equipment" })).toBeInTheDocument();
+  });
+
+  it("keeps the chip vocabularies in step with the seeded library", () => {
+    const sql = readFileSync(
+      join(__dirname, "../../../supabase/migrations/0012_exercise_library.sql"),
+      "utf8",
+    );
+    const rows = [
+      ...sql.matchAll(/^ {2}\('[^']+', '([A-Za-z]+)', '([A-Za-z]+)'\)/gm),
+    ];
+    expect(rows.length).toBeGreaterThan(100);
+    expect([...new Set(rows.map((m) => m[1]))].sort()).toEqual(
+      [...GROUPS].sort(),
+    );
+    expect([...new Set(rows.map((m) => m[2]))].sort()).toEqual(
+      [...EQUIPMENT].sort(),
+    );
   });
 });

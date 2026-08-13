@@ -7,8 +7,8 @@ import type { Exercise } from "@/lib/data/types";
 import { Plus } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
-const GROUPS = ["Chest", "Back", "Shoulders", "Legs", "Arms", "Core"];
-const EQUIPMENT = [
+export const GROUPS = ["Chest", "Back", "Shoulders", "Legs", "Arms", "Core"];
+export const EQUIPMENT = [
   "Barbell",
   "Dumbbell",
   "Machine",
@@ -33,7 +33,7 @@ function Chip({
       type="button"
       aria-pressed={active}
       onClick={onToggle}
-      className="px-3 text-xs"
+      className="px-3 text-xs shrink-0"
       style={{
         minHeight: 44,
         background: active ? "var(--accent)" : "var(--surface-sunken)",
@@ -97,25 +97,35 @@ export function ExercisePicker({
         }}
       />
 
-      <div className="flex flex-wrap gap-1.5 mb-1.5">
-        {GROUPS.map((g) => (
-          <Chip
-            key={g}
-            label={g}
-            active={group === g}
-            onToggle={() => setGroup(group === g ? null : g)}
-          />
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-1.5 mb-2">
-        {EQUIPMENT.map((eq) => (
-          <Chip
-            key={eq}
-            label={eq}
-            active={equipment === eq}
-            onToggle={() => setEquipment(equipment === eq ? null : eq)}
-          />
-        ))}
+      <div className="flex flex-col gap-1.5 mb-2">
+        <div
+          role="group"
+          aria-label="Muscle group"
+          className="flex gap-1.5 overflow-x-auto"
+        >
+          {GROUPS.map((g) => (
+            <Chip
+              key={g}
+              label={g}
+              active={group === g}
+              onToggle={() => setGroup(group === g ? null : g)}
+            />
+          ))}
+        </div>
+        <div
+          role="group"
+          aria-label="Equipment"
+          className="flex gap-1.5 overflow-x-auto"
+        >
+          {EQUIPMENT.map((eq) => (
+            <Chip
+              key={eq}
+              label={eq}
+              active={equipment === eq}
+              onToggle={() => setEquipment(equipment === eq ? null : eq)}
+            />
+          ))}
+        </div>
       </div>
 
       <ul className="flex flex-col gap-1 max-h-60 overflow-y-auto">
@@ -148,7 +158,7 @@ export function ExercisePicker({
         ) : null}
         {results.length === 0 && !showCreate ? (
           <li className="px-3 py-2 text-sm" style={{ color: "var(--text-dim)" }}>
-            No exercises match those filters.
+            No exercises match.
           </li>
         ) : null}
       </ul>

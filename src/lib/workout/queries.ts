@@ -35,7 +35,7 @@ export async function getSessionDetail(
   const { data: rxRaw } = await supabase
     .from("routine_exercises")
     .select(
-      "exercise_id, order_index, default_sets, exercise:exercises(id, name, muscle_group, is_default)",
+      "exercise_id, order_index, default_sets, exercise:exercises(id, name, muscle_group, equipment, is_default)",
     )
     .eq("routine_id", routineId)
     .order("order_index", { ascending: true });

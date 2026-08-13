@@ -36,7 +36,7 @@ export async function getRoutine(id: string): Promise<RoutineDetail | null> {
   const { data } = await supabase
     .from("routines")
     .select(
-      "id, name, routine_exercises(id, exercise_id, order_index, default_sets, exercise:exercises(id, name, muscle_group, is_default))",
+      "id, name, routine_exercises(id, exercise_id, order_index, default_sets, exercise:exercises(id, name, muscle_group, equipment, is_default))",
     )
     .eq("id", id)
     .single();

@@ -112,6 +112,29 @@ describe("PlateauCard", () => {
     await waitFor(() => expect(suggestMock).toHaveBeenCalledWith(PROPS.exerciseId));
   });
 
+  it("clears busy and shows the friendly copy when the consent write rejects", async () => {
+    setAiPlateauMock.mockRejectedValue(new Error("network drop"));
+    render(<PlateauCard {...PROPS} aiEnabled={false} status="stalled" />);
+    await userEvent.click(screen.getByRole("button", { name: "What should I try?" }));
+    const enableButton = screen.getByRole("button", { name: "Enable" });
+    await userEvent.click(enableButton);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not turn that on. Try again in a moment.",
+    );
+    expect(enableButton).not.toBeDisabled();
+  });
+
+  it("clears busy and shows the unavailable copy when fetching the suggestion rejects", async () => {
+    suggestMock.mockRejectedValue(new Error("network drop"));
+    render(<PlateauCard {...PROPS} status="stalled" />);
+    const askButton = screen.getByRole("button", { name: "What should I try?" });
+    await userEvent.click(askButton);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Suggestions are unavailable right now.",
+    );
+    expect(askButton).not.toBeDisabled();
+  });
+
   it("shows the action's error copy and allows a retry", async () => {
     suggestMock.mockResolvedValueOnce({ ok: false, error: "Suggestions are unavailable right now." });
     render(<PlateauCard {...PROPS} status="stalled" />);

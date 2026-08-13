@@ -6,6 +6,9 @@ import type { PlateauStatus } from "@/lib/progress/plateau";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 const CONSENT_SAVE_FAILED = "Could not turn that on. Try again in a moment.";
+// Mirrors the action's own UNAVAILABLE copy. Not imported: a "use server"
+// module may only export async functions, so the string is kept here too.
+const SUGGESTION_UNAVAILABLE = "Suggestions are unavailable right now.";
 
 const fieldStyle = {
   background: "var(--surface-sunken)",
@@ -41,13 +44,23 @@ export function PlateauCard({
   async function fetchSuggestion() {
     setBusy(true);
     setError(null);
-    const result = await suggestForPlateau(exerciseId);
-    setBusy(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    // A rejection (a dropped connection mid request, common on a gym's
+    // signal) must read the same as the action's own unavailable outcome,
+    // not leave the card busy forever. The finally is what actually owns
+    // clearing busy, on every path out, success, a returned error, or a
+    // throw.
+    try {
+      const result = await suggestForPlateau(exerciseId);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSuggestion(result.suggestion.text);
+    } catch {
+      setError(SUGGESTION_UNAVAILABLE);
+    } finally {
+      setBusy(false);
     }
-    setSuggestion(result.suggestion.text);
   }
 
   async function ask() {
@@ -68,11 +81,22 @@ export function PlateauCard({
     // clears busy at the end, so there is no gap where the button re-enables
     // between the two calls.
     setBusy(true);
-    const result = await setAiPlateau(true);
+    let result: Awaited<ReturnType<typeof setAiPlateau>>;
+    try {
+      result = await setAiPlateau(true);
+    } catch {
+      // A rejection (a dropped connection mid write, common on a gym's
+      // signal) reads the same as a returned error: neither should leave
+      // the button disabled forever. The notice stays open rather than
+      // closing, so Enable re-renders usable in place for an immediate
+      // retry instead of being unmounted mid disabled state.
+      setBusy(false);
+      setError(CONSENT_SAVE_FAILED);
+      return;
+    }
     if ("error" in result) {
       setBusy(false);
       setError(CONSENT_SAVE_FAILED);
-      setNotice(false);
       return;
     }
     onAiEnabled();

@@ -1,7 +1,8 @@
 import { formatRir } from "@/lib/workout/rir";
 
-// Fixed instructions only. The user message carries one lift's recent
-// sessions and nothing else; no user id, no absolute dates, no other lifts.
+// Fixed instructions only. The user message carries one lift's name, muscle
+// group, recent sessions, and default rest time, and nothing else; no user
+// id, no absolute dates, no other lifts.
 export const PLATEAU_SYSTEM_PROMPT = `You suggest the single next step for a lifter whose lift has stopped progressing.
 
 Rules:

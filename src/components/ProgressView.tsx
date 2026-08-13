@@ -163,7 +163,11 @@ export function ProgressView({
       </section>
 
       <PlateauCard
-        key={selected}
+        // Prefixed, because GoalCard below is a sibling already keyed on the
+        // same exercise id. Two siblings sharing a key leaves React unable to
+        // tell them apart, and it silently keeps the previous card's DOM when
+        // the exercise changes.
+        key={`plateau-${selected}`}
         exerciseId={selected}
         exerciseName={selectedName}
         status={status}

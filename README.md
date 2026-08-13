@@ -6,7 +6,9 @@ A dark, iPhone first strength progress tracker, built as an installable Progress
 
 Onyx is a private app for a small group of users. Each person has their own account and their own isolated data, enforced at the database level.
 
-An optional AI quick entry field on each exercise card turns a typed line like "185 for 5, then 5, then 4" into sets. The parse is schema constrained, every number is re-validated against the same rules the logging path enforces, and the result lands as editable preview rows that only reach your log once you confirm them. It is off until you turn it on, and the only thing that ever leaves the device is the text you type.
+An optional AI quick entry field on each exercise card turns a typed line like "185 for 5, then 5, then 4" into sets. The parse is schema constrained, every number is re-validated against the same rules the logging path enforces, and the result lands as editable preview rows that only reach your log once you confirm them. Each AI feature is off until you turn it on, and each says exactly what it sends before the first use. Quick entry sends only the text you type.
+
+When a lift has genuinely stopped progressing, the Progress screen says so and can suggest one concrete next step: a weight, rep, rest, or deload change, framed simply. The stall call is statistical, made only when the last four sessions confidently rule progress out, and the suggestion is fetched only when you tap and only after turning the feature on. What leaves the device is that one lift's recent sessions and your default rest time, nothing else, and the suggestion is advice on screen, never something written to your log.
 
 Settings can export your training history as a CSV. Choose sets or sessions, tick the columns you want, pick a date range, and the file is named for both. On an installed iPhone app it opens the share sheet rather than downloading, because a direct download does not work from a home screen app; in a browser tab it downloads normally.
 
@@ -20,7 +22,7 @@ Settings can export your training history as a CSV. Choose sets or sessions, tic
 - Recharts for progress charts
 - Web Push (VAPID) for notifications
 - Upstash QStash to schedule the rest timer notification
-- Claude Haiku with structured outputs for AI quick entry
+- Claude with structured outputs for AI quick entry and plateau suggestions
 - Vercel for hosting
 
 ## Prerequisites
@@ -104,23 +106,27 @@ the TCP connection string. The code passes them explicitly instead of calling th
 `fromEnv` helper. Without them the app runs with rate limiting disabled, which is the normal
 state for local development.
 
-### AI quick entry (optional)
+### AI features (optional)
 
-The typed set parser on each exercise card calls the Claude API. Create a key in the Console
+The typed set parser on each exercise card and the plateau suggestion on the Progress screen
+both call the Claude API, through the same `ANTHROPIC_API_KEY`. Create a key in the Console
 at https://platform.claude.com/settings/keys and set it on the deployed environment:
 
 ```
 ANTHROPIC_API_KEY
 ```
 
-Without it the field still renders and fails with a friendly message, and every other way of
-logging a set is unaffected. The key is read in exactly one place and the client is
-constructed per request, so a build with no key configured still succeeds.
+Without it, both features still render and fail with a friendly message, and every other way
+of logging a set or reading your progress is unaffected. The key is read in exactly one place
+per feature and each client is constructed per request, so a build with no key configured
+still succeeds.
 
-The feature is off per user until they turn it on, either from the notice shown the first
-time they use the field or from the switch in Settings. Only the typed text and fixed parsing
-instructions are sent; no exercise names, identifiers, or history leave the app. Requests are
-limited to 30 per 10 minutes per account.
+Each feature is off per user until they turn it on, either from the notice shown the first
+time they use it or from its switch in Settings. Quick entry sends only the typed text and
+fixed parsing instructions; no exercise names, identifiers, or history leave the app. A
+plateau suggestion sends that one lift's recent sessions and your default rest time, and
+nothing else. Requests are limited per account: 30 per 10 minutes for quick entry, 10 per 10
+minutes for plateau suggestions.
 
 ## Tests
 
@@ -129,12 +135,12 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-12: 710 tests across 120 files, covering 73 percent of the application logic.
+As of 2026-08-12: 770 tests across 128 files, covering 74 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a
 real database rather than a mock. Counting those 15 files, overall statement coverage is
-58 percent.
+60 percent.
 
 The offline outbox is additionally checked with property based tests. Generated sequences
 of logging, editing, deleting, swapping and finishing are run against a reference model of

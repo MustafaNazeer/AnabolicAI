@@ -5,6 +5,8 @@ import { setAiPlateau, suggestForPlateau } from "@/lib/ai/plateau/actions";
 import type { PlateauStatus } from "@/lib/progress/plateau";
 import { Skeleton } from "@/components/ui/Skeleton";
 
+const CONSENT_SAVE_FAILED = "Could not turn that on. Try again in a moment.";
+
 const fieldStyle = {
   background: "var(--surface-sunken)",
   border: "1px solid var(--surface-border)",
@@ -59,9 +61,17 @@ export function PlateauCard({
   }
 
   async function enable() {
+    // Set before the await, not inside fetchSuggestion, so the Enable button
+    // is guarded for the whole round trip: the consent write and the fetch
+    // that follows it. fetchSuggestion sets busy again on its own path, which
+    // is a no-op here since it is already true, and it is the one that
+    // clears busy at the end, so there is no gap where the button re-enables
+    // between the two calls.
+    setBusy(true);
     const result = await setAiPlateau(true);
     if ("error" in result) {
-      setError(result.error);
+      setBusy(false);
+      setError(CONSENT_SAVE_FAILED);
       setNotice(false);
       return;
     }
@@ -121,15 +131,17 @@ export function PlateauCard({
         >
           <p style={{ color: "var(--text)" }}>
             This sends this lift&apos;s last few sessions (days ago, sets, reps,
-            weight, RIR) and your default rest time to Anthropic&apos;s API to
-            suggest a next step, only when you ask. No account details leave
-            the app. Turn it off any time in Settings.
+            weight, RIR), its name and muscle group, and your default rest
+            time to Anthropic&apos;s API to suggest a next step, only when
+            you ask. No account details leave the app. Turn it off any time
+            in Settings.
           </p>
           <div className="flex gap-2 mt-2">
             <button
               type="button"
               onClick={() => void enable()}
-              className="px-3 py-2 text-sm font-medium"
+              disabled={busy}
+              className="px-3 py-2 text-sm font-medium disabled:opacity-60"
               style={fieldStyle}
             >
               Enable

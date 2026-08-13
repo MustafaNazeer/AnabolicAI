@@ -32,7 +32,7 @@ describe("suggestWithModel", () => {
       max_tokens: PLATEAU_MAX_TOKENS,
       system: PLATEAU_SYSTEM_PROMPT,
       messages: [{ role: "user", content: "Lift: Bench" }],
-      output_config: { format: PLATEAU_FORMAT },
+      output_config: { effort: "low", format: PLATEAU_FORMAT },
     });
   });
 
@@ -55,7 +55,7 @@ describe("suggestWithModel", () => {
 
   it("pins the model and the token budget", () => {
     expect(PLATEAU_MODEL).toBe("claude-sonnet-5");
-    expect(PLATEAU_MAX_TOKENS).toBe(300);
+    expect(PLATEAU_MAX_TOKENS).toBe(2000);
   });
 
   it("lets a transport error propagate to the caller", async () => {

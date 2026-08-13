@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const { suggestMock, setAiPlateauMock } = vi.hoisted(() => ({
@@ -94,6 +94,22 @@ describe("PlateauCard", () => {
     const region = await screen.findByRole("status");
     expect(region).toHaveTextContent("Drop to 175 and build back up.");
     expect(region).toHaveTextContent("AI suggestion");
+  });
+
+  it("disables the Enable button while the consent write is in flight", async () => {
+    let release: (value: { ok: true }) => void = () => {};
+    setAiPlateauMock.mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    render(<PlateauCard {...PROPS} aiEnabled={false} status="stalled" />);
+    await userEvent.click(screen.getByRole("button", { name: "What should I try?" }));
+    const enableButton = screen.getByRole("button", { name: "Enable" });
+    await userEvent.click(enableButton);
+    expect(enableButton).toBeDisabled();
+    release({ ok: true });
+    await waitFor(() => expect(suggestMock).toHaveBeenCalledWith(PROPS.exerciseId));
   });
 
   it("shows the action's error copy and allows a retry", async () => {

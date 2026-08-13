@@ -21,7 +21,7 @@ describe("AiPlateauToggle", () => {
     expect(screen.getByText("Plateau suggestions")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Suggests a next step when a lift stalls. Sends that lift's recent sessions, only when you ask.",
+        "Suggests a next step when a lift stalls. Sends that lift's name, muscle group, and recent sessions, only when you ask.",
       ),
     ).toBeInTheDocument();
   });

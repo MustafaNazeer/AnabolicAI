@@ -8,7 +8,7 @@ Onyx is a private app for a small group of users. Each person has their own acco
 
 An optional AI quick entry field on each exercise card turns a typed line like "185 for 5, then 5, then 4" into sets. The parse is schema constrained, every number is re-validated against the same rules the logging path enforces, and the result lands as editable preview rows that only reach your log once you confirm them. Each AI feature is off until you turn it on, and each says exactly what it sends before the first use. Quick entry sends only the text you type.
 
-When a lift has genuinely stopped progressing, the Progress screen says so and can suggest one concrete next step: a weight, rep, rest, or deload change, framed simply. The stall call is statistical, made only when the last four sessions confidently rule progress out, and the suggestion is fetched only when you tap and only after turning the feature on. What leaves the device is that one lift's recent sessions and your default rest time, nothing else, and the suggestion is advice on screen, never something written to your log.
+When a lift has genuinely stopped progressing, the Progress screen says so and can suggest one concrete next step: a weight, rep, rest, or deload change, framed simply. The stall call is statistical, made only when the last four sessions confidently rule progress out, and the suggestion is fetched only when you tap and only after turning the feature on. What leaves the device is that one lift's name, muscle group, recent sessions, and your default rest time, nothing else, and the suggestion is advice on screen, never something written to your log.
 
 Settings can export your training history as a CSV. Choose sets or sessions, tick the columns you want, pick a date range, and the file is named for both. On an installed iPhone app it opens the share sheet rather than downloading, because a direct download does not work from a home screen app; in a browser tab it downloads normally.
 
@@ -124,9 +124,9 @@ still succeeds.
 Each feature is off per user until they turn it on, either from the notice shown the first
 time they use it or from its switch in Settings. Quick entry sends only the typed text and
 fixed parsing instructions; no exercise names, identifiers, or history leave the app. A
-plateau suggestion sends that one lift's recent sessions and your default rest time, and
-nothing else. Requests are limited per account: 30 per 10 minutes for quick entry, 10 per 10
-minutes for plateau suggestions.
+plateau suggestion sends that one lift's name, muscle group, recent sessions, and your
+default rest time, and nothing else. Requests are limited per account: 30 per 10 minutes for
+quick entry, 10 per 10 minutes for plateau suggestions.
 
 ## Tests
 
@@ -135,7 +135,7 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-12: 770 tests across 128 files, covering 74 percent of the application logic.
+As of 2026-08-12: 771 tests across 128 files, covering 74 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a

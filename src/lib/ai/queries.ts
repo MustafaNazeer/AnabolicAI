@@ -19,3 +19,13 @@ export async function getAiPlateau(): Promise<boolean> {
     .maybeSingle();
   return data?.ai_plateau ?? false;
 }
+
+// RLS scopes user_settings to the caller, matching getAiPlateau.
+export async function getAiInsights(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("user_settings")
+    .select("ai_insights")
+    .maybeSingle();
+  return data?.ai_insights ?? false;
+}

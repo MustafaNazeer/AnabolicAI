@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getNotificationSettings } from "@/lib/notifications/queries";
-import { getAiQuickEntry, getAiPlateau } from "@/lib/ai/queries";
+import { getAiQuickEntry, getAiPlateau, getAiInsights } from "@/lib/ai/queries";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { AiQuickEntryToggle } from "@/components/AiQuickEntryToggle";
 import { AiPlateauToggle } from "@/components/AiPlateauToggle";
+import { AiInsightsToggle } from "@/components/AiInsightsToggle";
 import { ExportPanel } from "@/components/ExportPanel";
 import { SettingsSection } from "@/components/ui/SettingsSection";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -18,6 +19,7 @@ export default async function SettingsPage() {
   const settings = await getNotificationSettings();
   const aiQuickEntry = await getAiQuickEntry();
   const aiPlateau = await getAiPlateau();
+  const aiInsights = await getAiInsights();
 
   return (
     <main className="px-5 pt-12 pb-24">
@@ -47,6 +49,7 @@ export default async function SettingsPage() {
         <div className="flex flex-col gap-3">
           <AiQuickEntryToggle initial={aiQuickEntry} />
           <AiPlateauToggle initial={aiPlateau} />
+          <AiInsightsToggle initial={aiInsights} />
         </div>
       </SettingsSection>
 

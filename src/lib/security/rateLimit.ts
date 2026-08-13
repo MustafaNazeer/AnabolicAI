@@ -14,7 +14,8 @@ export type LimitSurface =
   | "demo"
   | "restComplete"
   | "quickEntry"
-  | "plateau";
+  | "plateau"
+  | "insights";
 
 // Sign in is the brute force target. The demo button is the recruiter path
 // and stays lenient. The rest callback limit is defense in depth in front
@@ -30,6 +31,9 @@ const RULES = {
   // Plateau suggestions call a pricier model, are rarer by nature (one lift
   // stalling is an event, not a habit), and each tap is user initiated.
   plateau: { limit: 10, window: "10 m" },
+  // Insights are user initiated, one model call per tap, dashboard wide
+  // rather than per lift, so the plateau budget fits.
+  insights: { limit: 10, window: "10 m" },
 } as const;
 
 // The rest callback answers with a status code and no copy, so it has no
@@ -46,6 +50,7 @@ const MESSAGES: Record<MessagedSurface, string> = {
   demo: "The demo is busy right now. Try again in an hour.",
   quickEntry: "Quick entry is catching its breath. Try again in a few minutes.",
   plateau: "Suggestions are catching their breath. Try again in a few minutes.",
+  insights: "Insights are catching their breath. Try again in a few minutes.",
 };
 
 export function limitMessage(surface: MessagedSurface): string {

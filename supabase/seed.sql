@@ -1,34 +1,10 @@
--- Onyx: default exercises, available to all authenticated users.
--- user_id is NULL because these are not owned by any user.
-
-INSERT INTO exercises (name, muscle_group, is_default) VALUES
-    ('Bench Press',         'Chest',     true),
-    ('Incline Bench Press', 'Chest',     true),
-    ('Dumbbell Fly',        'Chest',     true),
-    ('Push-Up',             'Chest',     true),
-    ('Cable Crossover',     'Chest',     true),
-    ('Deadlift',            'Back',      true),
-    ('Barbell Row',         'Back',      true),
-    ('Pull-Up',             'Back',      true),
-    ('Lat Pulldown',        'Back',      true),
-    ('Seated Cable Row',    'Back',      true),
-    ('Overhead Press',      'Shoulders', true),
-    ('Lateral Raise',       'Shoulders', true),
-    ('Face Pull',           'Shoulders', true),
-    ('Arnold Press',        'Shoulders', true),
-    ('Rear Delt Fly',       'Shoulders', true),
-    ('Squat',               'Legs',      true),
-    ('Leg Press',           'Legs',      true),
-    ('Romanian Deadlift',   'Legs',      true),
-    ('Leg Curl',            'Legs',      true),
-    ('Leg Extension',       'Legs',      true),
-    ('Calf Raise',          'Legs',      true),
-    ('Barbell Curl',        'Arms',      true),
-    ('Tricep Pushdown',     'Arms',      true),
-    ('Hammer Curl',         'Arms',      true),
-    ('Skull Crusher',       'Arms',      true),
-    ('Preacher Curl',       'Arms',      true),
-    ('Plank',               'Core',      true),
-    ('Hanging Leg Raise',   'Core',      true),
-    ('Cable Crunch',        'Core',      true),
-    ('Ab Wheel Rollout',    'Core',      true);
+-- Onyx: the default exercise library no longer lives here.
+--
+-- It moved into supabase/migrations/0012_exercise_library.sql, which is now its
+-- one authoritative copy. That migration is idempotent, so it is safe to run on
+-- a database that already holds some defaults, and keeping a second list here
+-- would only create something that can drift.
+--
+-- This file is kept rather than deleted because the setup docs and the repo's
+-- shape both refer to it, and an empty file with an explanation is clearer than
+-- a missing one.

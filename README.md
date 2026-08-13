@@ -43,12 +43,9 @@ Settings can export your training history as a CSV. Choose sets or sessions, tic
 
 2. Create a Supabase project. Enable Email and Password authentication under Authentication, then Providers.
 
-3. In the Supabase SQL Editor, run the schema and seed files in order:
-
-   ```
-   supabase/migrations/0001_initial_schema.sql
-   supabase/seed.sql
-   ```
+3. In the Supabase SQL Editor, run every file in `supabase/migrations/` in
+   ascending order, starting with `0001_initial_schema.sql`. The default
+   exercise library is included, so there is nothing else to seed.
 
 4. Copy the environment template and fill in your Supabase values:
 

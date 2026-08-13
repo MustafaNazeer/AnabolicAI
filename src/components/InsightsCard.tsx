@@ -142,11 +142,12 @@ export function InsightsCard({ initialEnabled }: { initialEnabled: boolean }) {
           >
             <p style={{ color: "var(--text)" }}>
               This sends up to your five most recently trained lifts (name,
-              muscle group, and their last four sessions: how many days ago,
-              reps, weight, and reps in reserve), plus your weekly workout
-              and set counts and streak, to Anthropic&apos;s API to write
-              short observations, only when you ask. Nothing else is sent,
-              and nothing is stored. Turn it off any time in Settings.
+              muscle group, the app&apos;s own trend and stall verdict for
+              each, and their last four sessions: how many days ago, reps,
+              weight, and reps in reserve), plus your weekly workout and set
+              counts and streak, to Anthropic&apos;s API to write short
+              observations, only when you ask. Nothing else is sent, and
+              nothing is stored. Turn it off any time in Settings.
             </p>
             <div className="flex gap-2 mt-2">
               <button
@@ -191,7 +192,7 @@ export function InsightsCard({ initialEnabled }: { initialEnabled: boolean }) {
                 <p className="text-xs mt-2">
                   <Link
                     href="/progress"
-                    className="underline"
+                    className="underline inline-block py-3.5"
                     style={{ color: "var(--text-dim)" }}
                   >
                     One of your lifts has stopped progressing. Progress has a

@@ -7,6 +7,7 @@ import { WeekStrip } from "@/components/dashboard/WeekStrip";
 import { MatrixCard } from "@/components/dashboard/MatrixCard";
 import { StatChip } from "@/components/dashboard/StatChip";
 import { GoalsSummary } from "@/components/dashboard/GoalsSummary";
+import { InsightsCard } from "@/components/InsightsCard";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { formatCompact } from "@/lib/progress/strength";
 import { pluralize } from "@/lib/format/plural";
@@ -30,6 +31,7 @@ export function DashboardView({
   weekDays,
   matrixDays,
   goals = [],
+  aiInsights,
 }: {
   name: string;
   weekly: WeeklySummary;
@@ -39,6 +41,7 @@ export function DashboardView({
   weekDays: WeekDay[];
   matrixDays: MatrixDay[];
   goals?: GoalWithProgress[];
+  aiInsights: boolean;
 }) {
   return (
     <main className="px-4 pt-12 pb-28">
@@ -55,6 +58,8 @@ export function DashboardView({
       </div>
 
       <GoalsSummary goals={goals} />
+
+      {recent.length > 0 ? <InsightsCard initialEnabled={aiInsights} /> : null}
 
       <section className="mt-[18px]">
         <h2

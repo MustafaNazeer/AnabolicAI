@@ -30,6 +30,7 @@ describe("DashboardView", () => {
           volume: 0,
           prCount: 0,
         }))}
+        aiInsights={false}
       />,
     );
     expect(screen.getByText("Welcome back, Mustafa")).toBeInTheDocument();

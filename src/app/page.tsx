@@ -1,6 +1,7 @@
 // src/app/page.tsx
 import { getDashboardData, getMatrixData } from "@/lib/progress/queries";
 import { getActiveGoalsSummary } from "@/lib/goals/queries";
+import { getAiInsights } from "@/lib/ai/queries";
 import { weekStripDays } from "@/lib/progress/weekstrip";
 import { APP_TIMEZONE } from "@/lib/notifications/schedule";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +14,7 @@ export default async function HomePage() {
     getMatrixData(now),
     getActiveGoalsSummary(),
   ]);
+  const aiInsights = await getAiInsights();
   const weekDays = weekStripDays(
     data.recent.map((w) => ({ completedAt: w.completedAt })),
     now,
@@ -35,6 +37,7 @@ export default async function HomePage() {
       weekDays={weekDays}
       matrixDays={matrixDays}
       goals={goals}
+      aiInsights={aiInsights}
     />
   );
 }

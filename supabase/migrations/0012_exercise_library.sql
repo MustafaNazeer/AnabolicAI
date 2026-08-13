@@ -1,9 +1,9 @@
 -- Exercise library enrichment.
 --
--- Grows the default library from 30 to 150 and adds the equipment column the
--- picker filters on and the routine builder will later filter on. The column
--- is nullable because an exercise a user adds through the picker has no
--- equipment, exactly as it already has no muscle group.
+-- Grows the default library from 30 to 158 and adds the equipment column the
+-- picker will later filter on and the routine builder will later filter on
+-- too. The column is nullable because an exercise a user adds through the
+-- picker has no equipment, exactly as it already has no muscle group.
 --
 -- This file is the ONE authoritative copy of the default library. seed.sql no
 -- longer inserts exercises. Every insert below is guarded, so this migration
@@ -135,7 +135,11 @@ insert into library_seed (name, muscle_group, equipment) values
   ('Adductor Machine', 'Legs', 'Machine'),
   ('Abductor Machine', 'Legs', 'Machine'),
   ('Cable Pull Through', 'Legs', 'Cable'),
-  ('Cable Kickback', 'Legs', 'Cable'),
+  ('Glute Kickback', 'Legs', 'Cable'),
+  ('Bodyweight Squat', 'Legs', 'Bodyweight'),
+  ('Bodyweight Lunge', 'Legs', 'Bodyweight'),
+  ('Split Squat', 'Legs', 'Bodyweight'),
+  ('Wall Sit', 'Legs', 'Bodyweight'),
   ('Glute Bridge', 'Legs', 'Bodyweight'),
   ('Nordic Curl', 'Legs', 'Bodyweight'),
   ('Sissy Squat', 'Legs', 'Bodyweight'),
@@ -168,6 +172,10 @@ insert into library_seed (name, muscle_group, equipment) values
   ('Cable Overhead Tricep Extension', 'Arms', 'Cable'),
   ('Close Grip Push-Up', 'Arms', 'Bodyweight'),
   ('Bench Dip', 'Arms', 'Bodyweight'),
+  ('Barbell Rollout', 'Core', 'Barbell'),
+  ('Landmine Twist', 'Core', 'Barbell'),
+  ('Dumbbell Side Bend', 'Core', 'Dumbbell'),
+  ('Suitcase Carry', 'Core', 'Dumbbell'),
   ('Plank', 'Core', 'Bodyweight'),
   ('Side Plank', 'Core', 'Bodyweight'),
   ('Crunch', 'Core', 'Bodyweight'),

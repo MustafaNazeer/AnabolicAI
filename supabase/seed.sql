@@ -5,6 +5,6 @@
 -- a database that already holds some defaults, and keeping a second list here
 -- would only create something that can drift.
 --
--- This file is kept rather than deleted because the setup docs and the repo's
--- shape both refer to it, and an empty file with an explanation is clearer than
--- a missing one.
+-- This file is kept rather than deleted as a signpost for anyone who comes
+-- looking for the seed data here, so they land on this explanation instead of
+-- a missing file.

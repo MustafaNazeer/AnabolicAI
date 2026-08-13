@@ -38,8 +38,9 @@ export type DemoSeed = { routines: DemoRoutine[]; goals: DemoGoal[] };
 const DAY = 24 * 60 * 60 * 1000;
 const WEEKS = 8;
 
-// Every name here is a default exercise from supabase/seed.sql. A name that is
-// not in that list resolves to no id and the insert fails.
+// Every name here is a default exercise from
+// supabase/migrations/0012_exercise_library.sql. A name that is not in that
+// list resolves to no id and the insert fails.
 const ROUTINES: {
   name: string;
   exercises: {

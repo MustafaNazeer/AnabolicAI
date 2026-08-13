@@ -21,7 +21,7 @@ describe("buildInsightsMessage", () => {
   it("renders each lift with its verdicts and sessions oldest first", () => {
     const msg = buildInsightsMessage({ lifts: [LIFT], ...WEEK });
     expect(msg).toContain("Lift: Bench Press (chest)");
-    expect(msg).toContain("Trend: Holding steady");
+    expect(msg).toContain("Trend by estimated 1RM: Holding steady");
     expect(msg).toContain("Stall check: stalled");
     expect(msg).toContain("185 x 5 (RIR 1)");
     expect(msg.indexOf("12 days ago")).toBeGreaterThan(-1);
@@ -66,5 +66,9 @@ describe("buildInsightsMessage", () => {
   it("the system prompt defers stalled lifts to the Progress screen and forbids invention", () => {
     expect(INSIGHTS_SYSTEM_PROMPT).toContain("Progress screen");
     expect(INSIGHTS_SYSTEM_PROMPT).toContain("Never invent");
+  });
+
+  it("the system prompt names the trend measure so a direction claim cannot silently contradict a different chart", () => {
+    expect(INSIGHTS_SYSTEM_PROMPT).toContain("estimated one rep max");
   });
 });

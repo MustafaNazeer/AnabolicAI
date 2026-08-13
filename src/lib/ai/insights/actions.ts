@@ -127,16 +127,26 @@ export async function suggestInsights(): Promise<InsightsResult> {
         Math.max(...s.sets.map((x) => estimatedOneRepMax(x.weight, x.reps))),
       ),
     }));
-    // The verdicts the prompt carries are computed by the shipped rules,
-    // imported and never copied, so the card can never disagree with the
-    // Progress screen about the same lift.
+    // The verdicts the prompt carries come from the shipped rules, imported
+    // and never copied. The trend is reported by estimated one rep max
+    // because the Progress screen's own trend indicator follows whichever
+    // metric the lifter has selected there, so naming the measure here is
+    // what keeps the two readings from contradicting each other.
     const status = plateauStatus(points, now);
     if (status === "stalled" || status === "declining") anyStalled = true;
     const info = data.exercises.get(exerciseId);
+    // Below WINDOW points, fitSlope has no degrees of freedom left and hands
+    // back a point interval, so a bare slope would read as a confident
+    // direction. Refuse to claim one at all, the same way plateauStatus
+    // already fails safe to "insufficient" below the window.
+    const trendWord =
+      points.length < WINDOW
+        ? "Not enough sessions yet"
+        : trendLabel(trendDirection(points.map((p) => p.value)));
     return {
       name: info?.name ?? "Unnamed exercise",
       muscleGroup: info?.muscleGroup ?? null,
-      trendWord: trendLabel(trendDirection(points.map((p) => p.value))),
+      trendWord,
       stallCheck: status,
       sessions: recent.map((s) => ({
         daysAgo: Math.max(

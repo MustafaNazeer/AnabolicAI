@@ -140,7 +140,7 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-13: 827 tests across 135 files, covering 77 percent of the application logic.
+As of 2026-08-13: 829 tests across 135 files, covering 77 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a

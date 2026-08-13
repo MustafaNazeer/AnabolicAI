@@ -144,7 +144,7 @@ describe("suggestInsights", () => {
     expect(message).toContain("Bench Press");
     expect(message).toContain("chest");
     expect(message).toContain("This week: 3 workouts, 42 sets. Streak: 5 weeks.");
-    expect(message).toContain("Trend:");
+    expect(message).toContain("Trend by estimated 1RM:");
     expect(message).toContain("Stall check:");
     expect(message).not.toContain(EX_BENCH);
     expect(message).not.toContain("user-123");
@@ -252,6 +252,25 @@ describe("suggestInsights", () => {
     const message = insightsWithModelMock.mock.calls[0][1];
     expect(message).toContain("112 x 1");
     expect(message).not.toContain("120 x 1");
+  });
+
+  // Two sessions leave zero degrees of freedom, so fitSlope would hand
+  // trendDirection a point interval and a bare slope would read as a
+  // confident direction. The action must refuse to claim one at all rather
+  // than call trendLabel on too few sessions.
+  it("refuses to claim a direction when a lift has fewer than four sessions", async () => {
+    signedIn();
+    consent(true);
+    getInsightsDataMock.mockResolvedValue({
+      sessions: sessionsOf(EX_BENCH, [135, 140]),
+      exercises: namesOf([[EX_BENCH, "Bench Press"]]),
+    });
+    await suggestInsights();
+    const message = insightsWithModelMock.mock.calls[0][1];
+    expect(message).toContain("Trend by estimated 1RM: Not enough sessions yet");
+    expect(message).not.toContain("Improving");
+    expect(message).not.toContain("Holding steady");
+    expect(message).not.toContain("Trending down");
   });
 
   it("drops a session with no sets and refuses when nothing is left", async () => {

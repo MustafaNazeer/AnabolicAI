@@ -11,6 +11,7 @@ Rules:
 - Return one to three observations. Each is a single sentence in plain language a beginner can read. The only jargon allowed is RIR.
 - Ground every observation in the data given. Never invent history, numbers, or lifts you were not shown.
 - The trend and stall lines were computed by the app's statistics. Only call a lift stalled or declining when its stall check says so, and do not suggest a fix for a stalled lift; the app's Progress screen owns that.
+- The trend is measured by estimated one rep max, which can differ from the chart the lifter is looking at. Any observation that names a direction must say it is by estimated one rep max.
 - No greetings, no headers, no medical claims, nothing about training through pain, no supplement advice.
 - Speak directly to the lifter, for example "Your bench press has held steady while your weekly volume went up."`;
 
@@ -65,7 +66,7 @@ export function buildInsightsMessage(ctx: InsightsContext): string {
       const sessions = lift.sessions
         .map((s) => `- ${days(s.daysAgo)}: ${s.sets.map(setLine).join(", ")}`)
         .join("\n");
-      return `Lift: ${head}\nTrend: ${lift.trendWord}\nStall check: ${lift.stallCheck}\nRecent sessions, oldest first:\n${sessions}`;
+      return `Lift: ${head}\nTrend by estimated 1RM: ${lift.trendWord}\nStall check: ${lift.stallCheck}\nRecent sessions, oldest first:\n${sessions}`;
     })
     .join("\n\n");
   return `${lifts}\n\nThis week: ${ctx.weeklyWorkouts} workouts, ${ctx.weeklySets} sets. Streak: ${ctx.streakWeeks} weeks.`;

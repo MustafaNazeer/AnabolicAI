@@ -112,5 +112,8 @@ describe("UntaggedExercises", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not save.");
+    expect(
+      screen.getByRole("button", { name: "Tag Pec Deck" }),
+    ).toBeInTheDocument();
   });
 });

@@ -335,12 +335,15 @@ export function ActiveWorkout({
   // a mid-session rename cannot leave one reader (an orphan card, a swap
   // target, the picker's own row) showing the name another reader already
   // corrected.
-  const library = [
-    ...snapshot.library.filter(
-      (e) => !libraryUpdates.some((u) => u.id === e.id),
-    ),
-    ...libraryUpdates,
-  ];
+  const library = useMemo(
+    () => [
+      ...snapshot.library.filter(
+        (e) => !libraryUpdates.some((u) => u.id === e.id),
+      ),
+      ...libraryUpdates,
+    ],
+    [snapshot.library, libraryUpdates],
+  );
 
   const cards = useMemo(
     () =>
@@ -444,7 +447,19 @@ export function ActiveWorkout({
             library={library}
             takenIds={takenExerciseIds(cards)}
             onAdd={(e) => void handleSwap(picking, e.id)}
-            onCreated={(e) => void handleSwap(picking, e.id)}
+            onCreated={(e) => {
+              // A freshly created exercise is not in snapshot.library either,
+              // so without this the swap below points handleSwap at an id
+              // buildEffectiveCards cannot resolve, and it falls back to the
+              // unswapped card. Every set logged after that lands on the
+              // original exercise while the server holds a swap pointing
+              // elsewhere.
+              setLibraryUpdates((cur) => [
+                ...cur.filter((x) => x.id !== e.id),
+                e,
+              ]);
+              void handleSwap(picking, e.id);
+            }}
             onUpdated={(e) =>
               setLibraryUpdates((cur) => [
                 ...cur.filter((x) => x.id !== e.id),

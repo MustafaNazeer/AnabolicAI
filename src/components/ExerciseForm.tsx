@@ -34,6 +34,12 @@ export function ExerciseForm({
   onSubmit: (name: string, group: string, equipment: string) => void;
   onCancel: () => void;
 }) {
+  // The three fields below seed their state with useState, so they do not
+  // re-initialise when initialName, initialGroup or initialEquipment change
+  // on an already mounted instance. A caller that can swap the selected
+  // exercise while the form stays open (the picker's edit flow, the Settings
+  // sweep) must pass key={exercise.id} so React remounts a fresh instance
+  // instead of reusing one that still holds the previous exercise's values.
   const [name, setName] = useState(initialName);
   const [group, setGroup] = useState<string | null>(initialGroup);
   const [equipment, setEquipment] = useState<string | null>(initialEquipment);
@@ -54,7 +60,7 @@ export function ExerciseForm({
 
       <div
         role="radiogroup"
-        aria-label="Muscle group"
+        aria-label="Muscle group for this exercise"
         className="flex gap-1.5 overflow-x-auto py-1"
       >
         {GROUPS.map((g) => (
@@ -73,7 +79,7 @@ export function ExerciseForm({
 
       <div
         role="radiogroup"
-        aria-label="Equipment"
+        aria-label="Equipment for this exercise"
         className="flex gap-1.5 overflow-x-auto py-1"
       >
         {EQUIPMENT.map((eq) => (

@@ -84,10 +84,10 @@ describe("ExerciseForm", () => {
   it("groups the chips so a screen reader can tell the two rows apart", () => {
     setup();
     expect(
-      screen.getByRole("radiogroup", { name: "Muscle group" }),
+      screen.getByRole("radiogroup", { name: "Muscle group for this exercise" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("radiogroup", { name: "Equipment" }),
+      screen.getByRole("radiogroup", { name: "Equipment for this exercise" }),
     ).toBeInTheDocument();
   });
 

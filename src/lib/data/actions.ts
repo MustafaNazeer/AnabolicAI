@@ -191,10 +191,14 @@ export async function updateExercise(
     .eq("id", id)
     .eq("is_default", false)
     .select("id, name, muscle_group, equipment, is_default")
-    .single();
+    .maybeSingle();
 
+  // A crafted id, or one that names a default (the is_default filter above
+  // correctly refuses that), matches zero rows. maybeSingle returns a null
+  // row rather than PostgREST's PGRST116 error for that case, so the caller
+  // never sees a raw database error string.
   if (error || !data) {
-    return { error: error?.message ?? "Could not save the exercise." };
+    return { error: "Could not save the exercise." };
   }
   return { exercise: data as Exercise };
 }

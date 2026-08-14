@@ -9,12 +9,15 @@ import { DashboardView } from "@/app/DashboardView";
 
 export default async function HomePage() {
   const now = new Date();
-  const [data, matrixDays, goals] = await Promise.all([
+  // All four reads are independent, so they go together. Awaiting the
+  // consent flag on its own added a round trip to every dashboard load,
+  // including for the users who never turn insights on.
+  const [data, matrixDays, goals, aiInsights] = await Promise.all([
     getDashboardData(now),
     getMatrixData(now),
     getActiveGoalsSummary(),
+    getAiInsights(),
   ]);
-  const aiInsights = await getAiInsights();
   const weekDays = weekStripDays(
     data.recent.map((w) => ({ completedAt: w.completedAt })),
     now,

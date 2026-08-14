@@ -22,10 +22,15 @@ export function AuthForm({
   mode,
   action,
   demoAction,
+  notice,
 }: {
   mode: Mode;
   action: (formData: FormData) => Promise<Result>;
   demoAction?: () => Promise<Result>;
+  // A message about something that already happened, such as a provider sign
+  // in the callback route refused. It is not tied to a submission, so unlike
+  // the inline error it offers no retry; it only carries the styling.
+  notice?: string;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -96,6 +101,20 @@ export function AuthForm({
       <p style={{ color: "var(--text-dim)" }} className="mb-8">
         {title}
       </p>
+      {notice ? (
+        <p
+          role="alert"
+          className="px-3 py-2 mb-4 text-sm"
+          style={{
+            background: "var(--surface-sunken)",
+            border: "1px solid var(--surface-border)",
+            borderRadius: "var(--radius-square)",
+            color: "var(--text)",
+          }}
+        >
+          {notice}
+        </p>
+      ) : null}
       <form action={onSubmit} className="flex flex-col gap-4">
         <input
           name="email"

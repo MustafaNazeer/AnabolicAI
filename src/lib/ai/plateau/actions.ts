@@ -10,6 +10,7 @@ import { getPlateauData } from "@/lib/ai/plateau/queries";
 import { buildPlateauMessage } from "@/lib/ai/plateau/prompt";
 import { suggestWithModel } from "@/lib/ai/plateau/suggest";
 import type { PlateauSuggestion } from "@/lib/ai/plateau/schema";
+import { getVerifiedUser } from "@/lib/auth/user";
 
 export type SuggestResult =
   | { ok: true; suggestion: PlateauSuggestion }
@@ -38,9 +39,7 @@ export async function suggestForPlateau(
   exerciseId: string,
 ): Promise<SuggestResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) {
     logOutcome("no-session");
     return { ok: false, error: "Not signed in." };
@@ -158,9 +157,7 @@ export async function setAiPlateau(
   enabled: boolean,
 ): Promise<{ ok: true } | { error: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   const { error } = await supabase

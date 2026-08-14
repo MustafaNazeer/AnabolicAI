@@ -6,13 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 import { copyRoutineName } from "@/lib/routines/duplicate";
 import type { Exercise } from "@/lib/data/types";
 import { checkExerciseFields } from "@/lib/data/exerciseFields";
+import { requireUser, getVerifiedUser } from "@/lib/auth/user";
 
 export async function createRoutine() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
+  const user = await requireUser();
 
   const { data, error } = await supabase
     .from("routines")
@@ -39,10 +37,7 @@ type SourceRoutine = {
 
 export async function duplicateRoutine(id: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
+  const user = await requireUser();
 
   const { data } = await supabase
     .from("routines")
@@ -135,9 +130,7 @@ export async function createExercise(
   if (!checked.ok) return { error: checked.error };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   const { data, error } = await supabase
@@ -168,9 +161,7 @@ export async function updateExercise(
   if (!checked.ok) return { error: checked.error };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   // RLS already refuses a default: exercises_update requires

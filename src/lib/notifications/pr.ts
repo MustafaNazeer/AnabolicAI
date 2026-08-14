@@ -4,6 +4,7 @@ import { estimatedOneRepMax } from "@/lib/progress/strength";
 import { sendToUser } from "@/lib/notifications/push";
 import { prCelebrationPayload } from "@/lib/notifications/payloads";
 import { shouldSendPr } from "@/lib/notifications/gate";
+import { getVerifiedUser } from "@/lib/auth/user";
 
 export async function celebrateIfPr(
   exerciseId: string,
@@ -11,9 +12,7 @@ export async function celebrateIfPr(
   weight: number,
 ): Promise<void> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return;
 
   const { data: settings } = await supabase

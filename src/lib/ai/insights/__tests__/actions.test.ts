@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const {
-  getUserMock,
+  getVerifiedUserMock,
   maybeSingleMock,
   upsertMock,
   checkRateLimitMock,
@@ -10,7 +10,7 @@ const {
   insightsWithModelMock,
   anthropicCtor,
 } = vi.hoisted(() => ({
-  getUserMock: vi.fn(),
+  getVerifiedUserMock: vi.fn(),
   maybeSingleMock: vi.fn(),
   upsertMock: vi.fn(),
   checkRateLimitMock: vi.fn(),
@@ -22,7 +22,6 @@ const {
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
-    auth: { getUser: getUserMock },
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({ maybeSingle: maybeSingleMock })),
@@ -30,6 +29,10 @@ vi.mock("@/lib/supabase/server", () => ({
       upsert: upsertMock,
     })),
   })),
+}));
+
+vi.mock("@/lib/auth/user", () => ({
+  getVerifiedUser: getVerifiedUserMock,
 }));
 
 vi.mock("@/lib/security/rateLimit", async (importOriginal) => ({
@@ -100,7 +103,7 @@ function stalledData() {
 }
 
 function signedIn() {
-  getUserMock.mockResolvedValue({ data: { user: { id: "user-123" } } });
+  getVerifiedUserMock.mockResolvedValue({ id: "user-123", email: "a@b.com" });
 }
 
 function consent(on: boolean) {
@@ -392,7 +395,7 @@ describe("suggestInsights", () => {
   });
 
   it("fails closed when signed out and never queries or calls the model", async () => {
-    getUserMock.mockResolvedValue({ data: { user: null } });
+    getVerifiedUserMock.mockResolvedValue(null);
     const result = await suggestInsights();
     expect(result.ok).toBe(false);
     expect(getInsightsDataMock).not.toHaveBeenCalled();
@@ -471,7 +474,7 @@ describe("setAiInsights", () => {
   });
 
   it("fails closed when signed out", async () => {
-    getUserMock.mockResolvedValue({ data: { user: null } });
+    getVerifiedUserMock.mockResolvedValue(null);
     await expect(setAiInsights(true)).resolves.toEqual({
       error: "Not signed in.",
     });

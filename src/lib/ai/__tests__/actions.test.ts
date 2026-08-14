@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const {
-  getUserMock,
+  getVerifiedUserMock,
   maybeSingleMock,
   upsertMock,
   checkRateLimitMock,
   parseWithModelMock,
   anthropicCtor,
 } = vi.hoisted(() => ({
-  getUserMock: vi.fn(),
+  getVerifiedUserMock: vi.fn(),
   maybeSingleMock: vi.fn(),
   upsertMock: vi.fn(),
   checkRateLimitMock: vi.fn(),
@@ -18,7 +18,6 @@ const {
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
-    auth: { getUser: getUserMock },
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({ maybeSingle: maybeSingleMock })),
@@ -26,6 +25,10 @@ vi.mock("@/lib/supabase/server", () => ({
       upsert: upsertMock,
     })),
   })),
+}));
+
+vi.mock("@/lib/auth/user", () => ({
+  getVerifiedUser: getVerifiedUserMock,
 }));
 
 vi.mock("@/lib/security/rateLimit", async (importOriginal) => ({
@@ -51,7 +54,7 @@ import { parseQuickEntry, setAiQuickEntry } from "@/lib/ai/actions";
 const GOOD_SETS = [{ reps: 5, weight: 185, rirLow: null, rirHigh: null }];
 
 function signedIn() {
-  getUserMock.mockResolvedValue({ data: { user: { id: "user-123" } } });
+  getVerifiedUserMock.mockResolvedValue({ id: "user-123", email: "a@b.com" });
 }
 
 function consent(on: boolean) {
@@ -77,7 +80,7 @@ describe("parseQuickEntry", () => {
   });
 
   it("fails closed when signed out and never calls the model", async () => {
-    getUserMock.mockResolvedValue({ data: { user: null } });
+    getVerifiedUserMock.mockResolvedValue(null);
     const result = await parseQuickEntry("185 for 5");
     expect(result.ok).toBe(false);
     expect(parseWithModelMock).not.toHaveBeenCalled();
@@ -164,7 +167,7 @@ describe("setAiQuickEntry", () => {
   });
 
   it("refuses when signed out", async () => {
-    getUserMock.mockResolvedValue({ data: { user: null } });
+    getVerifiedUserMock.mockResolvedValue(null);
     await expect(setAiQuickEntry(true)).resolves.toEqual({
       error: "Not signed in.",
     });

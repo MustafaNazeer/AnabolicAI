@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getVerifiedUser } from "@/lib/auth/user";
 import { getNotificationSettings } from "@/lib/notifications/queries";
 import { getAiQuickEntry, getAiPlateau, getAiInsights } from "@/lib/ai/queries";
 import { getUntaggedCustomExercises } from "@/lib/data/queries";
@@ -14,10 +14,7 @@ import { ThemePicker } from "@/components/ThemePicker";
 import { AppearanceControl } from "@/components/AppearanceControl";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   const settings = await getNotificationSettings();
   const aiQuickEntry = await getAiQuickEntry();
   const aiPlateau = await getAiPlateau();

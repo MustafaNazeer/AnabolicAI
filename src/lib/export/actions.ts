@@ -1,9 +1,9 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { toCsv } from "@/lib/export/csv";
 import { selectColumns, type Dataset } from "@/lib/export/columns";
 import { getSetRows, getSessionRows } from "@/lib/export/queries";
+import { getVerifiedUser } from "@/lib/auth/user";
 
 // Annotated explicitly rather than inferred. An inferred union widens to
 // { ok: boolean; error?: undefined } on the success arm, and a caller
@@ -22,10 +22,7 @@ export type ExportInput = {
 };
 
 export async function exportCsv(input: ExportInput): Promise<ExportResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
   // Validated before anything is read, so a rejected request costs no query.

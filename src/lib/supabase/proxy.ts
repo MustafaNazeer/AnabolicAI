@@ -26,9 +26,11 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Verified locally against the project's JWKS rather than by asking the
+  // auth server. This runs on nearly every request the matcher admits, so
+  // it was the single most expensive round trip in the application.
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims ? { id: claims.claims.sub } : null;
 
   const pathname = request.nextUrl.pathname;
   const onAuthPage = pathname === "/sign-in" || pathname === "/sign-up";

@@ -4,7 +4,7 @@ import { getActiveGoalsSummary } from "@/lib/goals/queries";
 import { getAiInsights } from "@/lib/ai/queries";
 import { weekStripDays } from "@/lib/progress/weekstrip";
 import { APP_TIMEZONE } from "@/lib/notifications/schedule";
-import { createClient } from "@/lib/supabase/server";
+import { getVerifiedUser } from "@/lib/auth/user";
 import { DashboardView } from "@/app/DashboardView";
 
 export default async function HomePage() {
@@ -24,10 +24,7 @@ export default async function HomePage() {
     APP_TIMEZONE,
   );
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   const name = user?.email?.split("@")[0] ?? "there";
 
   return (

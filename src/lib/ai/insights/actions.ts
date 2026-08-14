@@ -11,6 +11,7 @@ import { getDashboardData } from "@/lib/progress/queries";
 import { getInsightsData, type InsightsSet } from "@/lib/ai/insights/queries";
 import { buildInsightsMessage, type InsightLift } from "@/lib/ai/insights/prompt";
 import { insightsWithModel } from "@/lib/ai/insights/suggest";
+import { getVerifiedUser } from "@/lib/auth/user";
 
 export type InsightsResult =
   | { ok: true; insights: string[]; anyStalled: boolean }
@@ -42,9 +43,7 @@ function logOutcome(outcome: string, extra?: Record<string, number | string>) {
 
 export async function suggestInsights(): Promise<InsightsResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) {
     logOutcome("no-session");
     return { ok: false, error: "Not signed in." };
@@ -240,9 +239,7 @@ export async function setAiInsights(
   enabled: boolean,
 ): Promise<{ ok: true } | { error: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   const { error } = await supabase

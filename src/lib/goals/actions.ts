@@ -4,6 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { validateGoalInput } from "@/lib/goals/validation";
+import { getVerifiedUser } from "@/lib/auth/user";
 
 export async function createGoal(
   exerciseId: string,
@@ -14,9 +15,7 @@ export async function createGoal(
   if (v.error) return { error: v.error };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   const { error } = await supabase.from("goals").insert({

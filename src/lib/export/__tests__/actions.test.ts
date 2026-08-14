@@ -1,13 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { getSetRowsMock, getSessionRowsMock, getUserMock } = vi.hoisted(() => ({
+const { getSetRowsMock, getSessionRowsMock, getVerifiedUserMock } = vi.hoisted(() => ({
   getSetRowsMock: vi.fn(),
   getSessionRowsMock: vi.fn(),
-  getUserMock: vi.fn(),
+  getVerifiedUserMock: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({ auth: { getUser: getUserMock } })),
+  createClient: vi.fn(async () => ({})),
+}));
+
+vi.mock("@/lib/auth/user", () => ({
+  getVerifiedUser: getVerifiedUserMock,
 }));
 
 vi.mock("@/lib/export/queries", () => ({
@@ -37,7 +41,7 @@ const ROW = {
 };
 
 beforeEach(() => {
-  getUserMock.mockReset().mockResolvedValue({ data: { user: { id: "u1" } } });
+  getVerifiedUserMock.mockReset().mockResolvedValue({ id: "u1", email: "a@b.com" });
   getSetRowsMock.mockReset().mockResolvedValue([ROW]);
   getSessionRowsMock.mockReset().mockResolvedValue([]);
 });
@@ -51,7 +55,7 @@ describe("exportCsv", () => {
   });
 
   it("refuses when not signed in", async () => {
-    getUserMock.mockResolvedValue({ data: { user: null } });
+    getVerifiedUserMock.mockResolvedValue(null);
     expect(await exportCsv(BASE)).toEqual({ ok: false, error: "Not signed in." });
   });
 

@@ -7,6 +7,7 @@ import { checkRateLimit, limitMessage } from "@/lib/security/rateLimit";
 import { parseWithModel } from "@/lib/ai/parse";
 import { validateQuickEntryText } from "@/lib/ai/validate";
 import type { ParsedSet } from "@/lib/ai/schema";
+import { getVerifiedUser } from "@/lib/auth/user";
 
 export type QuickEntryResult =
   | { ok: true; sets: ParsedSet[] }
@@ -24,9 +25,7 @@ function logOutcome(outcome: string, extra?: Record<string, number | string>) {
 
 export async function parseQuickEntry(raw: string): Promise<QuickEntryResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) {
     logOutcome("no-session");
     return { ok: false, error: "Not signed in." };
@@ -94,9 +93,7 @@ export async function setAiQuickEntry(
   enabled: boolean,
 ): Promise<{ ok: true } | { error: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   const { error } = await supabase

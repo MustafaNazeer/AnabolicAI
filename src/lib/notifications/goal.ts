@@ -8,12 +8,11 @@ import {
 } from "@/lib/notifications/payloads";
 import { shouldSendGoal } from "@/lib/notifications/gate";
 import { decideGoalNotification } from "@/lib/goals/notify";
+import { getVerifiedUser } from "@/lib/auth/user";
 
 export async function evaluateGoalOnLog(exerciseId: string): Promise<void> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return;
 
   const { data: settings } = await supabase

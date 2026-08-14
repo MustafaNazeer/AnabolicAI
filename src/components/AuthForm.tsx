@@ -22,10 +22,17 @@ export function AuthForm({
   mode,
   action,
   demoAction,
+  providerAction,
+  notice,
 }: {
   mode: Mode;
   action: (formData: FormData) => Promise<Result>;
   demoAction?: () => Promise<Result>;
+  providerAction?: (provider: "google" | "github") => Promise<{ error?: string } | void>;
+  // A message about something that already happened, such as a provider sign
+  // in the callback route refused. It is not tied to a submission, so unlike
+  // the inline error it offers no retry; it only carries the styling.
+  notice?: string;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -96,6 +103,20 @@ export function AuthForm({
       <p style={{ color: "var(--text-dim)" }} className="mb-8">
         {title}
       </p>
+      {notice ? (
+        <p
+          role="alert"
+          className="px-3 py-2 mb-4 text-sm"
+          style={{
+            background: "var(--surface-sunken)",
+            border: "1px solid var(--surface-border)",
+            borderRadius: "var(--radius-square)",
+            color: "var(--text)",
+          }}
+        >
+          {notice}
+        </p>
+      ) : null}
       <form action={onSubmit} className="flex flex-col gap-4">
         <input
           name="email"
@@ -155,6 +176,36 @@ export function AuthForm({
         >
           Try the demo
         </button>
+      ) : null}
+      {mode === "sign-in" && providerAction ? (
+        <div className="flex flex-col gap-3 mt-3">
+          {(["google", "github"] as const).map((provider) => (
+            <button
+              key={provider}
+              type="button"
+              onClick={() => {
+                setError(null);
+                startTransition(async () => {
+                  const result = await providerAction(provider);
+                  if (result && "error" in result && result.error) {
+                    setError(result.error);
+                  }
+                });
+              }}
+              disabled={pending}
+              className="w-full font-semibold py-3 disabled:opacity-60"
+              style={{
+                background: "transparent",
+                border: "1px solid var(--surface-border)",
+                color: "var(--text)",
+                borderRadius: "var(--radius-tile)",
+                minHeight: 48,
+              }}
+            >
+              Continue with {provider === "google" ? "Google" : "GitHub"}
+            </button>
+          ))}
+        </div>
       ) : null}
       <Link
         href={altHref}

@@ -7,13 +7,11 @@ import { celebrateIfPr } from "@/lib/notifications/pr";
 import { evaluateGoalOnLog } from "@/lib/notifications/goal";
 import { Client } from "@upstash/qstash";
 import { toNotBeforeSeconds } from "@/lib/notifications/restPush";
+import { requireUser, getVerifiedUser } from "@/lib/auth/user";
 
 export async function startSession(routineId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
+  const user = await requireUser();
 
   const { data: active } = await supabase
     .from("workout_sessions")
@@ -258,9 +256,7 @@ export async function setRestDuration(seconds: number) {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   const { error } = await supabase
@@ -293,9 +289,7 @@ export async function scheduleRestPush(sessionId: string, deadlineMs: number) {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   const restToken = crypto.randomUUID();

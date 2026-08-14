@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getVerifiedUser } from "@/lib/auth/user";
 
 export async function saveSubscription(sub: {
   endpoint: string;
@@ -9,9 +10,7 @@ export async function saveSubscription(sub: {
   auth: string;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   const { error } = await supabase.from("push_subscriptions").upsert(
@@ -48,9 +47,7 @@ export async function updateNotificationSettings(values: {
   rest_timer_seconds: number;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   const { error } = await supabase
@@ -67,9 +64,7 @@ export async function reconcileSubscription(sub: {
   auth: string;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
   // Only repair for someone who wants notifications. Storing a subscription

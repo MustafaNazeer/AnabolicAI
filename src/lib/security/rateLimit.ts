@@ -12,6 +12,7 @@ export type LimitSurface =
   | "signIn"
   | "signUp"
   | "demo"
+  | "oauth"
   | "restComplete"
   | "quickEntry"
   | "plateau"
@@ -24,6 +25,10 @@ const RULES = {
   signIn: { limit: 10, window: "10 m" },
   signUp: { limit: 5, window: "1 h" },
   demo: { limit: 30, window: "1 h" },
+  // A provider redirect costs nothing locally, but an unbounded loop of them
+  // is still a way to hammer the auth server through us. Matched to signIn,
+  // which is the same threat with the same shape.
+  oauth: { limit: 10, window: "10 m" },
   restComplete: { limit: 60, window: "1 m" },
   // Quick entry parses are user initiated and paid per call, so this bounds
   // one account's spend. Keyed by user id: the caller is always signed in.
@@ -48,6 +53,7 @@ const MESSAGES: Record<MessagedSurface, string> = {
   signIn: "Too many attempts. Try again in a few minutes.",
   signUp: "Too many sign up attempts. Try again in an hour.",
   demo: "The demo is busy right now. Try again in an hour.",
+  oauth: "Too many attempts. Try again in a few minutes.",
   quickEntry: "Quick entry is catching its breath. Try again in a few minutes.",
   plateau: "Suggestions are catching their breath. Try again in a few minutes.",
   insights: "Insights are catching their breath. Try again in a few minutes.",

@@ -183,14 +183,15 @@ export function AuthForm({
             <button
               key={provider}
               type="button"
-              onClick={() =>
+              onClick={() => {
+                setError(null);
                 startTransition(async () => {
                   const result = await providerAction(provider);
                   if (result && "error" in result && result.error) {
                     setError(result.error);
                   }
-                })
-              }
+                });
+              }}
               disabled={pending}
               className="w-full font-semibold py-3 disabled:opacity-60"
               style={{

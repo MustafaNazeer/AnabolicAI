@@ -2,11 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-}));
-
 import { AuthForm } from "@/components/AuthForm";
 
 const noopAction = async () => {};
@@ -26,6 +21,24 @@ describe("AuthForm provider buttons", () => {
     render(<AuthForm mode="sign-in" action={noopAction} providerAction={providerAction} />);
     await userEvent.click(screen.getByRole("button", { name: /google/i }));
     expect(providerAction).toHaveBeenCalledWith("google");
+  });
+
+  it("passes github through on tap, not google", async () => {
+    const providerAction = vi.fn(async () => {});
+    render(<AuthForm mode="sign-in" action={noopAction} providerAction={providerAction} />);
+    await userEvent.click(screen.getByRole("button", { name: /github/i }));
+    expect(providerAction).toHaveBeenCalledWith("github");
+  });
+
+  it("shows the error when a provider sign in is rate limited", async () => {
+    const providerAction = vi
+      .fn()
+      .mockResolvedValue({ error: "Too many attempts. Try again in a few minutes." });
+    render(<AuthForm mode="sign-in" action={noopAction} providerAction={providerAction} />);
+    await userEvent.click(screen.getByRole("button", { name: /google/i }));
+    expect(
+      await screen.findByText("Too many attempts. Try again in a few minutes."),
+    ).toBeInTheDocument();
   });
 
   // Sign up is invite only through ALLOWED_EMAILS and the provider path

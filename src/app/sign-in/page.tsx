@@ -1,5 +1,5 @@
 import { AuthForm } from "@/components/AuthForm";
-import { signIn, signInAsDemo } from "@/lib/auth/actions";
+import { signIn, signInAsDemo, signInWithProvider } from "@/lib/auth/actions";
 
 export default async function SignInPage({
   searchParams,
@@ -20,6 +20,12 @@ export default async function SignInPage({
     error === "not-invited" ? "This email is not on the invite list." : undefined;
 
   return (
-    <AuthForm mode="sign-in" action={signIn} demoAction={demo} notice={notice} />
+    <AuthForm
+      mode="sign-in"
+      action={signIn}
+      demoAction={demo}
+      providerAction={signInWithProvider}
+      notice={notice}
+    />
   );
 }

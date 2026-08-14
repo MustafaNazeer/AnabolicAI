@@ -6,6 +6,7 @@ import { render, screen } from "@testing-library/react";
 vi.mock("@/lib/auth/actions", () => ({
   signIn: vi.fn(),
   signInAsDemo: vi.fn(),
+  signInWithProvider: vi.fn(),
 }));
 
 import SignInPage from "@/app/sign-in/page";

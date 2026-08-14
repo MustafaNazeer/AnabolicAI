@@ -16,6 +16,20 @@ export async function getExercises(): Promise<Exercise[]> {
   return (data ?? []) as Exercise[];
 }
 
+// Customs still missing either value. Defaults are excluded because all 158
+// carry both, and RLS would refuse to update one anyway. RLS also scopes this
+// to the caller, so the is_default filter is the only one needed here.
+export async function getUntaggedCustomExercises(): Promise<Exercise[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("exercises")
+    .select("id, name, muscle_group, equipment, is_default")
+    .eq("is_default", false)
+    .or("muscle_group.is.null,equipment.is.null")
+    .order("name", { ascending: true });
+  return (data ?? []) as Exercise[];
+}
+
 export async function getRoutines(): Promise<Routine[]> {
   const supabase = await createClient();
   const { data } = await supabase

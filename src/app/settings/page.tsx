@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { getNotificationSettings } from "@/lib/notifications/queries";
 import { getAiQuickEntry, getAiPlateau, getAiInsights } from "@/lib/ai/queries";
+import { getUntaggedCustomExercises } from "@/lib/data/queries";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { AiQuickEntryToggle } from "@/components/AiQuickEntryToggle";
 import { AiPlateauToggle } from "@/components/AiPlateauToggle";
 import { AiInsightsToggle } from "@/components/AiInsightsToggle";
+import { UntaggedExercises } from "@/components/UntaggedExercises";
 import { ExportPanel } from "@/components/ExportPanel";
 import { SettingsSection } from "@/components/ui/SettingsSection";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -20,6 +22,7 @@ export default async function SettingsPage() {
   const aiQuickEntry = await getAiQuickEntry();
   const aiPlateau = await getAiPlateau();
   const aiInsights = await getAiInsights();
+  const untagged = await getUntaggedCustomExercises();
 
   return (
     <main className="px-5 pt-12 pb-24">
@@ -51,6 +54,10 @@ export default async function SettingsPage() {
           <AiPlateauToggle initial={aiPlateau} />
           <AiInsightsToggle initial={aiInsights} />
         </div>
+      </SettingsSection>
+
+      <SettingsSection title="Your exercises">
+        <UntaggedExercises initial={untagged} />
       </SettingsSection>
 
       <SettingsSection title="Export">

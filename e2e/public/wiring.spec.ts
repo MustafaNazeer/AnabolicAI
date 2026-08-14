@@ -142,3 +142,12 @@ test("still serves the real brand assets to a signed out visitor", async ({ requ
     expect(response.status(), `${path} should be served, not redirected`).toBe(200);
   }
 });
+
+// A signed out GET to the callback with no code must answer cleanly rather
+// than 500 or bounce between the proxy and itself. /auth is already public,
+// so the proxy admits it and the route's own no-code branch handles it.
+test("the oauth callback refuses a request with no code", async ({ page }) => {
+  const response = await page.goto("/auth/callback");
+  expect(response?.status()).toBeLessThan(500);
+  await expect(page).toHaveURL(/\/sign-in/);
+});

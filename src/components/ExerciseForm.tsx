@@ -98,7 +98,10 @@ export function ExerciseForm({
         <button
           type="button"
           disabled={!ready}
-          onClick={() => onSubmit(name.trim(), group as string, equipment as string)}
+          onClick={() => {
+            if (group === null || equipment === null) return;
+            onSubmit(name.trim(), group, equipment);
+          }}
           className="px-3 py-2 text-sm font-medium disabled:opacity-60"
           style={fieldStyle}
         >

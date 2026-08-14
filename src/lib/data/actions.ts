@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { copyRoutineName } from "@/lib/routines/duplicate";
 import type { Exercise } from "@/lib/data/types";
+import { checkExerciseFields } from "@/lib/data/exerciseFields";
 
 export async function createRoutine() {
   const supabase = await createClient();
@@ -124,10 +125,14 @@ export async function saveRoutine(
 
 export async function createExercise(
   name: string,
-  muscleGroup: string | null,
+  muscleGroup: unknown,
+  equipment: unknown,
 ): Promise<{ error?: string; exercise?: Exercise }> {
-  const trimmed = name.trim();
-  if (!trimmed) return { error: "Enter an exercise name." };
+  // Validated before the client is even constructed. The chips constrain the
+  // interface; this constrains the data, because a server action is a public
+  // entry point and nothing stops a crafted call.
+  const checked = checkExerciseFields(name, muscleGroup, equipment);
+  if (!checked.ok) return { error: checked.error };
 
   const supabase = await createClient();
   const {
@@ -139,8 +144,9 @@ export async function createExercise(
     .from("exercises")
     .insert({
       user_id: user.id,
-      name: trimmed,
-      muscle_group: muscleGroup?.trim() || null,
+      name: checked.fields.name,
+      muscle_group: checked.fields.muscleGroup,
+      equipment: checked.fields.equipment,
       is_default: false,
     })
     .select("id, name, muscle_group, equipment, is_default")

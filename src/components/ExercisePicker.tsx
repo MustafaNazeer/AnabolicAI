@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { GROUPS, EQUIPMENT } from "@/lib/data/vocabulary";
 import { Chip } from "@/components/ui/Chip";
+import { ExerciseForm } from "@/components/ExerciseForm";
 
 export function ExercisePicker({
   library,
@@ -24,6 +25,8 @@ export function ExercisePicker({
   const [group, setGroup] = useState<string | null>(null);
   const [equipment, setEquipment] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [creating, setCreating] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const results = filterExercises(library, { query, group, equipment }).filter(
     (e) => !takenIds.has(e.id),
@@ -43,14 +46,18 @@ export function ExercisePicker({
     results.length === 0 &&
     filterExercises(library, { query }).some((e) => !takenIds.has(e.id));
 
-  function create() {
-    const name = query.trim();
+  function submitNew(name: string, group: string, eq: string) {
+    setFormError(null);
     startTransition(async () => {
-      const result = await createExercise(name, null);
+      const result = await createExercise(name, group, eq);
       if (result.exercise) {
         onCreated(result.exercise);
         setQuery("");
+        setCreating(false);
+        return;
       }
+      // Stays open so the typed name and both chips survive the retry.
+      setFormError(result.error ?? "Could not create exercise.");
     });
   }
 
@@ -115,12 +122,14 @@ export function ExercisePicker({
             </button>
           </li>
         ))}
-        {showCreate ? (
+        {showCreate && !creating ? (
           <li>
             <button
               type="button"
-              onClick={create}
-              disabled={pending}
+              onClick={() => {
+                setFormError(null);
+                setCreating(true);
+              }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left disabled:opacity-60"
               style={{ color: "var(--accent)", minHeight: 44 }}
             >
@@ -142,6 +151,26 @@ export function ExercisePicker({
           </li>
         ) : null}
       </ul>
+
+      {creating ? (
+        <div className="mt-2">
+          <ExerciseForm
+            initialName={query.trim()}
+            // The active filters are almost certainly the right answer: you
+            // filtered, found nothing, and are now creating what was missing.
+            initialGroup={group}
+            initialEquipment={equipment}
+            submitLabel="Create exercise"
+            pending={pending}
+            error={formError}
+            onSubmit={submitNew}
+            onCancel={() => {
+              setCreating(false);
+              setFormError(null);
+            }}
+          />
+        </div>
+      ) : null}
     </Card>
   );
 }

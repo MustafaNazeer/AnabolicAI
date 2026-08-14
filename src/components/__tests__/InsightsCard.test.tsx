@@ -74,6 +74,34 @@ describe("InsightsCard", () => {
     expect(region).toHaveTextContent("AI insights");
   });
 
+  // The card used to render its only button behind insights === null, so the
+  // button unmounted for good the moment an answer arrived and the sole way
+  // to ask again was to navigate away and come back. The rate limit already
+  // bounds the cost of asking at ten per ten minutes.
+  it("keeps a button after insights arrive so they can be asked for again", async () => {
+    render(<InsightsCard initialEnabled={true} />);
+    await userEvent.click(screen.getByRole("button", { name: ASK }));
+    await screen.findByText("Your bench is holding steady.");
+
+    suggestMock.mockResolvedValue({
+      ok: true,
+      insights: ["Your squat is improving by estimated one rep max."],
+      anyStalled: false,
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Ask again" }));
+
+    expect(suggestMock).toHaveBeenCalledTimes(2);
+    expect(
+      await screen.findByText(
+        "Your squat is improving by estimated one rep max.",
+      ),
+    ).toBeInTheDocument();
+    // The second answer REPLACES the first rather than appending to it.
+    expect(
+      screen.queryByText("Your bench is holding steady."),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows the Progress nudge only when a lift has stopped progressing", async () => {
     suggestMock.mockResolvedValue({
       ok: true,

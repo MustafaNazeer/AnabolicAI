@@ -104,17 +104,19 @@ export function InsightsCard({ initialEnabled }: { initialEnabled: boolean }) {
           WebkitBackdropFilter: "blur(14px)",
         }}
       >
-        {insights === null ? (
-          <button
-            type="button"
-            onClick={() => void ask()}
-            disabled={busy || !online}
-            className="px-3 py-2 text-sm font-medium disabled:opacity-60"
-            style={fieldStyle}
-          >
-            What stands out this week?
-          </button>
-        ) : null}
+        {/* Stays mounted once an answer arrives. Rendering it behind
+            insights === null meant the button vanished for good and the only
+            way to ask again was to navigate away and back. The action's rate
+            limit already bounds how often asking can cost anything. */}
+        <button
+          type="button"
+          onClick={() => void ask()}
+          disabled={busy || !online}
+          className="px-3 py-2 text-sm font-medium disabled:opacity-60"
+          style={fieldStyle}
+        >
+          {insights === null ? "What stands out this week?" : "Ask again"}
+        </button>
 
         {busy ? (
           <Skeleton className="w-full mt-3" style={{ height: 20 }} />

@@ -8,7 +8,8 @@ vi.mock("@/lib/data/actions", () => ({
   createExercise: vi.fn(async () => ({ exercise: undefined })),
 }));
 
-import { ExercisePicker, GROUPS, EQUIPMENT } from "@/components/ExercisePicker";
+import { ExercisePicker } from "@/components/ExercisePicker";
+import { GROUPS, EQUIPMENT } from "@/lib/data/vocabulary";
 import type { Exercise } from "@/lib/data/types";
 
 const ex = (
@@ -191,5 +192,25 @@ describe("ExercisePicker filters", () => {
     expect([...new Set(rows.map((m) => m[2]))].sort()).toEqual(
       [...EQUIPMENT].sort(),
     );
+  });
+
+  // After 0013 the muscle group vocabulary is defined in TWO places: 0012's
+  // data and 0013's CHECK. The test above reads only the first, so a value
+  // added to the chips and to 0012 but not to the constraint would pass it
+  // and fail at the database. This closes that seam.
+  it("keeps the muscle group constraint in step with the chips", () => {
+    const sql = readFileSync(
+      join(
+        __dirname,
+        "../../../supabase/migrations/0013_muscle_group_vocabulary.sql",
+      ),
+      "utf8",
+    );
+    // Match the parenthesised IN list specifically rather than every quoted
+    // word in the file, so a value named in a comment cannot satisfy this.
+    const list = sql.match(/muscle_group in\s*\(([^)]*)\)/)?.[1] ?? "";
+    const constrained = [...list.matchAll(/'([A-Za-z]+)'/g)].map((m) => m[1]);
+    expect(constrained.length).toBeGreaterThan(0);
+    expect([...new Set(constrained)].sort()).toEqual([...GROUPS].sort());
   });
 });

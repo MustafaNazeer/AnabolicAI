@@ -6,21 +6,7 @@ import { createExercise } from "@/lib/data/actions";
 import type { Exercise } from "@/lib/data/types";
 import { Plus } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-
-export const GROUPS = ["Chest", "Back", "Shoulders", "Legs", "Arms", "Core"];
-// Ordered by how broadly useful each value is, not by the CHECK constraint's
-// order (which is alphabetical-ish and irrelevant here). Bodyweight moves up
-// so it lands inside the roughly four chips that fit a 390px viewport without
-// swiping, since it is arguably the most useful value for anyone training at
-// home. Other stays last: it is the catch-all with the fewest rows behind it.
-export const EQUIPMENT = [
-  "Barbell",
-  "Dumbbell",
-  "Bodyweight",
-  "Machine",
-  "Cable",
-  "Other",
-];
+import { GROUPS, EQUIPMENT } from "@/lib/data/vocabulary";
 
 // A chip is a toggle, so it carries aria-pressed rather than relying on colour
 // alone to say it is active. Tapping the active chip clears its dimension.

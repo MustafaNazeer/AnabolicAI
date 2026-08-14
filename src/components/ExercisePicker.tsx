@@ -7,36 +7,7 @@ import type { Exercise } from "@/lib/data/types";
 import { Plus } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { GROUPS, EQUIPMENT } from "@/lib/data/vocabulary";
-
-// A chip is a toggle, so it carries aria-pressed rather than relying on colour
-// alone to say it is active. Tapping the active chip clears its dimension.
-function Chip({
-  label,
-  active,
-  onToggle,
-}: {
-  label: string;
-  active: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onToggle}
-      className="px-3 text-xs shrink-0"
-      style={{
-        minHeight: 44,
-        background: active ? "var(--accent)" : "var(--surface-sunken)",
-        border: `1px solid ${active ? "var(--accent)" : "var(--surface-border)"}`,
-        borderRadius: "var(--radius-square)",
-        color: active ? "var(--on-accent)" : "var(--text-dim)",
-      }}
-    >
-      {label}
-    </button>
-  );
-}
+import { Chip } from "@/components/ui/Chip";
 
 export function ExercisePicker({
   library,

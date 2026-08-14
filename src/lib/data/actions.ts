@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { copyRoutineName } from "@/lib/routines/duplicate";
 import type { Exercise } from "@/lib/data/types";
+import { checkExerciseFields } from "@/lib/data/exerciseFields";
 
 export async function createRoutine() {
   const supabase = await createClient();
@@ -124,10 +125,14 @@ export async function saveRoutine(
 
 export async function createExercise(
   name: string,
-  muscleGroup: string | null,
+  muscleGroup: unknown,
+  equipment: unknown,
 ): Promise<{ error?: string; exercise?: Exercise }> {
-  const trimmed = name.trim();
-  if (!trimmed) return { error: "Enter an exercise name." };
+  // Validated before the client is even constructed. The chips constrain the
+  // interface; this constrains the data, because a server action is a public
+  // entry point and nothing stops a crafted call.
+  const checked = checkExerciseFields(name, muscleGroup, equipment);
+  if (!checked.ok) return { error: checked.error };
 
   const supabase = await createClient();
   const {
@@ -139,8 +144,9 @@ export async function createExercise(
     .from("exercises")
     .insert({
       user_id: user.id,
-      name: trimmed,
-      muscle_group: muscleGroup?.trim() || null,
+      name: checked.fields.name,
+      muscle_group: checked.fields.muscleGroup,
+      equipment: checked.fields.equipment,
       is_default: false,
     })
     .select("id, name, muscle_group, equipment, is_default")
@@ -148,6 +154,51 @@ export async function createExercise(
 
   if (error || !data) {
     return { error: error?.message ?? "Could not create exercise." };
+  }
+  return { exercise: data as Exercise };
+}
+
+export async function updateExercise(
+  id: string,
+  name: string,
+  muscleGroup: unknown,
+  equipment: unknown,
+): Promise<{ error?: string; exercise?: Exercise }> {
+  const checked = checkExerciseFields(name, muscleGroup, equipment);
+  if (!checked.ok) return { error: checked.error };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  // RLS already refuses a default: exercises_update requires
+  // auth.uid() = user_id, and a default carries a null user_id, so the
+  // comparison is NULL rather than true. The is_default filter is here
+  // anyway rather than resting the guarantee on a single layer.
+  //
+  // No name uniqueness check. Defaults are global and customs are per user,
+  // so a custom legitimately shares a name with a default, and rejecting
+  // that is what forced a delete and cost logged sets on 2026-08-13.
+  const { data, error } = await supabase
+    .from("exercises")
+    .update({
+      name: checked.fields.name,
+      muscle_group: checked.fields.muscleGroup,
+      equipment: checked.fields.equipment,
+    })
+    .eq("id", id)
+    .eq("is_default", false)
+    .select("id, name, muscle_group, equipment, is_default")
+    .maybeSingle();
+
+  // A crafted id, or one that names a default (the is_default filter above
+  // correctly refuses that), matches zero rows. maybeSingle returns a null
+  // row rather than PostgREST's PGRST116 error for that case, so the caller
+  // never sees a raw database error string.
+  if (error || !data) {
+    return { error: "Could not save the exercise." };
   }
   return { exercise: data as Exercise };
 }

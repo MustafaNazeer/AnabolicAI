@@ -6,9 +6,11 @@ import { join } from "node:path";
 
 vi.mock("@/lib/data/actions", () => ({
   createExercise: vi.fn(async () => ({ exercise: undefined })),
+  updateExercise: vi.fn(),
 }));
 
-import { ExercisePicker, GROUPS, EQUIPMENT } from "@/components/ExercisePicker";
+import { ExercisePicker } from "@/components/ExercisePicker";
+import { GROUPS, EQUIPMENT } from "@/lib/data/vocabulary";
 import type { Exercise } from "@/lib/data/types";
 
 const ex = (
@@ -25,12 +27,24 @@ const LIBRARY = [
   ex("My Home Move", null, null),
 ];
 
+// SQL comments can carry near identical snippets to the real constraint (0013
+// keeps a pre-check query in a comment that mentions "muscle_group not in").
+// Stripping comment lines before matching means the guard below never rests
+// on a single word like "not" to tell the two apart.
+function stripSqlComments(sql: string): string {
+  return sql
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("--"))
+    .join("\n");
+}
+
 function setup() {
   return render(
     <ExercisePicker
       library={LIBRARY}
       onAdd={vi.fn()}
       onCreated={vi.fn()}
+      onUpdated={vi.fn()}
       takenIds={new Set<string>()}
     />,
   );
@@ -191,5 +205,47 @@ describe("ExercisePicker filters", () => {
     expect([...new Set(rows.map((m) => m[2]))].sort()).toEqual(
       [...EQUIPMENT].sort(),
     );
+  });
+
+  // After 0013 the muscle group vocabulary is defined in TWO places: 0012's
+  // data and 0013's CHECK. The test above reads only the first, so a value
+  // added to the chips and to 0012 but not to the constraint would pass it
+  // and fail at the database. This closes that seam.
+  it("keeps the muscle group constraint in step with the chips", () => {
+    const sql = readFileSync(
+      join(
+        __dirname,
+        "../../../supabase/migrations/0013_muscle_group_vocabulary.sql",
+      ),
+      "utf8",
+    );
+    // Match the parenthesised IN list specifically rather than every quoted
+    // word in the file, so a value named in a comment cannot satisfy this.
+    // Comments are stripped first: 0013 deliberately carries a pre-check
+    // query in a comment that reads "muscle_group not in (...)", and this
+    // must not depend on the word "not" being the only thing keeping the
+    // regex off it.
+    const code = stripSqlComments(sql);
+    const list = code.match(/muscle_group in\s*\(([^)]*)\)/)?.[1] ?? "";
+    const constrained = [...list.matchAll(/'([A-Za-z]+)'/g)].map((m) => m[1]);
+    expect(constrained.length).toBeGreaterThan(0);
+    expect([...new Set(constrained)].sort()).toEqual([...GROUPS].sort());
+  });
+
+  // The equipment vocabulary has the same three way split as muscle group:
+  // EQUIPMENT, 0012's VALUES rows (pinned above), and 0012's
+  // exercises_equipment_valid CHECK. Without this, a value added to the
+  // chips and to 0012's data but never added to the CHECK would pass this
+  // whole suite and fail only at the database.
+  it("keeps the equipment constraint in step with the chips", () => {
+    const sql = readFileSync(
+      join(__dirname, "../../../supabase/migrations/0012_exercise_library.sql"),
+      "utf8",
+    );
+    const code = stripSqlComments(sql);
+    const list = code.match(/equipment in\s*\(([^)]*)\)/)?.[1] ?? "";
+    const constrained = [...list.matchAll(/'([A-Za-z]+)'/g)].map((m) => m[1]);
+    expect(constrained.length).toBeGreaterThan(0);
+    expect([...new Set(constrained)].sort()).toEqual([...EQUIPMENT].sort());
   });
 });

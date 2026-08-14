@@ -46,7 +46,14 @@ export function RoutineEditor({
   const [pending, startTransition] = useTransition();
 
   const takenIds = new Set(items.map((i) => i.exercise.id));
-  const fullLibrary = [...library, ...extra];
+  // extra holds both this session's new customs and any edited exercise, so
+  // an id present in both wins from extra: the edited or freshly created
+  // version is always the one shown, never the stale copy the page loaded
+  // with.
+  const fullLibrary = [
+    ...library.filter((e) => !extra.some((x) => x.id === e.id)),
+    ...extra,
+  ];
 
   function add(exercise: Exercise) {
     setSaved(false);
@@ -200,6 +207,9 @@ export function RoutineEditor({
             onCreated={(e) => {
               setExtra((cur) => [...cur, e]);
               add(e);
+            }}
+            onUpdated={(e) => {
+              setExtra((cur) => [...cur.filter((x) => x.id !== e.id), e]);
             }}
           />
           <button

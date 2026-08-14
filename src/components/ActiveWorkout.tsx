@@ -41,6 +41,7 @@ import {
   type SessionState,
 } from "@/lib/offline/sessionState";
 import type { LocalSet, Snapshot } from "@/lib/offline/store";
+import type { Exercise } from "@/lib/data/types";
 
 function buildRunners(): Runners {
   return {
@@ -157,6 +158,10 @@ export function ActiveWorkout({
   const [swaps, setSwaps] = useState(snapshot.swaps);
   // The routine exercise whose slot the picker is currently choosing for.
   const [picking, setPicking] = useState<string | null>(null);
+  // snapshot.library is frozen at page load. A rename or retag from the
+  // picker lands here instead, so the picker's own list never shows the
+  // stale row it just saved over.
+  const [libraryUpdates, setLibraryUpdates] = useState<Exercise[]>([]);
   // Consent is read once on the server and then held here, so enabling it from
   // one card's notice turns quick entry on for every card without a reload.
   const [aiEnabled, setAiEnabled] = useState(aiQuickEntry);
@@ -324,6 +329,22 @@ export function ActiveWorkout({
     return counts;
   }, [sets]);
 
+  // snapshot.library is frozen at page load. A rename or retag from the
+  // picker lands in libraryUpdates instead, and every reader of the library
+  // merges through here, same override-wins shape as the routine editor, so
+  // a mid-session rename cannot leave one reader (an orphan card, a swap
+  // target, the picker's own row) showing the name another reader already
+  // corrected.
+  const library = useMemo(
+    () => [
+      ...snapshot.library.filter(
+        (e) => !libraryUpdates.some((u) => u.id === e.id),
+      ),
+      ...libraryUpdates,
+    ],
+    [snapshot.library, libraryUpdates],
+  );
+
   const cards = useMemo(
     () =>
       buildEffectiveCards(
@@ -333,10 +354,10 @@ export function ActiveWorkout({
           defaultSets: e.defaultSets,
         })),
         swaps,
-        snapshot.library,
+        library,
         setCounts,
       ),
-    [snapshot.exercises, snapshot.library, swaps, setCounts],
+    [snapshot.exercises, library, swaps, setCounts],
   );
 
   // Sets logged against an exercise no card shows, which happens when a slot
@@ -349,10 +370,10 @@ export function ActiveWorkout({
 
   const nameFor = useCallback(
     (id: string) =>
-      snapshot.library.find((e) => e.id === id)?.name ??
+      library.find((e) => e.id === id)?.name ??
       snapshot.exercises.find((e) => e.exerciseId === id)?.name ??
       "Exercise",
-    [snapshot.library, snapshot.exercises],
+    [library, snapshot.exercises],
   );
 
   return (
@@ -423,10 +444,28 @@ export function ActiveWorkout({
             Swap in a different exercise for today
           </p>
           <ExercisePicker
-            library={snapshot.library}
+            library={library}
             takenIds={takenExerciseIds(cards)}
             onAdd={(e) => void handleSwap(picking, e.id)}
-            onCreated={(e) => void handleSwap(picking, e.id)}
+            onCreated={(e) => {
+              // A freshly created exercise is not in snapshot.library either,
+              // so without this the swap below points handleSwap at an id
+              // buildEffectiveCards cannot resolve, and it falls back to the
+              // unswapped card. Every set logged after that lands on the
+              // original exercise while the server holds a swap pointing
+              // elsewhere.
+              setLibraryUpdates((cur) => [
+                ...cur.filter((x) => x.id !== e.id),
+                e,
+              ]);
+              void handleSwap(picking, e.id);
+            }}
+            onUpdated={(e) =>
+              setLibraryUpdates((cur) => [
+                ...cur.filter((x) => x.id !== e.id),
+                e,
+              ])
+            }
           />
           <button
             type="button"

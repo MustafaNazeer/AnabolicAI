@@ -29,11 +29,21 @@ describe("the sign in page", () => {
     expect(screen.queryByText(REJECTION)).not.toBeInTheDocument();
   });
 
-  // A repeated query parameter arrives as an array, which is not the marker,
-  // so it must not be able to conjure the notice.
   it("ignores an error parameter it does not recognise", async () => {
     render(
       await SignInPage({ searchParams: Promise.resolve({ error: "something-else" }) }),
+    );
+    expect(screen.queryByText(REJECTION)).not.toBeInTheDocument();
+  });
+
+  // A repeated query parameter arrives as an array rather than a string, so a
+  // comparison loose enough to look inside it could be talked into showing the
+  // notice by a crafted link. Equality against the marker cannot be.
+  it("ignores a repeated error parameter that arrives as an array", async () => {
+    render(
+      await SignInPage({
+        searchParams: Promise.resolve({ error: ["not-invited", "x"] }),
+      }),
     );
     expect(screen.queryByText(REJECTION)).not.toBeInTheDocument();
   });

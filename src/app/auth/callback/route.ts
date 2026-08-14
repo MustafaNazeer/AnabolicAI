@@ -1,9 +1,45 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { isChunkLike } from "@supabase/ssr";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isEmailAllowed } from "@/lib/auth/allowlist";
 
 const REJECTED = "/sign-in?error=not-invited";
+
+// The name the Supabase client derives for its auth cookie. supabase-js builds
+// it from the first label of the project hostname, so reading the configured
+// URL gives the same answer without a project ref written down here. A value
+// too large for one cookie is split into chunks named key.0, key.1 and so on.
+function authCookieKey(): string | null {
+  try {
+    const { hostname } = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+    return `sb-${hostname.split(".")[0]}-auth-token`;
+  } catch {
+    return null;
+  }
+}
+
+// Expire the session cookies on the response itself. Two things make this the
+// right place. The client hands back its error before it clears the session,
+// so after a failed sign out the cookies are still live. And cookies set on a
+// returned response are applied after the ones written through next/headers,
+// so this overrides the session exchangeCodeForSession just wrote rather than
+// racing it.
+async function expireAuthCookies(response: NextResponse): Promise<void> {
+  const key = authCookieKey();
+  if (!key) return;
+
+  // The base name plus whichever chunks exist, matched with the library's own
+  // predicate so the chunk naming is not reimplemented here.
+  const names = new Set([key]);
+  for (const { name } of (await cookies()).getAll()) {
+    if (isChunkLike(name, key)) names.add(name);
+  }
+  for (const name of names) {
+    response.cookies.set(name, "", { maxAge: 0, path: "/" });
+  }
+}
 
 // Whether this account owns anything at all. Only a genuinely empty account
 // may be deleted on the reject path, because auth.users cascades to routines,
@@ -68,10 +104,19 @@ export async function GET(request: NextRequest) {
 
   // Refused. Sign out always; delete only if there is provably nothing to
   // lose. A rejected account holding history is left for a human to look at.
-  await supabase.auth.signOut();
+  //
+  // The sign out is the whole of the enforcement. The allowlist is consulted
+  // here and when a password account signs up, never again per request, and
+  // the account this route is most careful about is deliberately left in
+  // place. So a sign out that failed must not be reported as a refusal that
+  // took effect, or a refused visitor keeps a live session and walks back in.
+  const { error: signOutError } = await supabase.auth.signOut();
   const admin = createAdminClient();
   if (!(await ownsData(admin, data.user.id))) {
     await admin.auth.admin.deleteUser(data.user.id);
   }
-  return NextResponse.redirect(new URL(REJECTED, request.url));
+
+  const response = NextResponse.redirect(new URL(REJECTED, request.url));
+  if (signOutError) await expireAuthCookies(response);
+  return response;
 }

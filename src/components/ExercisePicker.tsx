@@ -8,12 +8,17 @@ import { Plus } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
 export const GROUPS = ["Chest", "Back", "Shoulders", "Legs", "Arms", "Core"];
+// Ordered by how broadly useful each value is, not by the CHECK constraint's
+// order (which is alphabetical-ish and irrelevant here). Bodyweight moves up
+// so it lands inside the roughly four chips that fit a 390px viewport without
+// swiping, since it is arguably the most useful value for anyone training at
+// home. Other stays last: it is the catch-all with the fewest rows behind it.
 export const EQUIPMENT = [
   "Barbell",
   "Dumbbell",
+  "Bodyweight",
   "Machine",
   "Cable",
-  "Bodyweight",
   "Other",
 ];
 
@@ -70,6 +75,17 @@ export function ExercisePicker({
     query.trim().length > 0 &&
     !library.some((e) => e.name.toLowerCase() === query.trim().toLowerCase());
 
+  // A chip can hide the very match the query is asking for. Only worth
+  // saying when a query is actually typed: an empty query plus an active
+  // chip is ordinary browsing, not a search coming up short. Reuses
+  // filterExercises with the chips left out, so the check never
+  // reimplements filtering.
+  const filtersHideMatches =
+    (group !== null || equipment !== null) &&
+    query.trim().length > 0 &&
+    results.length === 0 &&
+    filterExercises(library, { query }).some((e) => !takenIds.has(e.id));
+
   function create() {
     const name = query.trim();
     startTransition(async () => {
@@ -101,7 +117,7 @@ export function ExercisePicker({
         <div
           role="group"
           aria-label="Muscle group"
-          className="flex gap-1.5 overflow-x-auto"
+          className="flex gap-1.5 overflow-x-auto py-1"
         >
           {GROUPS.map((g) => (
             <Chip
@@ -115,7 +131,7 @@ export function ExercisePicker({
         <div
           role="group"
           aria-label="Equipment"
-          className="flex gap-1.5 overflow-x-auto"
+          className="flex gap-1.5 overflow-x-auto py-1"
         >
           {EQUIPMENT.map((eq) => (
             <Chip
@@ -158,7 +174,14 @@ export function ExercisePicker({
         ) : null}
         {results.length === 0 && !showCreate ? (
           <li className="px-3 py-2 text-sm" style={{ color: "var(--text-dim)" }}>
-            No exercises match.
+            {filtersHideMatches
+              ? "No exercises match. Tap the active filter to clear it."
+              : "No exercises match."}
+          </li>
+        ) : null}
+        {showCreate && filtersHideMatches ? (
+          <li className="px-3 py-2 text-sm" style={{ color: "var(--text-dim)" }}>
+            Tap the active filter to clear it.
           </li>
         ) : null}
       </ul>

@@ -1,9 +1,9 @@
 -- Exercise library enrichment.
 --
 -- Grows the default library from 30 to 158 and adds the equipment column the
--- picker will later filter on and the routine builder will later filter on
--- too. The column is nullable because an exercise a user adds through the
--- picker has no equipment, exactly as it already has no muscle group.
+-- picker filters on and the routine builder will later filter on too. The
+-- column is nullable because an exercise a user adds through the picker has
+-- no equipment, exactly as it already has no muscle group.
 --
 -- This file is the ONE authoritative copy of the default library. seed.sql no
 -- longer inserts exercises. Every insert below is guarded, so this migration
@@ -26,6 +26,8 @@ alter table exercises add constraint exercises_equipment_valid check (
 
 -- No name below contains an apostrophe, so the VALUES list needs no escaping.
 -- Any future addition that does must double it, for example 'Captain''s Chair'.
+--
+-- ON COMMIT DROP requires this whole file to run as one transaction: the Supabase SQL Editor already does that, but a bare `psql -f` without --single-transaction autocommits each statement, drops this table immediately, and fails at the insert below, after the column and constraint above have already committed on their own.
 create temporary table library_seed (
   name text,
   muscle_group text,

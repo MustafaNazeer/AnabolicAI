@@ -129,6 +129,38 @@ describe("ExercisePicker filters", () => {
     expect(screen.getByText("No exercises match.")).toBeInTheDocument();
   });
 
+  it("points at the active filter when a full match is hidden by it and no create is offered", async () => {
+    setup();
+    await userEvent.click(screen.getByRole("button", { name: "Chest" }));
+    await userEvent.type(
+      screen.getByPlaceholderText("Search or add an exercise"),
+      "squat",
+    );
+    expect(listedNames()).toEqual([]);
+    expect(
+      screen.queryByRole("button", { name: /Create/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Tap the active filter to clear it\.?$/),
+    ).toBeInTheDocument();
+  });
+
+  it("points at the active filter even while create is offered for a partial match", async () => {
+    setup();
+    await userEvent.click(screen.getByRole("button", { name: "Chest" }));
+    await userEvent.type(
+      screen.getByPlaceholderText("Search or add an exercise"),
+      "squa",
+    );
+    expect(listedNames()).toEqual([]);
+    expect(
+      screen.getByRole("button", { name: /Create "squa"/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Tap the active filter to clear it\.?$/),
+    ).toBeInTheDocument();
+  });
+
   it("gives every chip a 44px minimum tap target", () => {
     setup();
     expect(screen.getByRole("button", { name: "Legs" })).toHaveStyle({

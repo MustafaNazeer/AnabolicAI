@@ -145,7 +145,10 @@ test("still serves the real brand assets to a signed out visitor", async ({ requ
 
 // A signed out GET to the callback with no code must answer cleanly rather
 // than 500 or bounce between the proxy and itself. /auth is already public,
-// so the proxy admits it and the route's own no-code branch handles it.
+// so the proxy admits it, and this case pins that coarser guarantee: the
+// route never 500s and never strands a codeless visitor anywhere but sign
+// in. The no code branch itself is pinned in
+// src/app/auth/callback/__tests__/route.test.ts.
 test("the oauth callback refuses a request with no code", async ({ page }) => {
   const response = await page.goto("/auth/callback");
   expect(response?.status()).toBeLessThan(500);

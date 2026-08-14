@@ -111,8 +111,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // Serve only. The build is explicit in the npm script, so a run can never
-    // quietly serve a stale build.
+    // Serve only, deliberately. The build is explicit in npm run test:e2e
+    // (next build && playwright test ...), so a run through that script can
+    // never quietly serve a stale build. Invoking playwright directly, without
+    // going through the npm script, skips the build and serves whatever is
+    // already sitting in .next, stale or not.
     command: `npx next start -p ${PORT}`,
     url: BASE_URL,
     reuseExistingServer: false,

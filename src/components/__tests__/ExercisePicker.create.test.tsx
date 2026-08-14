@@ -8,6 +8,7 @@ const { createExerciseMock } = vi.hoisted(() => ({
 
 vi.mock("@/lib/data/actions", () => ({
   createExercise: createExerciseMock,
+  updateExercise: vi.fn(),
 }));
 
 import { ExercisePicker } from "@/components/ExercisePicker";
@@ -30,6 +31,7 @@ function setup() {
       library={LIBRARY}
       onAdd={vi.fn()}
       onCreated={onCreated}
+      onUpdated={vi.fn()}
       takenIds={new Set<string>()}
     />,
   );

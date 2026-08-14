@@ -10,6 +10,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: 
 vi.mock("@/lib/data/actions", () => ({
   saveRoutine: vi.fn(),
   createExercise: vi.fn(),
+  updateExercise: vi.fn(),
 }));
 
 const bench: Exercise = {

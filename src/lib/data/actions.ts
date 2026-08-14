@@ -157,3 +157,44 @@ export async function createExercise(
   }
   return { exercise: data as Exercise };
 }
+
+export async function updateExercise(
+  id: string,
+  name: string,
+  muscleGroup: unknown,
+  equipment: unknown,
+): Promise<{ error?: string; exercise?: Exercise }> {
+  const checked = checkExerciseFields(name, muscleGroup, equipment);
+  if (!checked.ok) return { error: checked.error };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  // RLS already refuses a default: exercises_update requires
+  // auth.uid() = user_id, and a default carries a null user_id, so the
+  // comparison is NULL rather than true. The is_default filter is here
+  // anyway rather than resting the guarantee on a single layer.
+  //
+  // No name uniqueness check. Defaults are global and customs are per user,
+  // so a custom legitimately shares a name with a default, and rejecting
+  // that is what forced a delete and cost logged sets on 2026-08-13.
+  const { data, error } = await supabase
+    .from("exercises")
+    .update({
+      name: checked.fields.name,
+      muscle_group: checked.fields.muscleGroup,
+      equipment: checked.fields.equipment,
+    })
+    .eq("id", id)
+    .eq("is_default", false)
+    .select("id, name, muscle_group, equipment, is_default")
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message ?? "Could not save the exercise." };
+  }
+  return { exercise: data as Exercise };
+}

@@ -41,6 +41,7 @@ import {
   type SessionState,
 } from "@/lib/offline/sessionState";
 import type { LocalSet, Snapshot } from "@/lib/offline/store";
+import type { Exercise } from "@/lib/data/types";
 
 function buildRunners(): Runners {
   return {
@@ -157,6 +158,10 @@ export function ActiveWorkout({
   const [swaps, setSwaps] = useState(snapshot.swaps);
   // The routine exercise whose slot the picker is currently choosing for.
   const [picking, setPicking] = useState<string | null>(null);
+  // snapshot.library is frozen at page load. A rename or retag from the
+  // picker lands here instead, so the picker's own list never shows the
+  // stale row it just saved over.
+  const [libraryUpdates, setLibraryUpdates] = useState<Exercise[]>([]);
   // Consent is read once on the server and then held here, so enabling it from
   // one card's notice turns quick entry on for every card without a reload.
   const [aiEnabled, setAiEnabled] = useState(aiQuickEntry);
@@ -355,6 +360,15 @@ export function ActiveWorkout({
     [snapshot.library, snapshot.exercises],
   );
 
+  // Same override-wins merge as the routine editor: an edited exercise
+  // replaces its stale entry rather than sitting alongside it.
+  const pickerLibrary = [
+    ...snapshot.library.filter(
+      (e) => !libraryUpdates.some((u) => u.id === e.id),
+    ),
+    ...libraryUpdates,
+  ];
+
   return (
     <main className="px-5 pt-12 pb-28">
       <h1
@@ -423,10 +437,16 @@ export function ActiveWorkout({
             Swap in a different exercise for today
           </p>
           <ExercisePicker
-            library={snapshot.library}
+            library={pickerLibrary}
             takenIds={takenExerciseIds(cards)}
             onAdd={(e) => void handleSwap(picking, e.id)}
             onCreated={(e) => void handleSwap(picking, e.id)}
+            onUpdated={(e) =>
+              setLibraryUpdates((cur) => [
+                ...cur.filter((x) => x.id !== e.id),
+                e,
+              ])
+            }
           />
           <button
             type="button"

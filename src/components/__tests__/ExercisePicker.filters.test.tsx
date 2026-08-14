@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 vi.mock("@/lib/data/actions", () => ({
   createExercise: vi.fn(async () => ({ exercise: undefined })),
+  updateExercise: vi.fn(),
 }));
 
 import { ExercisePicker } from "@/components/ExercisePicker";
@@ -32,6 +33,7 @@ function setup() {
       library={LIBRARY}
       onAdd={vi.fn()}
       onCreated={vi.fn()}
+      onUpdated={vi.fn()}
       takenIds={new Set<string>()}
     />,
   );

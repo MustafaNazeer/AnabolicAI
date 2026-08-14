@@ -157,4 +157,8 @@ describe("limitMessage", () => {
   it("promises minutes for plateau, whose window is minutes", () => {
     expect(limitMessage("plateau")).toContain("few minutes");
   });
+
+  it("carries a message for the oauth surface", () => {
+    expect(limitMessage("oauth")).toBe("Too many attempts. Try again in a few minutes.");
+  });
 });

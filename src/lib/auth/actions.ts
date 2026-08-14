@@ -71,3 +71,21 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/sign-in");
 }
+
+export async function signInWithProvider(provider: "google" | "github") {
+  if (!(await checkRateLimit("oauth", await clientIp()))) {
+    return { error: limitMessage("oauth") };
+  }
+
+  const origin = (await headers()).get("origin") ?? "";
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    // The allowlist cannot be applied here, because the account is created
+    // by Supabase during the redirect and this action has already returned.
+    // The callback route is the only place that can refuse one.
+    options: { redirectTo: `${origin}/auth/callback` },
+  });
+  if (error || !data.url) return { error: "Could not start sign in." };
+  redirect(data.url);
+}

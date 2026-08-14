@@ -10,11 +10,30 @@ const REJECTED = "/sign-in?error=not-invited";
 // sessions, sets, settings, push subscriptions and custom exercises. An
 // account with history that is refused today may simply have been dropped
 // from ALLOWED_EMAILS, and that must never destroy their data.
+//
+// Six tables cascade from auth.users. Five of them are counted below:
+// routines, workout_sessions, exercises, goals and push_subscriptions.
+// user_settings is the sixth and is deliberately left out, because the
+// handle_new_user trigger inserts a row there for every account at signup, so
+// counting it would make every account look occupied and this delete would
+// become dead code that never fires.
+//
+// All five are counted, including the ones whose data is cheap to lose. This
+// check is a safety interlock, so its failure mode has to be refusing to
+// delete, never deleting something. Counting the cheap ones costs the intended
+// path nothing: the account this route is built to remove was created seconds
+// earlier by an uninvited provider redirect and owns zero rows in all five.
 async function ownsData(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
 ): Promise<boolean> {
-  for (const table of ["routines", "workout_sessions", "exercises"]) {
+  for (const table of [
+    "routines",
+    "workout_sessions",
+    "exercises",
+    "goals",
+    "push_subscriptions",
+  ]) {
     const { count, error } = await admin
       .from(table)
       .select("id", { count: "exact", head: true })

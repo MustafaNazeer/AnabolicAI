@@ -13,11 +13,14 @@ vi.mock("@/lib/supabase/server", () => ({
   })),
 }));
 
+// The table name is handed to countMock so a test can answer per table rather
+// than uniformly. Without that, a test could not show that one table alone is
+// enough to block the delete, which is the whole point of counting five.
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn(() => ({
     auth: { admin: { deleteUser: deleteUserMock } },
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({ eq: vi.fn(() => countMock()) })),
+    from: vi.fn((table: string) => ({
+      select: vi.fn(() => ({ eq: vi.fn(() => countMock(table)) })),
     })),
   })),
 }));
@@ -31,6 +34,14 @@ const SESSION = (email: string) => ({
   data: { user: { id: "u1", email } },
   error: null,
 });
+
+// The account owns one row in the named table and a real zero everywhere else,
+// so each test below turns on exactly one table being counted.
+const ownsOnly = (owned: string) =>
+  countMock.mockImplementation(async (table: string) => ({
+    count: table === owned ? 1 : 0,
+    error: null,
+  }));
 
 beforeEach(() => {
   vi.stubEnv("ALLOWED_EMAILS", "yes@b.com");
@@ -85,6 +96,42 @@ describe("the oauth callback", () => {
     expect(deleteUserMock).not.toHaveBeenCalled();
     expect(signOutMock).toHaveBeenCalled();
     expect(res.headers.get("location")).toContain("/sign-in");
+  });
+
+  // A goal on its own is enough, with no routine, no session and no custom
+  // exercise behind it. It is something a person sat down and typed in, and
+  // deleting the account takes it with them.
+  it("NEVER deletes a rejected account whose only data is a goal", async () => {
+    exchangeMock.mockResolvedValue(SESSION("no@b.com"));
+    ownsOnly("goals");
+    const res = await GET(REQ());
+    expect(deleteUserMock).not.toHaveBeenCalled();
+    expect(signOutMock).toHaveBeenCalled();
+    expect(res.headers.get("location")).toContain("/sign-in");
+  });
+
+  // Cheaper to lose than a goal, and counted anyway. A safety interlock has to
+  // fail towards refusing to delete, and counting this costs the intended path
+  // nothing, because the account this route removes owns nothing at all.
+  it("NEVER deletes a rejected account whose only data is a push subscription", async () => {
+    exchangeMock.mockResolvedValue(SESSION("no@b.com"));
+    ownsOnly("push_subscriptions");
+    const res = await GET(REQ());
+    expect(deleteUserMock).not.toHaveBeenCalled();
+    expect(signOutMock).toHaveBeenCalled();
+    expect(res.headers.get("location")).toContain("/sign-in");
+  });
+
+  // The counterpart, and the reason user_settings is left out of the count.
+  // The handle_new_user trigger gives every account a settings row at signup,
+  // so counting it would make every account look occupied and this delete
+  // would never fire at all. An account holding nothing but that row is
+  // exactly what the route is built to remove.
+  it("still deletes a rejected account whose only row is its automatic settings", async () => {
+    exchangeMock.mockResolvedValue(SESSION("no@b.com"));
+    ownsOnly("user_settings");
+    await GET(REQ());
+    expect(deleteUserMock).toHaveBeenCalledWith("u1");
   });
 
   it("redirects to sign in when the exchange fails", async () => {

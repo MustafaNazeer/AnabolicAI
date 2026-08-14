@@ -183,6 +183,110 @@ describe("suggestInsights", () => {
     });
   });
 
+  // Ties on the latest session date are the COMMON case, not an edge one,
+  // because a single workout trains several lifts at once. Without a total
+  // order the cap keeps whichever five the grouping walk happened to insert
+  // first, which is a rule nobody chose and which a Node upgrade could
+  // change. History breaks the tie first: four sessions give the model a
+  // real trend, one session only ever renders "Not enough sessions yet".
+  it("ranks a tie on the latest session date by how much history each lift has", async () => {
+    signedIn();
+    consent(true);
+    const now = Date.now();
+    const at = (daysAgo: number) =>
+      new Date(now - daysAgo * 86_400_000).toISOString();
+    const set = (id: string) => ({
+      exerciseId: id,
+      reps: 1,
+      weight: 100,
+      rir_low: null,
+      rir_high: null,
+    });
+    // Lift Z has four sessions to Lift A's one, and both were last trained
+    // today. Its id also sorts AFTER Lift A's, so this passes on the history
+    // key alone: an id-only tie break would put Lift A first and fail here.
+    getInsightsDataMock.mockResolvedValue({
+      sessions: [
+        { completedAt: at(12), sets: [set("ex-z")] },
+        { completedAt: at(8), sets: [set("ex-z")] },
+        { completedAt: at(4), sets: [set("ex-z")] },
+        { completedAt: at(0), sets: [set("ex-z"), set("ex-a")] },
+      ],
+      exercises: namesOf([
+        ["ex-a", "Lift A"],
+        ["ex-z", "Lift Z"],
+      ]),
+    });
+    await suggestInsights();
+    const message = insightsWithModelMock.mock.calls[0][1];
+    expect(message.indexOf("Lift Z")).toBeLessThan(message.indexOf("Lift A"));
+  });
+
+  // Two lifts trained once, in the same session, tie on date and on history
+  // alike, so something still has to separate them or the order is undefined.
+  it("breaks a tie on date and history by exercise id rather than by arrival order", async () => {
+    signedIn();
+    consent(true);
+    const set = (id: string) => ({
+      exerciseId: id,
+      reps: 1,
+      weight: 100,
+      rir_low: null,
+      rir_high: null,
+    });
+    // The sets arrive in ascending id order, which the old comparator
+    // reversed, so pinning ascending id is a real constraint on it rather
+    // than a restatement of whatever the array already did.
+    getInsightsDataMock.mockResolvedValue({
+      sessions: [
+        {
+          completedAt: new Date().toISOString(),
+          sets: [set("ex-a"), set("ex-z")],
+        },
+      ],
+      exercises: namesOf([
+        ["ex-a", "Lift A"],
+        ["ex-z", "Lift Z"],
+      ]),
+    });
+    await suggestInsights();
+    const message = insightsWithModelMock.mock.calls[0][1];
+    expect(message.indexOf("Lift A")).toBeLessThan(message.indexOf("Lift Z"));
+  });
+
+  // A dormant account still holds sessions, so it clears the empty guard and
+  // would pay for a model call to be told about training it stopped months
+  // ago, under a button that asks what stands out THIS WEEK.
+  it("refuses without calling the model when nothing has been logged in thirty days", async () => {
+    signedIn();
+    consent(true);
+    const now = Date.now();
+    const sessions = [120, 116, 112, 108].map((daysAgo, i) => ({
+      completedAt: new Date(now - daysAgo * 86_400_000).toISOString(),
+      sets: [
+        {
+          exerciseId: EX_BENCH,
+          reps: 1,
+          weight: 135 + i,
+          rir_low: null,
+          rir_high: null,
+        },
+      ],
+    }));
+    getInsightsDataMock.mockResolvedValue({
+      sessions,
+      exercises: namesOf([[EX_BENCH, "Bench Press"]]),
+    });
+    await expect(suggestInsights()).resolves.toEqual({
+      ok: false,
+      error: "No workouts in the last month. Log one and check back.",
+    });
+    expect(insightsWithModelMock).not.toHaveBeenCalled();
+    // The dashboard read is the second query this action makes, and the
+    // guard sits above it, so a dormant tap costs exactly one query.
+    expect(getDashboardDataMock).not.toHaveBeenCalled();
+  });
+
   it("caps the message at the five most recently trained lifts", async () => {
     signedIn();
     consent(true);
@@ -306,16 +410,23 @@ describe("suggestInsights", () => {
     expect(insightsWithModelMock).not.toHaveBeenCalled();
   });
 
-  it("stops at the rate limit", async () => {
+  // Both remaining gates sit ABOVE the derivation, so each has two things
+  // worth pinning, not one: that no model call happens, and that no work was
+  // done to prepare it. Moving getInsightsData above either gate would leave
+  // the model assertion green and fail these.
+  it("stops at the rate limit, in its own words, and derives nothing", async () => {
     signedIn();
     consent(true);
     checkRateLimitMock.mockResolvedValue(false);
-    const result = await suggestInsights();
-    expect(result.ok).toBe(false);
+    await expect(suggestInsights()).resolves.toEqual({
+      ok: false,
+      error: "Insights are catching their breath. Try again in a few minutes.",
+    });
+    expect(getInsightsDataMock).not.toHaveBeenCalled();
     expect(insightsWithModelMock).not.toHaveBeenCalled();
   });
 
-  it("degrades gracefully with no API key", async () => {
+  it("degrades gracefully with no API key and derives nothing", async () => {
     signedIn();
     consent(true);
     delete process.env.ANTHROPIC_API_KEY;
@@ -323,6 +434,7 @@ describe("suggestInsights", () => {
       ok: false,
       error: "Insights are unavailable right now.",
     });
+    expect(getInsightsDataMock).not.toHaveBeenCalled();
     expect(insightsWithModelMock).not.toHaveBeenCalled();
   });
 

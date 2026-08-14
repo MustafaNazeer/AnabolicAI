@@ -18,6 +18,7 @@ export type InsightsResult =
 
 const UNAVAILABLE = "Insights are unavailable right now.";
 const NO_DATA = "Log a few workouts first.";
+const STALE = "No workouts in the last month. Log one and check back.";
 const NO_INSIGHTS = "Could not come up with insights. Try again in a moment.";
 
 // The message is the billed side of this call. Five lifts of four sessions
@@ -25,6 +26,13 @@ const NO_INSIGHTS = "Could not come up with insights. Try again in a moment.";
 // session can hold an unbounded number of sets.
 const MAX_LIFTS = 5;
 const MAX_SETS_PER_SESSION = 12;
+
+// The scan is bounded by session count, not by age, so a dormant account's
+// months old sessions still arrive and still clear the empty guard. Thirty
+// days is deliberately looser than the button's "this week": someone back
+// from a two week break has training worth commenting on, someone who last
+// trained in the spring does not.
+const STALE_AFTER_DAYS = 30;
 
 // Outcome codes only, never the data and never the prompt, per the quick
 // entry precedent.
@@ -74,12 +82,29 @@ export async function suggestInsights(): Promise<InsightsResult> {
   // they can never disagree. Sorted here rather than trusting the query: if
   // the read ever stopped returning oldest first, the slope would silently
   // flip sign and a declining lift would read as improving. A session with
-  // no sets would put Math.max over an empty array (negative infinity) into
-  // the detector, so it is dropped first.
+  // no sets is dropped so the grouping below never has to consider one; the
+  // detector would otherwise see Math.max over an empty array.
   const sessions = data.sessions
     .filter((s) => s.sets.length > 0)
     .slice()
     .sort((a, b) => (a.completedAt < b.completedAt ? -1 : 1));
+
+  // One clock for the whole action, so the staleness cut, the detector's
+  // recency window and the rendered "days ago" can never disagree by a tick.
+  const now = new Date();
+  const today = now.getTime();
+
+  // Checked before the grouping and before the dashboard read, so a dormant
+  // tap costs the one query it has already made and nothing more.
+  const newest = sessions[sessions.length - 1];
+  if (
+    newest &&
+    today - new Date(newest.completedAt).getTime() >
+      STALE_AFTER_DAYS * 86_400_000
+  ) {
+    logOutcome("stale");
+    return { ok: false, error: STALE };
+  }
 
   const perLift = new Map<
     string,
@@ -103,12 +128,24 @@ export async function suggestInsights(): Promise<InsightsResult> {
   // first because the outer walk was, so its last entry is its latest.
   const ranked = [...perLift.entries()]
     .map(([exerciseId, liftSessions]) => ({ exerciseId, liftSessions }))
-    .sort((a, b) =>
-      a.liftSessions[a.liftSessions.length - 1].completedAt <
-      b.liftSessions[b.liftSessions.length - 1].completedAt
-        ? 1
-        : -1,
-    )
+    .sort((a, b) => {
+      const aLast = a.liftSessions[a.liftSessions.length - 1].completedAt;
+      const bLast = b.liftSessions[b.liftSessions.length - 1].completedAt;
+      if (aLast !== bLast) return aLast < bLast ? 1 : -1;
+      // A tie here is the COMMON case, since one workout trains several
+      // lifts, so the cap needs a rule rather than whatever order the
+      // grouping walk happened to insert. More history first: a lift at the
+      // full window gives the model a real trend, while one with a single
+      // session can only ever render "Not enough sessions yet".
+      if (a.liftSessions.length !== b.liftSessions.length) {
+        return b.liftSessions.length - a.liftSessions.length;
+      }
+      // Ids are unique, so this is what makes the order TOTAL rather than
+      // merely more specified. Without it the comparator never returns 0 and
+      // which five survive the cap is left to the sort implementation.
+      if (a.exerciseId === b.exerciseId) return 0;
+      return a.exerciseId < b.exerciseId ? -1 : 1;
+    })
     .slice(0, MAX_LIFTS);
 
   if (ranked.length === 0) {
@@ -116,8 +153,6 @@ export async function suggestInsights(): Promise<InsightsResult> {
     return { ok: false, error: NO_DATA };
   }
 
-  const now = new Date();
-  const today = now.getTime();
   let anyStalled = false;
   const lifts: InsightLift[] = ranked.map(({ exerciseId, liftSessions }) => {
     const recent = liftSessions.slice(-WINDOW);

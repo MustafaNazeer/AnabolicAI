@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MustafaNazeer/Onyx/actions/workflows/ci.yml/badge.svg)](https://github.com/MustafaNazeer/Onyx/actions/workflows/ci.yml)
 
-A dark, iPhone first strength progress tracker, built as an installable Progressive Web App. Create workout routines, log your sets, reps, weight, and reps in reserve during a session, time your rest between sets, and watch your strength trend over time in plain language. Routines are built from a library of 158 common exercises, filterable by muscle group and equipment, and you can add your own.
+A dark, iPhone first strength progress tracker, built as an installable Progressive Web App. Create workout routines, log your sets, reps, weight, and reps in reserve during a session, time your rest between sets, and watch your strength trend over time in plain language. Routines are built from a library of 158 common exercises, filterable by muscle group and equipment, and anything you add yourself is tagged the same way, so the filters find it too.
 
 Onyx is a private app for a small group of users. Each person has their own account and their own isolated data, enforced at the database level.
 
@@ -137,7 +137,7 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-13: 854 tests across 136 files, covering 77 percent of the application logic.
+As of 2026-08-13: 893 tests across 141 files, covering 77 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a

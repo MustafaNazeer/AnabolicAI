@@ -329,6 +329,19 @@ export function ActiveWorkout({
     return counts;
   }, [sets]);
 
+  // snapshot.library is frozen at page load. A rename or retag from the
+  // picker lands in libraryUpdates instead, and every reader of the library
+  // merges through here, same override-wins shape as the routine editor, so
+  // a mid-session rename cannot leave one reader (an orphan card, a swap
+  // target, the picker's own row) showing the name another reader already
+  // corrected.
+  const library = [
+    ...snapshot.library.filter(
+      (e) => !libraryUpdates.some((u) => u.id === e.id),
+    ),
+    ...libraryUpdates,
+  ];
+
   const cards = useMemo(
     () =>
       buildEffectiveCards(
@@ -338,10 +351,10 @@ export function ActiveWorkout({
           defaultSets: e.defaultSets,
         })),
         swaps,
-        snapshot.library,
+        library,
         setCounts,
       ),
-    [snapshot.exercises, snapshot.library, swaps, setCounts],
+    [snapshot.exercises, library, swaps, setCounts],
   );
 
   // Sets logged against an exercise no card shows, which happens when a slot
@@ -354,20 +367,11 @@ export function ActiveWorkout({
 
   const nameFor = useCallback(
     (id: string) =>
-      snapshot.library.find((e) => e.id === id)?.name ??
+      library.find((e) => e.id === id)?.name ??
       snapshot.exercises.find((e) => e.exerciseId === id)?.name ??
       "Exercise",
-    [snapshot.library, snapshot.exercises],
+    [library, snapshot.exercises],
   );
-
-  // Same override-wins merge as the routine editor: an edited exercise
-  // replaces its stale entry rather than sitting alongside it.
-  const pickerLibrary = [
-    ...snapshot.library.filter(
-      (e) => !libraryUpdates.some((u) => u.id === e.id),
-    ),
-    ...libraryUpdates,
-  ];
 
   return (
     <main className="px-5 pt-12 pb-28">
@@ -437,7 +441,7 @@ export function ActiveWorkout({
             Swap in a different exercise for today
           </p>
           <ExercisePicker
-            library={pickerLibrary}
+            library={library}
             takenIds={takenExerciseIds(cards)}
             onAdd={(e) => void handleSwap(picking, e.id)}
             onCreated={(e) => void handleSwap(picking, e.id)}

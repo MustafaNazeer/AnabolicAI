@@ -30,11 +30,35 @@ const CUSTOM_LIFT: Exercise = {
   is_default: false,
 };
 
+const CUSTOM_LIFT_2: Exercise = {
+  id: "c2",
+  name: "Leg Press",
+  muscle_group: null,
+  equipment: null,
+  is_default: false,
+};
+
 function setup() {
   const onUpdated = vi.fn();
   render(
     <ExercisePicker
       library={[DEFAULT_LIFT, CUSTOM_LIFT]}
+      onAdd={vi.fn()}
+      onCreated={vi.fn()}
+      onUpdated={onUpdated}
+      takenIds={new Set<string>()}
+    />,
+  );
+  return { onUpdated };
+}
+
+// Both customs at once, for the pencil-swap regression below. The other
+// tests keep the two-item setup() so their assertions stay unambiguous.
+function setupTwoCustoms() {
+  const onUpdated = vi.fn();
+  render(
+    <ExercisePicker
+      library={[DEFAULT_LIFT, CUSTOM_LIFT, CUSTOM_LIFT_2]}
       onAdd={vi.fn()}
       onCreated={vi.fn()}
       onUpdated={onUpdated}
@@ -112,6 +136,31 @@ describe("ExercisePicker editing", () => {
     expect(updateExerciseMock).toHaveBeenCalledWith(
       "c1",
       "Bench Press",
+      "Chest",
+      "Machine",
+    );
+  });
+
+  // Pins the remount: without key={editing.id} on the ExerciseForm in
+  // ExercisePicker.tsx, React reuses the same form instance across the two
+  // clicks below, and the useState-seeded name and chips keep showing the
+  // first exercise while Save would write to the second exercise's id.
+  it("shows the second exercise when its pencil is tapped while the first edit form is still open", async () => {
+    setupTwoCustoms();
+    await userEvent.click(screen.getByRole("button", { name: "Edit Pec Deck" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit Leg Press" }));
+
+    expect(screen.getByRole("textbox", { name: "Exercise name" })).toHaveValue(
+      "Leg Press",
+    );
+
+    await userEvent.click(screen.getByRole("radio", { name: "Chest" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Machine" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(updateExerciseMock).toHaveBeenCalledWith(
+      "c2",
+      "Leg Press",
       "Chest",
       "Machine",
     );

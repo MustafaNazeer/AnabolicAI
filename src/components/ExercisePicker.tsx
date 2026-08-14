@@ -144,10 +144,11 @@ export function ExercisePicker({
                 aria-label={`Edit ${e.name}`}
                 onClick={() => {
                   setFormError(null);
+                  setCreating(false);
                   setEditing(e);
                 }}
                 className="shrink-0 rounded-lg px-3"
-                style={{ color: "var(--text-dim)", minHeight: 44 }}
+                style={{ color: "var(--text-dim)", minWidth: 44, minHeight: 44 }}
               >
                 <Pencil size={16} aria-hidden />
               </button>
@@ -160,6 +161,7 @@ export function ExercisePicker({
               type="button"
               onClick={() => {
                 setFormError(null);
+                setEditing(null);
                 setCreating(true);
               }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left disabled:opacity-60"

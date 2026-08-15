@@ -82,6 +82,38 @@ describe("AccountList", () => {
     ).toBeInTheDocument();
   });
 
+  // A server action does not only resolve with an error, it can reject: a
+  // dropped connection, or createAdminClient throwing when the service role
+  // key is unset. Awaiting it without a catch left the row dimmed and disabled
+  // for good, said nothing, and produced an unhandled rejection because the
+  // caller does not await the handler either.
+  it("recovers the row and says so when the action rejects", async () => {
+    revokeAccountMock.mockRejectedValue(new Error("connection reset"));
+    render(<AccountList accounts={[approvedAccount]} />);
+    fireEvent.click(screen.getByRole("button", { name: /revoke/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /could not reach the server/i,
+    );
+    const button = screen.getByRole("button", { name: /revoke/i });
+    await waitFor(() => expect(button).toBeEnabled());
+    expect(button.closest("li")).toHaveStyle({ opacity: "1" });
+  });
+
+  // The row still works afterwards, which is the point of recovering it.
+  it("lets the row be retried after a rejection", async () => {
+    revokeAccountMock.mockRejectedValueOnce(new Error("connection reset"));
+    render(<AccountList accounts={[approvedAccount]} />);
+    fireEvent.click(screen.getByRole("button", { name: /revoke/i }));
+    await screen.findByRole("alert");
+
+    fireEvent.click(screen.getByRole("button", { name: /revoke/i }));
+    expect(
+      await screen.findByRole("button", { name: /approve/i }),
+    ).toBeInTheDocument();
+    expect(revokeAccountMock).toHaveBeenCalledTimes(2);
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = render(<AccountList accounts={[pendingAccount]} />);
     expect(await axe(container)).toHaveNoViolations();

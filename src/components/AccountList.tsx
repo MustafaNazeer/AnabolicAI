@@ -4,6 +4,11 @@ import { useState } from "react";
 import { approveAccount, revokeAccount } from "@/lib/accounts/actions";
 import type { Account } from "@/lib/accounts/admin";
 
+// What a thrown action is reported as. A rejection carries a message written
+// for a developer, and a stack trace or a connection string is not something to
+// paint on a screen, so the row says this instead.
+const FAILED = "Could not reach the server. Try again in a moment.";
+
 const tile = {
   background: "var(--surface)",
   border: "1px solid var(--surface-border)",
@@ -40,23 +45,34 @@ export function AccountList({ accounts }: { accounts: Account[] }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // A server action can reject as well as resolve with an error: the network
+  // drops, or createAdminClient throws because SUPABASE_SERVICE_ROLE_KEY is
+  // unset. Without the catch that rejection escapes an un-awaited handler as
+  // an unhandled rejection, and without the finally the row stays dimmed and
+  // disabled for good with nothing said. The reset belongs in the finally so
+  // it runs on both endings.
   async function toggle(account: Account) {
     setError(null);
     setPendingId(account.id);
     const action = account.approved ? revokeAccount : approveAccount;
-    const result = await action(account.id);
-    setPendingId(null);
-    if ("error" in result) {
-      setError(result.error);
-      return;
-    }
-    setItems((current) =>
-      sortAccounts(
-        current.map((a) =>
-          a.id === account.id ? { ...a, approved: !a.approved } : a,
+    try {
+      const result = await action(account.id);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setItems((current) =>
+        sortAccounts(
+          current.map((a) =>
+            a.id === account.id ? { ...a, approved: !a.approved } : a,
+          ),
         ),
-      ),
-    );
+      );
+    } catch {
+      setError(FAILED);
+    } finally {
+      setPendingId(null);
+    }
   }
 
   if (items.length === 0) {

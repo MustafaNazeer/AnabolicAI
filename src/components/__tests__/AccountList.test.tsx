@@ -156,6 +156,36 @@ describe("AccountList", () => {
     logged.mockRestore();
   });
 
+  // A live region is announced reliably only when assistive technology was
+  // already watching it as the content arrived. Mounting the node together with
+  // its text is the case screen readers handle inconsistently, and jest-axe
+  // cannot catch it because the markup is valid either way.
+  it("keeps the live region mounted before there is anything to announce", () => {
+    render(<AccountList accounts={[approvedAccount]} />);
+    expect(screen.getByRole("alert")).toBeEmptyDOMElement();
+  });
+
+  // Between the tap and the result the row signalled only through opacity and a
+  // disabled button, neither of which a screen reader reports, so there was no
+  // way to tell a request in flight from one that had done nothing.
+  it("marks the row busy while its action is in flight", async () => {
+    let finish: (result: { ok: true }) => void = () => {};
+    revokeAccountMock.mockReturnValue(
+      new Promise<{ ok: true }>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    render(<AccountList accounts={[approvedAccount]} />);
+    const row = screen.getByRole("button", { name: /revoke/i }).closest("li");
+    expect(row).toHaveAttribute("aria-busy", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: /revoke/i }));
+    await waitFor(() => expect(row).toHaveAttribute("aria-busy", "true"));
+
+    finish({ ok: true });
+    await waitFor(() => expect(row).toHaveAttribute("aria-busy", "false"));
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = render(<AccountList accounts={[pendingAccount]} />);
     expect(await axe(container)).toHaveNoViolations();

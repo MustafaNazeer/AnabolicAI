@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { approveAccount, revokeAccount } from "@/lib/accounts/actions";
+import { sortAccounts } from "@/lib/accounts/sort";
 import type { Account } from "@/lib/accounts/admin";
 
 // What a thrown action is reported as. A rejection carries a message written
@@ -21,18 +22,6 @@ function formatDate(iso: string): string {
     month: "short",
     day: "numeric",
   });
-}
-
-// Unapproved first, because those are the only rows that need a tap, then
-// newest first within each group. Sorted here too, not just by listAccounts,
-// so the row a caller just acted on moves to the right place immediately
-// instead of waiting on a full page reload.
-function sortAccounts(accounts: Account[]): Account[] {
-  return [...accounts].sort((a, b) =>
-    a.approved === b.approved
-      ? b.createdAt.localeCompare(a.createdAt)
-      : Number(a.approved) - Number(b.approved),
-  );
 }
 
 // One row per account, each with the single button that applies to its
@@ -109,17 +98,37 @@ export function AccountList({ accounts }: { accounts: Account[] }) {
   }
 
   return (
-    <div className="mt-8 flex flex-col gap-3">
-      {error ? (
-        <p role="alert" className="text-sm" style={{ color: "var(--text-dim)" }}>
-          {error}
-        </p>
-      ) : null}
-      <ul className="flex flex-col gap-2">
+    <div className="mt-8">
+      {/*
+        Mounted whether or not it has anything to say. A live region is
+        announced reliably only when assistive technology was already watching
+        it as the content arrived, and rendering the node and its text together
+        is the case screen readers handle inconsistently. Empty, it is a
+        paragraph with no line boxes and therefore no height, so the margin
+        below carries the spacing only when there is an error to separate.
+
+        Coloured as a failure rather than as a caption. Four other error strings
+        in this app use var(--danger); this one used var(--text-dim), which
+        renders a failed approve in the same grey as the "Signed up" line under
+        every row.
+      */}
+      <p
+        role="alert"
+        className="text-sm"
+        style={{ color: "var(--danger, #b91c1c)" }}
+      >
+        {error}
+      </p>
+      <ul className={`flex flex-col gap-2${error ? " mt-3" : ""}`}>
         {items.map((account) => (
           <li
             key={account.id}
             className="flex items-center justify-between gap-3 px-4 py-3"
+            // Announced as well as dimmed. Opacity and a disabled button are
+            // both invisible to a screen reader, so between the tap and the
+            // result there was no way to tell a request in flight from one that
+            // had not started.
+            aria-busy={pendingId === account.id}
             style={{ ...tile, opacity: pendingId === account.id ? 0.5 : 1 }}
           >
             <span className="flex flex-col">

@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-const { getVerifiedUserMock, listAccountsMock, redirectMock } = vi.hoisted(() => ({
+const {
+  getVerifiedUserMock,
+  listAccountsMock,
+  getNotifNewAccountMock,
+  redirectMock,
+} = vi.hoisted(() => ({
   getVerifiedUserMock: vi.fn(),
   listAccountsMock: vi.fn(),
+  getNotifNewAccountMock: vi.fn(),
   redirectMock: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
@@ -11,6 +17,12 @@ const { getVerifiedUserMock, listAccountsMock, redirectMock } = vi.hoisted(() =>
 
 vi.mock("@/lib/auth/user", () => ({ getVerifiedUser: getVerifiedUserMock }));
 vi.mock("@/lib/accounts/admin", () => ({ listAccounts: listAccountsMock }));
+vi.mock("@/lib/accounts/queries", () => ({
+  getNotifNewAccount: getNotifNewAccountMock,
+}));
+vi.mock("@/lib/accounts/actions", () => ({
+  setNewAccountNotification: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({ redirect: redirectMock }));
 
 import AccountsPage from "@/app/settings/accounts/page";
@@ -20,6 +32,7 @@ beforeEach(() => {
   vi.unstubAllEnvs();
   vi.stubEnv("ADMIN_EMAILS", "boss@b.com");
   listAccountsMock.mockResolvedValue([]);
+  getNotifNewAccountMock.mockResolvedValue(true);
 });
 
 // The redirect is the only thing standing between a signed in stranger and
@@ -56,5 +69,15 @@ describe("the accounts page", () => {
     expect(redirectMock).not.toHaveBeenCalled();
     expect(listAccountsMock).toHaveBeenCalled();
     expect(screen.getByText("a@b.com")).toBeInTheDocument();
+  });
+
+  // The second control the list was deliberately composed to sit beside.
+  it("renders the new account notification toggle for an admin", async () => {
+    getVerifiedUserMock.mockResolvedValue({ id: "u1", email: "boss@b.com" });
+    render(await AccountsPage());
+    expect(getNotifNewAccountMock).toHaveBeenCalled();
+    expect(
+      screen.getByRole("checkbox", { name: /new account/i }),
+    ).toBeInTheDocument();
   });
 });

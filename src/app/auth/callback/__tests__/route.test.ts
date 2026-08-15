@@ -8,6 +8,7 @@ const {
   eqMock,
   storeMock,
   markApprovedMock,
+  notifyAdminsOfSignupMock,
 } = vi.hoisted(() => ({
   exchangeMock: vi.fn(),
   signOutMock: vi.fn(),
@@ -16,6 +17,7 @@ const {
   eqMock: vi.fn(),
   storeMock: vi.fn(),
   markApprovedMock: vi.fn(),
+  notifyAdminsOfSignupMock: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
@@ -54,6 +56,10 @@ vi.mock("@/lib/accounts/approve", () => ({
   markApproved: markApprovedMock,
 }));
 
+vi.mock("@/lib/accounts/notify", () => ({
+  notifyAdminsOfSignup: notifyAdminsOfSignupMock,
+}));
+
 import { GET } from "@/app/auth/callback/route";
 
 const REQ = (url = "https://onyx.test/auth/callback?code=abc") =>
@@ -90,6 +96,7 @@ beforeEach(() => {
   eqMock.mockReset();
   storeMock.mockReset().mockReturnValue([]);
   markApprovedMock.mockReset().mockResolvedValue(undefined);
+  notifyAdminsOfSignupMock.mockReset().mockResolvedValue(undefined);
 });
 
 describe("the oauth callback", () => {
@@ -107,6 +114,12 @@ describe("the oauth callback", () => {
     expect(markApprovedMock).toHaveBeenCalledWith("u1");
   });
 
+  // An allowlisted signup approves itself and stays silent.
+  it("sends no admin notification for an allowlisted email", async () => {
+    await GET(REQ());
+    expect(notifyAdminsOfSignupMock).not.toHaveBeenCalled();
+  });
+
   it("admits an uninvited provider sign in when signup is open", async () => {
     vi.stubEnv("OPEN_SIGNUP", "true");
     exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
@@ -115,6 +128,14 @@ describe("the oauth callback", () => {
     expect(signOutMock).not.toHaveBeenCalled();
     expect(deleteUserMock).not.toHaveBeenCalled();
     expect(markApprovedMock).not.toHaveBeenCalled();
+  });
+
+  // Only an account that lands unapproved needs the admin to do anything.
+  it("notifies admins when an uninvited provider sign in is admitted through open signup", async () => {
+    vi.stubEnv("OPEN_SIGNUP", "true");
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+    await GET(REQ());
+    expect(notifyAdminsOfSignupMock).toHaveBeenCalledWith("stranger@c.com");
   });
 
   // The invariant that must survive this branch untouched.

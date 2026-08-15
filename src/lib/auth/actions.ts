@@ -7,6 +7,7 @@ import { validateCredentials } from "@/lib/auth/validation";
 import { isEmailAllowed } from "@/lib/auth/allowlist";
 import { isOpenSignup } from "@/lib/accounts/approval";
 import { markApproved } from "@/lib/accounts/approve";
+import { notifyAdminsOfSignup } from "@/lib/accounts/notify";
 import { checkRateLimit, clientIpFrom, limitMessage } from "@/lib/security/rateLimit";
 
 async function clientIp(): Promise<string> {
@@ -55,6 +56,8 @@ export async function signUp(formData: FormData) {
   // The auth.users row exists at this point even though the email is not yet
   // confirmed, so the settings row exists too and can be marked.
   if (invited && data.user) await markApproved(data.user.id);
+  // Only an account that lands unapproved needs the admin to do anything.
+  if (!invited) await notifyAdminsOfSignup(email);
   return { ok: true };
 }
 

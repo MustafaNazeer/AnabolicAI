@@ -46,3 +46,27 @@ export async function revokeAccount(
 ): Promise<{ ok: true } | { error: string }> {
   return setApproved(userId, false);
 }
+
+// The caller's own preference, not a target account's, so this reads the
+// verified user again rather than taking an id as an argument the way
+// setApproved does. Lives beside approveAccount and revokeAccount because it
+// shares their caller check, even though it writes a different row.
+export async function setNewAccountNotification(
+  enabled: boolean,
+): Promise<{ ok: true } | { error: string }> {
+  if (!(await callerIsAdmin())) return { error: NOT_ALLOWED };
+
+  const user = await getVerifiedUser();
+  if (!user) return { error: NOT_ALLOWED };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("user_settings")
+    .upsert(
+      { user_id: user.id, notif_new_account: enabled },
+      { onConflict: "user_id" },
+    );
+  if (error) return { error: error.message };
+  revalidatePath("/settings/accounts");
+  return { ok: true };
+}

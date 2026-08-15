@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isEmailAllowed } from "@/lib/auth/allowlist";
 import { isOpenSignup } from "@/lib/accounts/approval";
 import { markApproved } from "@/lib/accounts/approve";
+import { notifyAdminsOfSignup } from "@/lib/accounts/notify";
 
 const REJECTED = "/sign-in?error=not-invited";
 
@@ -110,6 +111,7 @@ export async function GET(request: NextRequest) {
   // refusal below is what still runs when signup is closed, and it is the
   // behaviour this route shipped with.
   if (isOpenSignup(process.env.OPEN_SIGNUP)) {
+    await notifyAdminsOfSignup(email);
     return NextResponse.redirect(new URL("/", request.url));
   }
 

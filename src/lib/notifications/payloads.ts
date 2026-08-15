@@ -85,6 +85,15 @@ export function goalProximityPayload(
   };
 }
 
+export function newAccountPayload(email: string): PushPayload {
+  return {
+    title: "New account",
+    body: `${email} signed up and is waiting for approval.`,
+    url: "/settings/accounts",
+    tag: "new-account",
+  };
+}
+
 export function restCompletePayload(): PushPayload {
   return {
     title: "Rest's over",

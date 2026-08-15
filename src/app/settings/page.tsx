@@ -1,6 +1,7 @@
 import { getVerifiedUser } from "@/lib/auth/user";
 import { getNotificationSettings } from "@/lib/notifications/queries";
 import { getAiQuickEntry, getAiPlateau, getAiInsights } from "@/lib/ai/queries";
+import { getApproved } from "@/lib/accounts/queries";
 import { getUntaggedCustomExercises } from "@/lib/data/queries";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { AiQuickEntryToggle } from "@/components/AiQuickEntryToggle";
@@ -19,6 +20,7 @@ export default async function SettingsPage() {
   const aiQuickEntry = await getAiQuickEntry();
   const aiPlateau = await getAiPlateau();
   const aiInsights = await getAiInsights();
+  const approved = await getApproved();
   const untagged = await getUntaggedCustomExercises();
 
   return (
@@ -47,9 +49,9 @@ export default async function SettingsPage() {
 
       <SettingsSection title="AI">
         <div className="flex flex-col gap-3">
-          <AiQuickEntryToggle initial={aiQuickEntry} />
-          <AiPlateauToggle initial={aiPlateau} />
-          <AiInsightsToggle initial={aiInsights} />
+          <AiQuickEntryToggle initial={aiQuickEntry} approved={approved} />
+          <AiPlateauToggle initial={aiPlateau} approved={approved} />
+          <AiInsightsToggle initial={aiInsights} approved={approved} />
         </div>
       </SettingsSection>
 

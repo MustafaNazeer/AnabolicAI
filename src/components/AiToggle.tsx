@@ -10,11 +10,13 @@ export function AiToggle({
   description,
   initial,
   save,
+  approved = true,
 }: {
   label: string;
   description: string;
   initial: boolean;
   save: (enabled: boolean) => Promise<{ ok: true } | { error: string }>;
+  approved?: boolean;
 }) {
   const [checked, setChecked] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -46,11 +48,19 @@ export function AiToggle({
         <span className="block text-xs" style={{ color: "var(--text-dim)" }}>
           {description}
         </span>
+        {approved ? null : (
+          <span
+            className="block text-xs"
+            style={{ color: "var(--text-dim)" }}
+          >
+            This account is waiting to be approved.
+          </span>
+        )}
       </span>
       <input
         type="checkbox"
         checked={checked}
-        disabled={busy}
+        disabled={busy || !approved}
         onChange={(e) => void change(e.target.checked)}
         aria-label={label}
         className="h-6 w-6"

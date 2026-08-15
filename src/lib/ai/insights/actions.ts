@@ -251,6 +251,18 @@ export async function setAiInsights(
   const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
+  // Only enabling is gated. Turning a feature off must stay available to an
+  // account whose approval was revoked while the feature was on, or the app
+  // would hold a consent flag its owner cannot withdraw.
+  if (enabled) {
+    const { data: settings } = await supabase
+      .from("user_settings")
+      .select("approved")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!canUseAi(settings)) return { error: NOT_APPROVED };
+  }
+
   const { error } = await supabase
     .from("user_settings")
     .upsert({ user_id: user.id, ai_insights: enabled }, { onConflict: "user_id" });

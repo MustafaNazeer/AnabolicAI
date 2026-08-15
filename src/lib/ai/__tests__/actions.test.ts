@@ -187,4 +187,23 @@ describe("setAiQuickEntry", () => {
     });
     expect(upsertMock).not.toHaveBeenCalled();
   });
+
+  it("refuses to enable a paid feature for an unapproved account", async () => {
+    signedIn();
+    maybeSingleMock.mockResolvedValue({ data: { approved: false } });
+    await expect(setAiQuickEntry(true)).resolves.toEqual({
+      error: "This account is waiting to be approved.",
+    });
+    expect(upsertMock).not.toHaveBeenCalled();
+  });
+
+  // Withdrawing consent must never be blocked, including for an account whose
+  // approval was revoked after it turned the feature on.
+  it("still allows an unapproved account to turn a feature off", async () => {
+    signedIn();
+    maybeSingleMock.mockResolvedValue({ data: { approved: false } });
+    upsertMock.mockResolvedValue({ error: null });
+    await expect(setAiQuickEntry(false)).resolves.toEqual({ ok: true });
+    expect(upsertMock).toHaveBeenCalled();
+  });
 });

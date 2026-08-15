@@ -2,17 +2,27 @@
 -- switch added in 0017 saves nothing and raises "permission denied for table
 -- user_settings", because the column arrives with no grant on it at all.
 --
--- WHY A NEW COLUMN ARRIVES UNWRITABLE, AND WHY EVERY FUTURE ONE WILL TOO.
--- Supabase grants UPDATE on this table to authenticated at the TABLE level. The
--- column level revokes in 0014 and 0015 left the role holding COLUMN level
--- grants instead, one per column that existed at the time. A column added later
--- is not covered by any of them, and inherits nothing, so it is unwritable the
--- moment it is created.
+-- WHAT WAS OBSERVED, which is less than a full explanation and is written that
+-- way on purpose. After 0017 added the column,
+-- has_column_privilege('authenticated', 'user_settings', 'ai_visible', 'UPDATE')
+-- returned FALSE, while every pre-existing column except approved and
+-- signup_seen returned true. So the column arrived with no write permission for
+-- the role that has to write it.
 --
--- **THIS IS NOW A STANDING RULE FOR user_settings: any new column the user's own
--- session must write needs an explicit grant beside the alter table.** Columns
--- written only through the service role client, the way `approved` and
--- `signup_seen` are, deliberately do not get one.
+-- The likely cause is that this table no longer carries a table level UPDATE
+-- grant for authenticated, only per column ones: has_table_privilege returned
+-- false for UPDATE after the column level revokes in 0014 and 0015, and a
+-- column created later is covered by no existing column grant. **That is a
+-- hypothesis and it does not fully fit**, because notif_new_account is added
+-- after 0014's revoke and reads as writable. The mechanism was not chased down,
+-- and the rule below does not depend on it.
+--
+-- **THE RULE, WHICH RESTS ON THE OBSERVATION RATHER THAN ON THE THEORY: check
+-- has_column_privilege after adding any column to user_settings, and grant it
+-- explicitly if the user's own session has to write it.**
+--
+-- Columns written only through the service role client, the way `approved` and
+-- `signup_seen` are, deliberately do not get a grant.
 --
 -- The same mechanism took the live app down on 2026-08-15 by removing UPDATE on
 -- user_id, which every PostgREST upsert writes. That was diagnosed and fixed in

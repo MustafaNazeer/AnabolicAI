@@ -1,0 +1,39 @@
+-- Restores UPDATE on user_id to authenticated, which 0014 and 0015 took away as
+-- a side effect, and which every user facing settings write depends on.
+--
+-- WHAT HAPPENED, recorded because it is not obvious and because it broke the
+-- live app on 2026-08-15. Supabase grants UPDATE on this table to authenticated
+-- at the table level. A column level REVOKE against a table level grant does not
+-- simply subtract the named column: after 0014 and 0015 ran,
+-- has_table_privilege('authenticated','user_settings','UPDATE') was false, and
+-- the per column privileges were true everywhere except approved, signup_seen
+-- AND user_id. Neither file names user_id, and why it alone was not carried over
+-- is NOT established here. What is established is that it was writable before
+-- those two migrations and not after.
+--
+-- That single missing column is fatal to every settings write, because PostgREST
+-- compiles an upsert to
+--   INSERT ... ON CONFLICT (user_id) DO UPDATE SET user_id = excluded.user_id, ...
+-- so a denied UPDATE on user_id fails the whole statement rather than the one
+-- column. The symptom is "permission denied for table user_settings" from the
+-- notification toggles, and the three AI toggles refusing to move at all.
+--
+-- This is NOT a widening. user_id was updatable through the table level grant
+-- until 0014 ran, and the policy at 0001_initial_schema.sql:209 is
+-- FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id), so
+-- a user still cannot point their row at another account. approved and
+-- signup_seen stay revoked, which is the property 0014 and 0015 exist for, and
+-- which was verified as still holding after this grant was applied.
+--
+-- Idempotent and safe to re-run, unlike 0014 and 0015.
+grant update (user_id) on user_settings to authenticated;
+
+-- Verification, for whoever applies this to a fresh database. Expect can_update
+-- true for every column except approved and signup_seen:
+--
+--   select column_name,
+--          has_column_privilege('authenticated', 'public.user_settings',
+--                               column_name, 'UPDATE') as can_update
+--   from information_schema.columns
+--   where table_schema = 'public' and table_name = 'user_settings'
+--   order by column_name;

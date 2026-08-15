@@ -12,6 +12,7 @@ import { getInsightsData, type InsightsSet } from "@/lib/ai/insights/queries";
 import { buildInsightsMessage, type InsightLift } from "@/lib/ai/insights/prompt";
 import { insightsWithModel } from "@/lib/ai/insights/suggest";
 import { getVerifiedUser } from "@/lib/auth/user";
+import { canUseAi } from "@/lib/accounts/approval";
 
 export type InsightsResult =
   | { ok: true; insights: string[]; anyStalled: boolean }
@@ -21,6 +22,7 @@ const UNAVAILABLE = "Insights are unavailable right now.";
 const NO_DATA = "Log a few workouts first.";
 const STALE = "No workouts in the last month. Log one and check back.";
 const NO_INSIGHTS = "Could not come up with insights. Try again in a moment.";
+const NOT_APPROVED = "This account is waiting to be approved.";
 
 // The message is the billed side of this call. Five lifts of four sessions
 // bound its size; the per session set cap is the plateau one, because a
@@ -51,9 +53,16 @@ export async function suggestInsights(): Promise<InsightsResult> {
 
   const { data: settings } = await supabase
     .from("user_settings")
-    .select("ai_insights")
+    .select("ai_insights, approved")
     .eq("user_id", user.id)
     .maybeSingle();
+  // Rides along in the select the consent check already performs, so approval
+  // costs no round trip. It is checked BEFORE consent, because "waiting to be
+  // approved" is the more useful thing to tell someone who has both problems.
+  if (!canUseAi(settings)) {
+    logOutcome("not-approved");
+    return { ok: false, error: NOT_APPROVED };
+  }
   if (!settings?.ai_insights) {
     logOutcome("gated");
     return { ok: false, error: "Turn on weekly insights in Settings first." };

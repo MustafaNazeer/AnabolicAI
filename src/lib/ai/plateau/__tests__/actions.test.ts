@@ -85,8 +85,8 @@ function signedIn() {
   getVerifiedUserMock.mockResolvedValue({ id: "user-123", email: "a@b.com" });
 }
 
-function consent(on: boolean) {
-  maybeSingleMock.mockResolvedValue({ data: { ai_plateau: on } });
+function consent(on: boolean, approved = true) {
+  maybeSingleMock.mockResolvedValue({ data: { ai_plateau: on, approved } });
 }
 
 beforeEach(() => {
@@ -195,6 +195,14 @@ describe("suggestForPlateau", () => {
       error: "Turn on plateau suggestions in Settings first.",
     });
     expect(getPlateauDataMock).not.toHaveBeenCalled();
+    expect(suggestWithModelMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses an unapproved account and never calls the model", async () => {
+    signedIn();
+    consent(true, false);
+    const result = await suggestForPlateau(EXERCISE_ID);
+    expect(result.ok).toBe(false);
     expect(suggestWithModelMock).not.toHaveBeenCalled();
   });
 

@@ -106,8 +106,8 @@ function signedIn() {
   getVerifiedUserMock.mockResolvedValue({ id: "user-123", email: "a@b.com" });
 }
 
-function consent(on: boolean) {
-  maybeSingleMock.mockResolvedValue({ data: { ai_insights: on } });
+function consent(on: boolean, approved = true) {
+  maybeSingleMock.mockResolvedValue({ data: { ai_insights: on, approved } });
 }
 
 beforeEach(() => {
@@ -410,6 +410,14 @@ describe("suggestInsights", () => {
       error: "Turn on weekly insights in Settings first.",
     });
     expect(getInsightsDataMock).not.toHaveBeenCalled();
+    expect(insightsWithModelMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses an unapproved account and never calls the model", async () => {
+    signedIn();
+    consent(true, false);
+    const result = await suggestInsights();
+    expect(result.ok).toBe(false);
     expect(insightsWithModelMock).not.toHaveBeenCalled();
   });
 

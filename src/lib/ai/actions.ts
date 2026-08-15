@@ -8,6 +8,7 @@ import { parseWithModel } from "@/lib/ai/parse";
 import { validateQuickEntryText } from "@/lib/ai/validate";
 import type { ParsedSet } from "@/lib/ai/schema";
 import { getVerifiedUser } from "@/lib/auth/user";
+import { canUseAi } from "@/lib/accounts/approval";
 
 export type QuickEntryResult =
   | { ok: true; sets: ParsedSet[] }
@@ -15,6 +16,7 @@ export type QuickEntryResult =
 
 const CANNOT_READ = 'Could not read any sets in that. Try "185 for 5, then 5".';
 const UNAVAILABLE = "Quick entry is unavailable right now. Log sets manually.";
+const NOT_APPROVED = "This account is waiting to be approved.";
 
 // Outcome codes only, never the typed text. An action that answers the same
 // shape on every failure is undebuggable without this, per the rest push
@@ -33,9 +35,16 @@ export async function parseQuickEntry(raw: string): Promise<QuickEntryResult> {
 
   const { data: settings } = await supabase
     .from("user_settings")
-    .select("ai_quick_entry")
+    .select("ai_quick_entry, approved")
     .eq("user_id", user.id)
     .maybeSingle();
+  // Rides along in the select the consent check already performs, so approval
+  // costs no round trip. It is checked BEFORE consent, because "waiting to be
+  // approved" is the more useful thing to tell someone who has both problems.
+  if (!canUseAi(settings)) {
+    logOutcome("not-approved");
+    return { ok: false, error: NOT_APPROVED };
+  }
   if (!settings?.ai_quick_entry) {
     logOutcome("gated");
     return { ok: false, error: "Turn on AI quick entry in Settings first." };

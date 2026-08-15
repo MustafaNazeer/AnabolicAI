@@ -1,0 +1,35 @@
+-- Makes ai_visible writable by the account that owns the row. Without this the
+-- switch added in 0017 saves nothing and raises "permission denied for table
+-- user_settings", because the column arrives with no grant on it at all.
+--
+-- WHY A NEW COLUMN ARRIVES UNWRITABLE, AND WHY EVERY FUTURE ONE WILL TOO.
+-- Supabase grants UPDATE on this table to authenticated at the TABLE level. The
+-- column level revokes in 0014 and 0015 left the role holding COLUMN level
+-- grants instead, one per column that existed at the time. A column added later
+-- is not covered by any of them, and inherits nothing, so it is unwritable the
+-- moment it is created.
+--
+-- **THIS IS NOW A STANDING RULE FOR user_settings: any new column the user's own
+-- session must write needs an explicit grant beside the alter table.** Columns
+-- written only through the service role client, the way `approved` and
+-- `signup_seen` are, deliberately do not get one.
+--
+-- The same mechanism took the live app down on 2026-08-15 by removing UPDATE on
+-- user_id, which every PostgREST upsert writes. That was diagnosed and fixed in
+-- 0016, and this is the same lesson arriving from the other side: 0016 restored
+-- a grant that was taken away, this supplies one that was never given.
+--
+-- Not a widening. The policy at 0001_initial_schema.sql:209 is
+-- FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id), so
+-- this lets an account set its own visibility preference and nobody else's. The
+-- column decides what that account sees, spends nothing, and is the one control
+-- in the AI section an unapproved account may always use.
+--
+-- Idempotent and safe to re-run.
+grant update (ai_visible) on user_settings to authenticated;
+
+-- Verification. Expect true, unlike approved and signup_seen which must stay
+-- false:
+--
+--   select has_column_privilege('authenticated', 'public.user_settings',
+--                               'ai_visible', 'UPDATE') as can_update;

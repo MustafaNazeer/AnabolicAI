@@ -52,21 +52,44 @@ export function AiToggle({
         borderRadius: "var(--radius-tile)",
         backdropFilter: "blur(14px)",
         WebkitBackdropFilter: "blur(14px)",
-        opacity: busy ? 0.5 : 1,
+        // Dimmed while locked as well as while busy, so a row that cannot be
+        // used looks like one. WCAG 1.4.3 exempts text that is part of an
+        // inactive component from the contrast requirement, and a locked row is
+        // disabled in both directions. A row that is merely unapproved is NOT
+        // dimmed: that lock is one directional, the row can still be turned
+        // off, and dimming an operable control would be the contrast trade the
+        // exemption does not cover.
+        opacity: busy || locked ? 0.5 : 1,
       }}
     >
       <span>
         <span className="font-medium" style={{ color: "var(--text)" }}>
           {label}
         </span>
-        <span className="block text-xs" style={{ color: "var(--text-dim)" }}>
-          {description}
-        </span>
+        {/*
+          The description says what the feature does and what it sends. Once the
+          feature is out of the app there is nothing left for it to describe,
+          and three of them stacked under the switch that just removed them is
+          the clutter this whole feature exists to clear.
+        */}
+        {locked ? null : (
+          <span className="block text-xs" style={{ color: "var(--text-dim)" }}>
+            {description}
+          </span>
+        )}
         {reason ? (
           <span
             id={explanationId}
-            className="block text-xs"
-            style={{ color: "var(--text-dim)" }}
+            // Invisible while locked, not absent. A disabled checkbox with no
+            // announced reason is a dead control to a screen reader user, so
+            // the sentence stays in the page and stays pointed at by
+            // aria-describedby; only its pixels go. The approval notice keeps
+            // its pixels, because that row is still operable and its reader can
+            // act on what it says.
+            className={
+              locked ? "sr-only" : "block text-xs"
+            }
+            style={locked ? undefined : { color: "var(--text-dim)" }}
           >
             {reason}
           </span>

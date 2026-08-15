@@ -11,6 +11,7 @@ import { buildPlateauMessage } from "@/lib/ai/plateau/prompt";
 import { suggestWithModel } from "@/lib/ai/plateau/suggest";
 import type { PlateauSuggestion } from "@/lib/ai/plateau/schema";
 import { getVerifiedUser } from "@/lib/auth/user";
+import { canUseAi } from "@/lib/accounts/approval";
 
 export type SuggestResult =
   | { ok: true; suggestion: PlateauSuggestion }
@@ -19,6 +20,7 @@ export type SuggestResult =
 const UNAVAILABLE = "Suggestions are unavailable right now.";
 const NOT_STALLED = "This lift does not look stalled right now.";
 const NO_SUGGESTION = "Could not come up with a suggestion. Try again in a moment.";
+const NOT_APPROVED = "This account is waiting to be approved.";
 
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -47,9 +49,16 @@ export async function suggestForPlateau(
 
   const { data: settings } = await supabase
     .from("user_settings")
-    .select("ai_plateau")
+    .select("ai_plateau, approved")
     .eq("user_id", user.id)
     .maybeSingle();
+  // Rides along in the select the consent check already performs, so approval
+  // costs no round trip. It is checked BEFORE consent, because "waiting to be
+  // approved" is the more useful thing to tell someone who has both problems.
+  if (!canUseAi(settings)) {
+    logOutcome("not-approved");
+    return { ok: false, error: NOT_APPROVED };
+  }
   if (!settings?.ai_plateau) {
     logOutcome("gated");
     return { ok: false, error: "Turn on plateau suggestions in Settings first." };
@@ -159,6 +168,18 @@ export async function setAiPlateau(
   const supabase = await createClient();
   const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
+
+  // Only enabling is gated. Turning a feature off must stay available to an
+  // account whose approval was revoked while the feature was on, or the app
+  // would hold a consent flag its owner cannot withdraw.
+  if (enabled) {
+    const { data: settings } = await supabase
+      .from("user_settings")
+      .select("approved")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!canUseAi(settings)) return { error: NOT_APPROVED };
+  }
 
   const { error } = await supabase
     .from("user_settings")

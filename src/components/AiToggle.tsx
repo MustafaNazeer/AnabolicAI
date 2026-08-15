@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 // One consent row per AI feature, all rendered identically. Kept visually the
 // same row as the notification settings rows, standalone so the AI section
@@ -10,14 +10,17 @@ export function AiToggle({
   description,
   initial,
   save,
+  approved = true,
 }: {
   label: string;
   description: string;
   initial: boolean;
   save: (enabled: boolean) => Promise<{ ok: true } | { error: string }>;
+  approved?: boolean;
 }) {
   const [checked, setChecked] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const explanationId = useId();
 
   async function change(next: boolean) {
     setChecked(next);
@@ -46,13 +49,29 @@ export function AiToggle({
         <span className="block text-xs" style={{ color: "var(--text-dim)" }}>
           {description}
         </span>
+        {approved ? null : (
+          <span
+            id={explanationId}
+            className="block text-xs"
+            style={{ color: "var(--text-dim)" }}
+          >
+            This account is waiting to be approved.
+          </span>
+        )}
       </span>
       <input
         type="checkbox"
         checked={checked}
-        disabled={busy}
+        // The lock only points one way, matching the three save actions this
+        // row calls. Each of them gates enabling and leaves disabling open, so
+        // that an account whose approval was revoked while a feature was on can
+        // still withdraw that consent: revoking approval deliberately does not
+        // clear the consent columns. Disabling the row outright would leave the
+        // switch checked and frozen, with nowhere in the app to turn it off.
+        disabled={busy || (!approved && !checked)}
         onChange={(e) => void change(e.target.checked)}
         aria-label={label}
+        aria-describedby={approved ? undefined : explanationId}
         className="h-6 w-6"
         style={{ accentColor: "var(--accent)" }}
       />

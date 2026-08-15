@@ -1,22 +1,50 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { exchangeMock, signOutMock, deleteUserMock, countMock, eqMock, storeMock } =
-  vi.hoisted(() => ({
-    exchangeMock: vi.fn(),
-    signOutMock: vi.fn(),
-    deleteUserMock: vi.fn(),
-    countMock: vi.fn(),
-    eqMock: vi.fn(),
-    storeMock: vi.fn(),
-  }));
+const {
+  exchangeMock,
+  signOutMock,
+  deleteUserMock,
+  countMock,
+  eqMock,
+  storeMock,
+  markApprovedMock,
+  notifyAdminsOfSignupMock,
+  claimSignupSeenMock,
+  approvedMock,
+  approvedEqMock,
+} = vi.hoisted(() => ({
+  exchangeMock: vi.fn(),
+  signOutMock: vi.fn(),
+  deleteUserMock: vi.fn(),
+  countMock: vi.fn(),
+  eqMock: vi.fn(),
+  storeMock: vi.fn(),
+  markApprovedMock: vi.fn(),
+  notifyAdminsOfSignupMock: vi.fn(),
+  claimSignupSeenMock: vi.fn(),
+  approvedMock: vi.fn(),
+  approvedEqMock: vi.fn(),
+}));
 
 vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ getAll: () => storeMock() })),
 }));
 
+// The approval read runs through the session client, not the admin client, so
+// it is RLS scoped to the account that just signed in and costs the route no
+// service role dependency it did not already have. approvedEqMock records the
+// filter for the same reason eqMock does below.
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
     auth: { exchangeCodeForSession: exchangeMock, signOut: signOutMock },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn((column: string, value: string) => {
+          approvedEqMock(column, value);
+          return { maybeSingle: approvedMock };
+        }),
+      })),
+    })),
   })),
 }));
 
@@ -40,6 +68,18 @@ vi.mock("@/lib/supabase/admin", () => ({
       })),
     })),
   })),
+}));
+
+vi.mock("@/lib/accounts/approve", () => ({
+  markApproved: markApprovedMock,
+}));
+
+vi.mock("@/lib/accounts/notify", () => ({
+  notifyAdminsOfSignup: notifyAdminsOfSignupMock,
+}));
+
+vi.mock("@/lib/accounts/seen", () => ({
+  claimSignupSeen: claimSignupSeenMock,
 }));
 
 import { GET } from "@/app/auth/callback/route";
@@ -66,6 +106,10 @@ const AUTH_COOKIE = "sb-abcdefgh-auth-token";
 
 beforeEach(() => {
   vi.stubEnv("ALLOWED_EMAILS", "yes@b.com");
+  // Restubbed to closed every test, since vi.stubEnv otherwise leaks a value
+  // set by one test into the next and the reject path invariants below depend
+  // on this being unset by default.
+  vi.stubEnv("OPEN_SIGNUP", "");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://abcdefgh.supabase.co");
   exchangeMock.mockReset().mockResolvedValue(SESSION("yes@b.com"));
   signOutMock.mockReset().mockResolvedValue({ error: null });
@@ -73,13 +117,124 @@ beforeEach(() => {
   countMock.mockReset().mockResolvedValue({ count: 0, error: null });
   eqMock.mockReset();
   storeMock.mockReset().mockReturnValue([]);
+  markApprovedMock.mockReset().mockResolvedValue(undefined);
+  notifyAdminsOfSignupMock.mockReset().mockResolvedValue(undefined);
+  // Unapproved and arriving for the first time is the state every existing
+  // test below was written against, so it is the default here.
+  claimSignupSeenMock.mockReset().mockResolvedValue(true);
+  approvedMock.mockReset().mockResolvedValue({ data: { approved: false } });
+  approvedEqMock.mockReset();
 });
 
 describe("the oauth callback", () => {
+  // THE INVARIANT this route gained. An approved account is admitted before
+  // the allowlist or the door is consulted at all, so closing OPEN_SIGNUP
+  // again cannot sign out, refuse and delete the accounts that open signup
+  // admitted and the admin then approved. It also admits an account the admin
+  // approved by hand that was never on ALLOWED_EMAILS.
+  it("ALWAYS admits an approved account, allowlist and door notwithstanding", async () => {
+    approvedMock.mockResolvedValue({ data: { approved: true } });
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+    const res = await GET(REQ());
+    expect(res.headers.get("location")).toBe("https://onyx.test/");
+    expect(signOutMock).not.toHaveBeenCalled();
+    expect(deleteUserMock).not.toHaveBeenCalled();
+  });
+
+  // Admitted means admitted without writing anything. An approved account has
+  // nothing left to claim, nothing to approve and nothing to announce, and a
+  // write on every sign in would be a per request cost this branch promised
+  // not to add.
+  it("writes nothing at all when it admits an approved account", async () => {
+    approvedMock.mockResolvedValue({ data: { approved: true } });
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+    await GET(REQ());
+    expect(markApprovedMock).not.toHaveBeenCalled();
+    expect(claimSignupSeenMock).not.toHaveBeenCalled();
+    expect(notifyAdminsOfSignupMock).not.toHaveBeenCalled();
+  });
+
+  // The filter is what makes the read mean anything. RLS scopes it to the
+  // caller, and this pins the route to the account that just signed in rather
+  // than to whatever row came back first.
+  it("reads the approval of the account that just signed in", async () => {
+    await GET(REQ());
+    expect(approvedEqMock).toHaveBeenCalledWith("user_id", "u1");
+  });
+
+  // An approval that cannot be read is not an approval. Failing the other way
+  // would admit every account whenever the settings read broke.
+  it("treats an unreadable approval as not approved", async () => {
+    approvedMock.mockResolvedValue({ data: null });
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+    const res = await GET(REQ());
+    expect(res.headers.get("location")).toContain("not-invited");
+    expect(signOutMock).toHaveBeenCalled();
+  });
+
   it("admits an allowlisted email", async () => {
     const res = await GET(REQ());
     expect(res.headers.get("location")).toBe("https://onyx.test/");
     expect(signOutMock).not.toHaveBeenCalled();
+    expect(deleteUserMock).not.toHaveBeenCalled();
+  });
+
+  // The allowlist is the auto approve list now, so admitting a listed email
+  // marks the account approved as part of the same trip through the route.
+  it("approves an allowlisted email as it admits it", async () => {
+    await GET(REQ());
+    expect(markApprovedMock).toHaveBeenCalledWith("u1");
+  });
+
+  // At signup, and only at signup. Without this the allowlist re-approved on
+  // every sign in: the admin revoked an account, its owner signed in with
+  // Google, and the row flipped back to approved with no record and no signal.
+  // The claim is what tells a first landing from a later one, and this route
+  // is not allowed to approve without it.
+  it("NEVER re-approves an allowlisted account that has landed before", async () => {
+    claimSignupSeenMock.mockResolvedValue(false);
+    const res = await GET(REQ());
+    expect(markApprovedMock).not.toHaveBeenCalled();
+    expect(res.headers.get("location")).toBe("https://onyx.test/");
+  });
+
+  // The claim is a write, so it must be made for this account and no other.
+  it("claims the first landing for the account that just signed in", async () => {
+    await GET(REQ());
+    expect(claimSignupSeenMock).toHaveBeenCalledWith("u1");
+  });
+
+  // An allowlisted signup approves itself and stays silent.
+  it("sends no admin notification for an allowlisted email", async () => {
+    await GET(REQ());
+    expect(notifyAdminsOfSignupMock).not.toHaveBeenCalled();
+  });
+
+  it("admits an uninvited provider sign in when signup is open", async () => {
+    vi.stubEnv("OPEN_SIGNUP", "true");
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+    const response = await GET(REQ());
+    expect(response.headers.get("location")).toBe("https://onyx.test/");
+    expect(signOutMock).not.toHaveBeenCalled();
+    expect(deleteUserMock).not.toHaveBeenCalled();
+    expect(markApprovedMock).not.toHaveBeenCalled();
+  });
+
+  // Only an account that lands unapproved needs the admin to do anything.
+  it("notifies admins when an uninvited provider sign in is admitted through open signup", async () => {
+    vi.stubEnv("OPEN_SIGNUP", "true");
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+    await GET(REQ());
+    expect(notifyAdminsOfSignupMock).toHaveBeenCalledWith("u1", "stranger@c.com");
+  });
+
+  // The invariant that must survive this branch untouched.
+  it("still refuses and still never deletes an account with data when closed", async () => {
+    countMock.mockResolvedValue({ count: 3, error: null });
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+    const response = await GET(REQ());
+    expect(response.headers.get("location")).toContain("not-invited");
+    expect(signOutMock).toHaveBeenCalled();
     expect(deleteUserMock).not.toHaveBeenCalled();
   });
 

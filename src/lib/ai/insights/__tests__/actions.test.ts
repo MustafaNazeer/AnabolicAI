@@ -106,8 +106,8 @@ function signedIn() {
   getVerifiedUserMock.mockResolvedValue({ id: "user-123", email: "a@b.com" });
 }
 
-function consent(on: boolean) {
-  maybeSingleMock.mockResolvedValue({ data: { ai_insights: on } });
+function consent(on: boolean, approved = true) {
+  maybeSingleMock.mockResolvedValue({ data: { ai_insights: on, approved } });
 }
 
 beforeEach(() => {
@@ -413,6 +413,20 @@ describe("suggestInsights", () => {
     expect(insightsWithModelMock).not.toHaveBeenCalled();
   });
 
+  it("refuses an unapproved account and never calls the model", async () => {
+    signedIn();
+    consent(true, false);
+    const result = await suggestInsights();
+    expect(result).toEqual({
+      ok: false,
+      error: "This account is waiting to be approved.",
+    });
+    expect(insightsWithModelMock).not.toHaveBeenCalled();
+    // The refusal lands before the rate limiter, so a stranger cannot even
+    // consume another account's budget by guessing at it.
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
+  });
+
   // Both remaining gates sit ABOVE the derivation, so each has two things
   // worth pinning, not one: that no model call happens, and that no work was
   // done to prepare it. Moving getInsightsData above either gate would leave
@@ -478,5 +492,24 @@ describe("setAiInsights", () => {
     await expect(setAiInsights(true)).resolves.toEqual({
       error: "Not signed in.",
     });
+  });
+
+  it("refuses to enable a paid feature for an unapproved account", async () => {
+    signedIn();
+    maybeSingleMock.mockResolvedValue({ data: { approved: false } });
+    await expect(setAiInsights(true)).resolves.toEqual({
+      error: "This account is waiting to be approved.",
+    });
+    expect(upsertMock).not.toHaveBeenCalled();
+  });
+
+  // Withdrawing consent must never be blocked, including for an account whose
+  // approval was revoked after it turned the feature on.
+  it("still allows an unapproved account to turn a feature off", async () => {
+    signedIn();
+    maybeSingleMock.mockResolvedValue({ data: { approved: false } });
+    upsertMock.mockResolvedValue({ error: null });
+    await expect(setAiInsights(false)).resolves.toEqual({ ok: true });
+    expect(upsertMock).toHaveBeenCalled();
   });
 });

@@ -11,3 +11,10 @@ export function shouldSendGoal(settings: {
 }): boolean {
   return settings.notif_master && settings.notif_goal;
 }
+
+export function shouldSendNewAccount(settings: {
+  notif_master: boolean;
+  notif_new_account: boolean;
+}): boolean {
+  return settings.notif_master && settings.notif_new_account;
+}

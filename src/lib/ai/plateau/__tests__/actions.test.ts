@@ -85,8 +85,8 @@ function signedIn() {
   getVerifiedUserMock.mockResolvedValue({ id: "user-123", email: "a@b.com" });
 }
 
-function consent(on: boolean) {
-  maybeSingleMock.mockResolvedValue({ data: { ai_plateau: on } });
+function consent(on: boolean, approved = true) {
+  maybeSingleMock.mockResolvedValue({ data: { ai_plateau: on, approved } });
 }
 
 beforeEach(() => {
@@ -198,6 +198,20 @@ describe("suggestForPlateau", () => {
     expect(suggestWithModelMock).not.toHaveBeenCalled();
   });
 
+  it("refuses an unapproved account and never calls the model", async () => {
+    signedIn();
+    consent(true, false);
+    const result = await suggestForPlateau(EXERCISE_ID);
+    expect(result).toEqual({
+      ok: false,
+      error: "This account is waiting to be approved.",
+    });
+    expect(suggestWithModelMock).not.toHaveBeenCalled();
+    // The refusal lands before the rate limiter, so a stranger cannot even
+    // consume another account's budget by guessing at it.
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
+  });
+
   it("rejects a malformed exercise id before rate limiting", async () => {
     signedIn();
     consent(true);
@@ -287,5 +301,24 @@ describe("setAiPlateau", () => {
     await expect(setAiPlateau(true)).resolves.toEqual({
       error: "Not signed in.",
     });
+  });
+
+  it("refuses to enable a paid feature for an unapproved account", async () => {
+    signedIn();
+    maybeSingleMock.mockResolvedValue({ data: { approved: false } });
+    await expect(setAiPlateau(true)).resolves.toEqual({
+      error: "This account is waiting to be approved.",
+    });
+    expect(upsertMock).not.toHaveBeenCalled();
+  });
+
+  // Withdrawing consent must never be blocked, including for an account whose
+  // approval was revoked after it turned the feature on.
+  it("still allows an unapproved account to turn a feature off", async () => {
+    signedIn();
+    maybeSingleMock.mockResolvedValue({ data: { approved: false } });
+    upsertMock.mockResolvedValue({ error: null });
+    await expect(setAiPlateau(false)).resolves.toEqual({ ok: true });
+    expect(upsertMock).toHaveBeenCalled();
   });
 });

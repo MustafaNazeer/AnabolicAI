@@ -4,6 +4,8 @@ import { isChunkLike } from "@supabase/ssr";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isEmailAllowed } from "@/lib/auth/allowlist";
+import { isOpenSignup } from "@/lib/accounts/approval";
+import { markApproved } from "@/lib/accounts/approve";
 
 const REJECTED = "/sign-in?error=not-invited";
 
@@ -99,6 +101,15 @@ export async function GET(request: NextRequest) {
 
   const email = data.user.email ?? "";
   if (isEmailAllowed(email, process.env.ALLOWED_EMAILS)) {
+    await markApproved(data.user.id);
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Open signup admits an uninvited account rather than refusing it. It lands
+  // unapproved, which locks the three paid features and nothing else. The
+  // refusal below is what still runs when signup is closed, and it is the
+  // behaviour this route shipped with.
+  if (isOpenSignup(process.env.OPEN_SIGNUP)) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

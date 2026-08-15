@@ -1,14 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { exchangeMock, signOutMock, deleteUserMock, countMock, eqMock, storeMock } =
-  vi.hoisted(() => ({
-    exchangeMock: vi.fn(),
-    signOutMock: vi.fn(),
-    deleteUserMock: vi.fn(),
-    countMock: vi.fn(),
-    eqMock: vi.fn(),
-    storeMock: vi.fn(),
-  }));
+const {
+  exchangeMock,
+  signOutMock,
+  deleteUserMock,
+  countMock,
+  eqMock,
+  storeMock,
+  markApprovedMock,
+} = vi.hoisted(() => ({
+  exchangeMock: vi.fn(),
+  signOutMock: vi.fn(),
+  deleteUserMock: vi.fn(),
+  countMock: vi.fn(),
+  eqMock: vi.fn(),
+  storeMock: vi.fn(),
+  markApprovedMock: vi.fn(),
+}));
 
 vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ getAll: () => storeMock() })),
@@ -42,6 +50,10 @@ vi.mock("@/lib/supabase/admin", () => ({
   })),
 }));
 
+vi.mock("@/lib/accounts/approve", () => ({
+  markApproved: markApprovedMock,
+}));
+
 import { GET } from "@/app/auth/callback/route";
 
 const REQ = (url = "https://onyx.test/auth/callback?code=abc") =>
@@ -66,6 +78,10 @@ const AUTH_COOKIE = "sb-abcdefgh-auth-token";
 
 beforeEach(() => {
   vi.stubEnv("ALLOWED_EMAILS", "yes@b.com");
+  // Restubbed to closed every test, since vi.stubEnv otherwise leaks a value
+  // set by one test into the next and the reject path invariants below depend
+  // on this being unset by default.
+  vi.stubEnv("OPEN_SIGNUP", "");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://abcdefgh.supabase.co");
   exchangeMock.mockReset().mockResolvedValue(SESSION("yes@b.com"));
   signOutMock.mockReset().mockResolvedValue({ error: null });
@@ -73,6 +89,7 @@ beforeEach(() => {
   countMock.mockReset().mockResolvedValue({ count: 0, error: null });
   eqMock.mockReset();
   storeMock.mockReset().mockReturnValue([]);
+  markApprovedMock.mockReset().mockResolvedValue(undefined);
 });
 
 describe("the oauth callback", () => {
@@ -80,6 +97,33 @@ describe("the oauth callback", () => {
     const res = await GET(REQ());
     expect(res.headers.get("location")).toBe("https://onyx.test/");
     expect(signOutMock).not.toHaveBeenCalled();
+    expect(deleteUserMock).not.toHaveBeenCalled();
+  });
+
+  // The allowlist is the auto approve list now, so admitting a listed email
+  // marks the account approved as part of the same trip through the route.
+  it("approves an allowlisted email as it admits it", async () => {
+    await GET(REQ());
+    expect(markApprovedMock).toHaveBeenCalledWith("u1");
+  });
+
+  it("admits an uninvited provider sign in when signup is open", async () => {
+    vi.stubEnv("OPEN_SIGNUP", "true");
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+    const response = await GET(REQ());
+    expect(response.headers.get("location")).toBe("https://onyx.test/");
+    expect(signOutMock).not.toHaveBeenCalled();
+    expect(deleteUserMock).not.toHaveBeenCalled();
+    expect(markApprovedMock).not.toHaveBeenCalled();
+  });
+
+  // The invariant that must survive this branch untouched.
+  it("still refuses and still never deletes an account with data when closed", async () => {
+    countMock.mockResolvedValue({ count: 3, error: null });
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+    const response = await GET(REQ());
+    expect(response.headers.get("location")).toContain("not-invited");
+    expect(signOutMock).toHaveBeenCalled();
     expect(deleteUserMock).not.toHaveBeenCalled();
   });
 

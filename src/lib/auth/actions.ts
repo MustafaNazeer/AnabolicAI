@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { validateCredentials } from "@/lib/auth/validation";
 import { isEmailAllowed } from "@/lib/auth/allowlist";
+import { isOpenSignup } from "@/lib/accounts/approval";
+import { markApproved } from "@/lib/accounts/approve";
 import { checkRateLimit, clientIpFrom, limitMessage } from "@/lib/security/rateLimit";
 
 async function clientIp(): Promise<string> {
@@ -34,18 +36,25 @@ export async function signUp(formData: FormData) {
   if (!(await checkRateLimit("signUp", await clientIp()))) {
     return { error: limitMessage("signUp") };
   }
-  if (!isEmailAllowed(email, process.env.ALLOWED_EMAILS)) {
+  // The allowlist changed job when signup opened: it is no longer the guest
+  // list, it is the auto approve list. When signup is closed it still refuses,
+  // which is the behaviour the app shipped with and the default here.
+  const invited = isEmailAllowed(email, process.env.ALLOWED_EMAILS);
+  if (!invited && !isOpenSignup(process.env.OPEN_SIGNUP)) {
     return { error: "This email is not on the invite list." };
   }
 
   const origin = (await headers()).get("origin") ?? "";
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { emailRedirectTo: `${origin}/auth/confirm` },
   });
   if (error) return { error: error.message };
+  // The auth.users row exists at this point even though the email is not yet
+  // confirmed, so the settings row exists too and can be marked.
+  if (invited && data.user) await markApproved(data.user.id);
   return { ok: true };
 }
 

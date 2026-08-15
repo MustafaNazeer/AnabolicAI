@@ -31,11 +31,15 @@ export default async function ActiveWorkoutPage({
   const supabase = await createClient();
   const { data: settings } = await supabase
     .from("user_settings")
-    .select("rest_timer_seconds, notif_rest_timer, ai_quick_entry")
+    .select("rest_timer_seconds, notif_rest_timer, ai_quick_entry, ai_visible")
     .maybeSingle();
   const restSeconds = settings?.rest_timer_seconds ?? 120;
   const restAlert = settings?.notif_rest_timer ?? true;
   const aiQuickEntry = settings?.ai_quick_entry ?? false;
+  // Read from the select this page already makes, so the switch costs no query
+  // on the app's centerpiece screen. Absent reads as visible, matching the
+  // column default: an unreadable flag must not strip a control off six cards.
+  const aiVisible = settings?.ai_visible ?? true;
 
   const snapshot: Snapshot = {
     sessionId: session.id,
@@ -80,6 +84,7 @@ export default async function ActiveWorkoutPage({
       stale={stale}
       restAlert={restAlert}
       aiQuickEntry={aiQuickEntry}
+      aiVisible={aiVisible}
     />
   );
 }

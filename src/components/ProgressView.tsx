@@ -79,11 +79,15 @@ export function ProgressView({
   routineVolume,
   goals,
   aiPlateau,
+  aiVisible = true,
 }: {
   data: ProgressData;
   routineVolume: RoutineVolumeData;
   goals: Record<string, { active: GoalWithProgress | null; achieved: GoalWithProgress[] }>
   aiPlateau: boolean;
+  // Defaults visible, matching the column, so a caller that has not been taught
+  // about the switch shows the card rather than silently swallowing it.
+  aiVisible?: boolean;
 }) {
   const [selected, setSelected] = useState(data.exercises[0]?.id ?? "");
   const { metric, setMetric } = useProgressMetric();
@@ -162,18 +166,20 @@ export function ProgressView({
         />
       </section>
 
-      <PlateauCard
-        // Prefixed, because GoalCard below is a sibling already keyed on the
-        // same exercise id. Two siblings sharing a key leaves React unable to
-        // tell them apart, and it silently keeps the previous card's DOM when
-        // the exercise changes.
-        key={`plateau-${selected}`}
-        exerciseId={selected}
-        exerciseName={selectedName}
-        status={status}
-        aiEnabled={plateauEnabled}
-        onAiEnabled={() => setPlateauEnabled(true)}
-      />
+      {aiVisible ? (
+        <PlateauCard
+          // Prefixed, because GoalCard below is a sibling already keyed on the
+          // same exercise id. Two siblings sharing a key leaves React unable to
+          // tell them apart, and it silently keeps the previous card's DOM when
+          // the exercise changes.
+          key={`plateau-${selected}`}
+          exerciseId={selected}
+          exerciseName={selectedName}
+          status={status}
+          aiEnabled={plateauEnabled}
+          onAiEnabled={() => setPlateauEnabled(true)}
+        />
+      ) : null}
 
       <section>
         <div className="flex items-center justify-between mb-2">

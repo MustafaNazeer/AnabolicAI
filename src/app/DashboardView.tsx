@@ -32,6 +32,7 @@ export function DashboardView({
   matrixDays,
   goals = [],
   aiInsights,
+  aiVisible = true,
 }: {
   name: string;
   weekly: WeeklySummary;
@@ -42,6 +43,9 @@ export function DashboardView({
   matrixDays: MatrixDay[];
   goals?: GoalWithProgress[];
   aiInsights: boolean;
+  // Defaults visible, matching the column, so a caller that has not been taught
+  // about the switch shows the card rather than silently swallowing it.
+  aiVisible?: boolean;
 }) {
   return (
     <main className="px-4 pt-12 pb-28">
@@ -59,7 +63,14 @@ export function DashboardView({
 
       <GoalsSummary goals={goals} />
 
-      {recent.length > 0 ? <InsightsCard initialEnabled={aiInsights} /> : null}
+      {/*
+        The card owns its own "Insights" heading, so this removes the whole
+        block rather than only the button. Gating the button alone would leave
+        a labelled empty box on the dashboard.
+      */}
+      {aiVisible && recent.length > 0 ? (
+        <InsightsCard initialEnabled={aiInsights} />
+      ) : null}
 
       <section className="mt-[18px]">
         <h2

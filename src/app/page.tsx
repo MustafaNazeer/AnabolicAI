@@ -37,7 +37,8 @@ export default async function HomePage() {
       weekDays={weekDays}
       matrixDays={matrixDays}
       goals={goals}
-      aiInsights={aiInsights}
+      aiInsights={aiInsights.enabled}
+      aiVisible={aiInsights.visible}
     />
   );
 }

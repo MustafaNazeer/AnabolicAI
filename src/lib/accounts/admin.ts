@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sortAccounts } from "@/lib/accounts/sort";
 
 export type Account = {
   id: string;
@@ -46,19 +47,16 @@ export async function listAccounts(): Promise<Account[]> {
     ]),
   );
 
-  return (users?.users ?? [])
-    .map((u) => ({
+  // Sorted through the shared comparator rather than a copy of it, so this and
+  // AccountList cannot drift into disagreeing about the order and reshuffling
+  // the list the moment the server data reaches the client.
+  return sortAccounts(
+    (users?.users ?? []).map((u) => ({
       id: u.id,
       email: u.email ?? "unknown",
       createdAt: u.created_at,
       // A user with no settings row reads as unapproved, matching canUseAi.
       approved: approvedBy.get(u.id) ?? false,
-    }))
-    // Unapproved first, because they are the only rows that need an action,
-    // then newest first within each group.
-    .sort((a, b) =>
-      a.approved === b.approved
-        ? b.createdAt.localeCompare(a.createdAt)
-        : Number(a.approved) - Number(b.approved),
-    );
+    })),
+  );
 }

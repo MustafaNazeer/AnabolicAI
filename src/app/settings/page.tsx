@@ -6,10 +6,7 @@ import { getApproved } from "@/lib/accounts/queries";
 import { isAdminEmail } from "@/lib/accounts/approval";
 import { getUntaggedCustomExercises } from "@/lib/data/queries";
 import { NotificationSettings } from "@/components/NotificationSettings";
-import { AiQuickEntryToggle } from "@/components/AiQuickEntryToggle";
-import { AiPlateauToggle } from "@/components/AiPlateauToggle";
-import { AiInsightsToggle } from "@/components/AiInsightsToggle";
-import { AiVisibilityToggle } from "@/components/AiVisibilityToggle";
+import { AiSettings } from "@/components/AiSettings";
 import { UntaggedExercises } from "@/components/UntaggedExercises";
 import { ExportPanel } from "@/components/ExportPanel";
 import { SettingsSection } from "@/components/ui/SettingsSection";
@@ -58,15 +55,13 @@ export default async function SettingsPage() {
         strand anyone who later wants just one of the three again.
       */}
       <SettingsSection title="AI">
-        <div className="flex flex-col gap-3">
-          <AiVisibilityToggle initial={aiQuickEntry.visible} />
-          <AiQuickEntryToggle
-            initial={aiQuickEntry.enabled}
-            approved={approved}
-          />
-          <AiPlateauToggle initial={aiPlateau.enabled} approved={approved} />
-          <AiInsightsToggle initial={aiInsights.enabled} approved={approved} />
-        </div>
+        <AiSettings
+          visible={aiQuickEntry.visible}
+          quickEntry={aiQuickEntry.enabled}
+          plateau={aiPlateau.enabled}
+          insights={aiInsights.enabled}
+          approved={approved}
+        />
       </SettingsSection>
 
       {admin ? (

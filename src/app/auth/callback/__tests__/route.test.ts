@@ -172,6 +172,39 @@ describe("the oauth callback", () => {
     expect(signOutMock).toHaveBeenCalled();
   });
 
+  // Refusing on an unreadable approval is right, and deleting on one is not.
+  // The two decisions were made by the same discarded error: an approved
+  // account, off the allowlist, owning nothing yet, arriving while the door is
+  // closed, was refused AND destroyed because a transient read failure is
+  // indistinguishable from an unapproved row when the error is thrown away.
+  // ownsData beside it already refuses to delete on an unknown count for
+  // exactly this reason, and the approval read did not have that discipline.
+  it("refuses but does NOT delete when the approval read fails", async () => {
+    approvedMock.mockResolvedValue({
+      data: null,
+      error: { message: "canceling statement due to statement timeout" },
+    });
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+
+    const res = await GET(REQ());
+
+    expect(res.headers.get("location")).toContain("not-invited");
+    expect(signOutMock).toHaveBeenCalled();
+    expect(deleteUserMock).not.toHaveBeenCalled();
+  });
+
+  // The scope of the change above, pinned. A read that SUCCEEDS and finds no
+  // row is not a failure, and it still deletes an empty uninvited account,
+  // which is the whole point of the reject path.
+  it("still deletes an empty account when the approval read succeeds with no row", async () => {
+    approvedMock.mockResolvedValue({ data: null, error: null });
+    exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
+
+    await GET(REQ());
+
+    expect(deleteUserMock).toHaveBeenCalledWith("u1");
+  });
+
   it("admits an allowlisted email", async () => {
     const res = await GET(REQ());
     expect(res.headers.get("location")).toBe("https://onyx.test/");

@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
   // dependency to a path that reaches this line on every provider sign in.
   // Anything other than a true reads as not approved: an approval that cannot
   // be read is not an approval.
-  const { data: settings } = await supabase
+  const { data: settings, error: approvalError } = await supabase
     .from("user_settings")
     .select("approved")
     .eq("user_id", data.user.id)
@@ -159,10 +159,27 @@ export async function GET(request: NextRequest) {
   // the account this route is most careful about is deliberately left in
   // place. So a sign out that failed must not be reported as a refusal that
   // took effect, or a refused visitor keeps a live session and walks back in.
+  // Refusing on an unreadable approval is correct. DELETING on one is not, and
+  // both decisions used to be made by the same discarded error.
+  //
+  // An approved account, not on the allowlist, owning nothing yet, arriving
+  // while the door is closed, reaches this line whenever its approval read
+  // merely fails, because a failed read is indistinguishable from an
+  // unapproved row once the error is thrown away. Refusing it costs it one
+  // sign in. Deleting it is irreversible and destroys an account the admin
+  // deliberately approved.
+  //
+  // So the refusal stays fail closed and the delete becomes fail safe, which is
+  // the same split ownsData already makes below: it treats an unknown count as
+  // owning data precisely so that no failure can authorise a delete. The
+  // approval read sat beside it without that discipline. The admin client is
+  // not constructed at all on this branch, since nothing here needs it.
   const { error: signOutError } = await supabase.auth.signOut();
-  const admin = createAdminClient();
-  if (!(await ownsData(admin, data.user.id))) {
-    await admin.auth.admin.deleteUser(data.user.id);
+  if (!approvalError) {
+    const admin = createAdminClient();
+    if (!(await ownsData(admin, data.user.id))) {
+      await admin.auth.admin.deleteUser(data.user.id);
+    }
   }
 
   const response = NextResponse.redirect(new URL(REJECTED, request.url));

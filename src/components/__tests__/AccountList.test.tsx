@@ -114,6 +114,48 @@ describe("AccountList", () => {
     expect(revokeAccountMock).toHaveBeenCalledTimes(2);
   });
 
+  // The list held the server data in useState with a lazy initialiser, so it
+  // was frozen at mount. approveAccount and revokeAccount both call
+  // revalidatePath("/settings/accounts"), which sends fresh props down, and
+  // every one of them was discarded. The screen this matters on is the one an
+  // admin sits on waiting for exactly that: a signup landing while the page is
+  // open never appeared until a remount.
+  it("takes an account that arrives from the server while the page is open", () => {
+    const { rerender } = render(<AccountList accounts={[approvedAccount]} />);
+    expect(screen.queryByText("pending@onyx.app")).not.toBeInTheDocument();
+
+    rerender(<AccountList accounts={[approvedAccount, pendingAccount]} />);
+    expect(screen.getByText("pending@onyx.app")).toBeInTheDocument();
+    expect(screen.getAllByRole("button")[0]).toHaveAccessibleName(/approve/i);
+  });
+
+  // The local optimistic update is still what moves the row on a tap, so fresh
+  // props must not be needed for the button to change.
+  it("still moves the row on a tap without waiting for new props", async () => {
+    render(<AccountList accounts={[pendingAccount]} />);
+    fireEvent.click(screen.getByRole("button", { name: /approve/i }));
+    expect(
+      await screen.findByRole("button", { name: /revoke/i }),
+    ).toBeInTheDocument();
+  });
+
+  // Every other best effort catch this feature wrote logs what it swallowed.
+  // This one said nothing, so a rejection that the user saw as a generic
+  // "could not reach the server" left no trace to diagnose it from.
+  it("logs the rejection rather than swallowing it silently", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    revokeAccountMock.mockRejectedValue(new Error("connection reset"));
+    render(<AccountList accounts={[approvedAccount]} />);
+    fireEvent.click(screen.getByRole("button", { name: /revoke/i }));
+    await screen.findByRole("alert");
+
+    expect(logged).toHaveBeenCalledWith(
+      "account action threw",
+      expect.objectContaining({ accountId: "u1" }),
+    );
+    logged.mockRestore();
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = render(<AccountList accounts={[pendingAccount]} />);
     expect(await axe(container)).toHaveNoViolations();

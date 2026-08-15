@@ -45,6 +45,26 @@ export function AccountList({ accounts }: { accounts: Account[] }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Take fresh server data when it arrives. The lazy initialiser above runs
+  // once, so without this the list is frozen at mount: both actions call
+  // revalidatePath("/settings/accounts"), and every set of props that produced
+  // was discarded. This is the screen an admin sits on waiting for a signup to
+  // land, so a row appearing only after a remount is the wrong behaviour on the
+  // one page where it is most likely to be noticed.
+  //
+  // Adjusted during render rather than in an effect, which is React's own
+  // pattern for resetting state when a prop changes: it re-renders before
+  // anything is painted instead of flashing the stale list first. The server is
+  // authoritative, so discarding the local optimistic copy is the point, not a
+  // side effect. Compared by identity, which is what a new server payload
+  // produces; a re-render with the same array leaves the local state alone and
+  // keeps the tap-to-move behaviour below.
+  const [rendered, setRendered] = useState(accounts);
+  if (rendered !== accounts) {
+    setRendered(accounts);
+    setItems(sortAccounts(accounts));
+  }
+
   // A server action can reject as well as resolve with an error: the network
   // drops, or createAdminClient throws because SUPABASE_SERVICE_ROLE_KEY is
   // unset. Without the catch that rejection escapes an un-awaited handler as
@@ -68,7 +88,12 @@ export function AccountList({ accounts }: { accounts: Account[] }) {
           ),
         ),
       );
-    } catch {
+    } catch (err) {
+      // Logged, not just shown. FAILED is deliberately vague on screen, so
+      // without this the only record of a rejection is a message that names
+      // nothing. Matches markApproved, claimSignupSeen and notifyAdminsOfSignup,
+      // every one of which logs what it swallowed.
+      console.error("account action threw", { accountId: account.id, err });
       setError(FAILED);
     } finally {
       setPendingId(null);

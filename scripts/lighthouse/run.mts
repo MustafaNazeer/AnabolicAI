@@ -10,7 +10,13 @@ import path from "node:path";
 import puppeteer from "puppeteer";
 import type { Browser, Page } from "puppeteer";
 import lighthouse from "lighthouse";
-import { BASE_URL, ROUTES, RUNS_PER_ROUTE, type Route } from "./targets.mts";
+import {
+  BASE_URL,
+  ROUTES,
+  RUNS_PER_ROUTE,
+  measurementOrder,
+  type Route,
+} from "./targets.mts";
 import {
   summarizeRoute,
   type MinimalLhr,
@@ -62,34 +68,66 @@ async function bypassDeploymentProtection(page: Page): Promise<void> {
   const token = process.env.ONYX_SHARE_TOKEN;
   if (!token) return;
   await page.goto(`${BASE_URL}/?_vercel_share=${token}`, {
-    waitUntil: "networkidle2",
+    waitUntil: "domcontentloaded",
   });
+
+  // Verified rather than announced, because a token that no longer works fails
+  // silently in the worst possible way. Vercel answers a stale one by
+  // redirecting to its own login page, which is a real page full of real
+  // buttons, so every later step still succeeds and Lighthouse cheerfully
+  // reports vercel.com under this app's name. Two runs were lost to exactly
+  // that before this check existed.
+  //
+  // A token goes stale on its own schedule, and also the moment a newer one is
+  // minted for the project, so comparing two deployments invalidates the first
+  // token as soon as the second is created. That makes this the normal case,
+  // not a rare one: mint a token, measure, then mint the next.
+  const landed = new URL(page.url());
+  const expected = new URL(BASE_URL);
+  if (landed.hostname !== expected.hostname) {
+    throw new Error(
+      `The share token did not grant access to ${BASE_URL}. The browser ended ` +
+        `up on ${landed.origin} instead, so nothing measured from here would ` +
+        `describe this app. Mint a fresh token and note that minting one for ` +
+        `another deployment invalidates it again.`,
+    );
+  }
   console.log("Deployment protection bypassed.");
 }
 
 async function signInAsDemo(page: Page): Promise<void> {
-  await page.goto(`${BASE_URL}/sign-in`, { waitUntil: "networkidle2" });
+  await page.goto(`${BASE_URL}/sign-in`, { waitUntil: "domcontentloaded" });
 
-  const clicked = await page.evaluate(() => {
-    const button = Array.from(document.querySelectorAll("button")).find(
-      (b) => b.textContent?.trim() === "Try the demo",
+  // Waited for rather than read once. A preview that has just been deployed,
+  // or one that has idled back down, can take longer to answer than a single
+  // synchronous look allows, and the old version reported that as the demo
+  // being unconfigured, which sent a diagnosis to entirely the wrong place.
+  try {
+    await page.waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll("button")).some(
+          (b) => b.textContent?.trim() === "Try the demo",
+        ),
+      { timeout: 60_000 },
     );
-    if (!button) return false;
-    button.click();
-    return true;
-  });
-
-  if (!clicked) {
+  } catch {
     throw new Error(
-      "No 'Try the demo' button on /sign-in. The sign in page only renders it " +
-        "when DEMO_EMAIL is set on the deployment, so the demo is probably not " +
-        "configured in Vercel.",
+      `No 'Try the demo' button appeared on ${BASE_URL}/sign-in within 60s. ` +
+        "The page only renders it when DEMO_EMAIL is set on the deployment, " +
+        `so check that first. The browser is on ${page.url()}.`,
     );
   }
 
+  await page.evaluate(() => {
+    const button = Array.from(document.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "Try the demo",
+    );
+    button?.click();
+  });
+
   // The server action redirects to /, which is a client side navigation, so
   // wait on the rendered result rather than on a load event.
-  await page.waitForFunction(hasAuthMarker, { timeout: 30_000 }, AUTH_MARKER);
+  await page.waitForFunction(hasAuthMarker, { timeout: 60_000 }, AUTH_MARKER);
 }
 
 async function measure(page: Page, route: Route): Promise<MinimalLhr[]> {
@@ -154,20 +192,45 @@ async function main(): Promise<void> {
       ignoreDefaultArgs: ["--enable-automation"],
     });
     const page = await browser.newPage();
+    // Production is warm and answers in milliseconds. A preview that was just
+    // deployed cold starts, and the default 30 seconds is not always enough for
+    // the first navigation against one.
+    page.setDefaultNavigationTimeout(120_000);
 
-    console.log(`Signing in as the demo user at ${BASE_URL}`);
     await bypassDeploymentProtection(page);
+
+    // Public routes first, while there is still no session to redirect them
+    // away. See measurementOrder for what measuring them afterwards silently
+    // produced instead.
+    const { before, after } = measurementOrder(ROUTES);
+    const byLabel = new Map<string, RouteSummary>();
+
+    for (const route of before) {
+      console.log(`Measuring ${route.path}, signed out`);
+      byLabel.set(
+        route.label,
+        summarizeRoute(route.label, route.path, await measure(page, route)),
+      );
+    }
+
+    console.log(`\nSigning in as the demo user at ${BASE_URL}`);
     await signInAsDemo(page);
     console.log("Signed in.\n");
 
-    const summaries: RouteSummary[] = [];
-    for (const route of ROUTES) {
+    for (const route of after) {
       console.log(`Measuring ${route.path}`);
-      const lhrs = await measure(page, route);
-      summaries.push(summarizeRoute(route.label, route.path, lhrs));
-
-      if (route.authenticated) await verifyStillSignedIn(page, route.path);
+      byLabel.set(
+        route.label,
+        summarizeRoute(route.label, route.path, await measure(page, route)),
+      );
+      await verifyStillSignedIn(page, route.path);
     }
+
+    // Reported in the order the routes are declared, not the order they were
+    // measured, so the output stays comparable run to run.
+    const summaries = ROUTES.map((r) => byLabel.get(r.label)).filter(
+      (s): s is RouteSummary => s !== undefined,
+    );
 
     await writeFile(
       path.join(OUT_DIR, "summary.json"),
@@ -177,6 +240,7 @@ async function main(): Promise<void> {
     console.log("\nMedians:");
     for (const s of summaries) {
       const tbt = s.metrics["total-blocking-time"];
+      const srt = s.metrics["server-response-time"];
       console.log(
         `  ${s.path}  performance ${s.scores.performance} ` +
           `(spread ${s.spread.performance})  ` +
@@ -184,7 +248,11 @@ async function main(): Promise<void> {
           `(spread ${s.spread.accessibility})` +
           // The score is noisy enough that the milliseconds are the number to
           // watch across an optimization pass.
-          (tbt ? `  blocking ${tbt.median}ms (${tbt.min} to ${tbt.max})` : ""),
+          (tbt ? `  blocking ${tbt.median}ms (${tbt.min} to ${tbt.max})` : "") +
+          // Printed beside it so a server side change, which moves this and
+          // leaves blocking time alone, is visible from the command itself
+          // rather than only from the raw reports.
+          (srt ? `  server ${srt.median}ms (${srt.min} to ${srt.max})` : ""),
       );
     }
     console.log(`\nRaw reports and summary.json written to ${OUT_DIR}`);

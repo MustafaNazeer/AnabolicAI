@@ -35,6 +35,26 @@ export const ROUTES: readonly Route[] = [
   { path: "/sign-in", label: "sign-in", authenticated: false },
 ];
 
+// Which routes are measured before the demo sign in, and which after.
+//
+// The order is not cosmetic. The proxy redirects a signed in visitor off
+// /sign-in to the dashboard (src/lib/supabase/proxy.ts), so measuring an
+// unauthenticated route after signing in does not measure that route at all.
+// Confirmed rather than reasoned about: a Lighthouse run requesting /sign-in
+// with a live demo session came back with mainDocumentUrl "/", a
+// server-response-time whose details name "/" as the document timed, and a
+// redirects audit scoring 0. The number described the dashboard, and it carried
+// a redirect penalty no signed out visitor ever pays.
+export function measurementOrder(routes: readonly Route[]): {
+  before: Route[];
+  after: Route[];
+} {
+  return {
+    before: routes.filter((r) => !r.authenticated),
+    after: routes.filter((r) => r.authenticated),
+  };
+}
+
 // There is deliberately no category list and no form factor here. Lighthouse
 // runs all four categories on the mobile preset by default, and passing them
 // again would only restate the default in a second place that could drift from

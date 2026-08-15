@@ -7,6 +7,7 @@ import { validateCredentials } from "@/lib/auth/validation";
 import { isEmailAllowed } from "@/lib/auth/allowlist";
 import { isOpenSignup } from "@/lib/accounts/approval";
 import { markApproved } from "@/lib/accounts/approve";
+import { claimSignupSeen } from "@/lib/accounts/seen";
 import { notifyAdminsOfSignup } from "@/lib/accounts/notify";
 import { checkRateLimit, clientIpFrom, limitMessage } from "@/lib/security/rateLimit";
 
@@ -55,10 +56,18 @@ export async function signUp(formData: FormData) {
   if (error) return { error: error.message };
   // The auth.users row exists at this point even though the email is not yet
   // confirmed, so the settings row exists too and can be marked.
-  if (invited && data.user) await markApproved(data.user.id);
+  //
+  // Approving is gated on claiming the first landing, the same claim the OAuth
+  // callback makes. Claiming it here is what stops an email that signed up
+  // with a password and later signs in with a provider from being approved a
+  // second time, which would undo an admin's revoke in between.
+  if (invited && data.user && (await claimSignupSeen(data.user.id))) {
+    await markApproved(data.user.id);
+  }
   // Only an account that lands unapproved needs the admin to do anything.
-  // notifyAdminsOfSignup needs the id to claim signup_notified, so this also
-  // requires data.user, matching the markApproved branch above it.
+  // notifyAdminsOfSignup needs the id to claim the same marker, so this also
+  // requires data.user, matching the markApproved branch above it. The two
+  // branches are mutually exclusive, so the marker is claimed once either way.
   if (!invited && data.user) await notifyAdminsOfSignup(data.user.id, email);
   return { ok: true };
 }

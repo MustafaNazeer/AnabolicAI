@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isEmailAllowed } from "@/lib/auth/allowlist";
 import { isOpenSignup } from "@/lib/accounts/approval";
 import { markApproved } from "@/lib/accounts/approve";
+import { claimSignupSeen } from "@/lib/accounts/seen";
 import { notifyAdminsOfSignup } from "@/lib/accounts/notify";
 
 const REJECTED = "/sign-in?error=not-invited";
@@ -100,9 +101,40 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
+  // An approved account is always admitted, and that is decided before the
+  // allowlist and before the door. Approval outranks both.
+  //
+  // Two things fall out of it. Once the door has been open, accounts exist
+  // that are not on ALLOWED_EMAILS, and closing it again would otherwise send
+  // every one of them down the reject path below, including the ones the admin
+  // deliberately approved, deleting any that had not logged anything yet. And
+  // an account approved by hand that was never on the allowlist is admitted on
+  // its own approval rather than refused whenever the door is shut.
+  //
+  // Read through the session client rather than the admin client, so it is RLS
+  // scoped to the account that just signed in and adds no service role
+  // dependency to a path that reaches this line on every provider sign in.
+  // Anything other than a true reads as not approved: an approval that cannot
+  // be read is not an approval.
+  const { data: settings } = await supabase
+    .from("user_settings")
+    .select("approved")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+  if (settings?.approved === true) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   const email = data.user.email ?? "";
   if (isEmailAllowed(email, process.env.ALLOWED_EMAILS)) {
-    await markApproved(data.user.id);
+    // The allowlist auto approves at the first landing only. Approving on
+    // every sign in would silently undo a revoke: the admin revokes, the
+    // person signs in with Google, and the row flips back with no record. The
+    // claim is the only thing that can tell a first landing from a later one,
+    // since approved reads false in both, and it is claimed on the password
+    // path too so a password signup followed by a provider sign in with the
+    // same email cannot approve twice either.
+    if (await claimSignupSeen(data.user.id)) await markApproved(data.user.id);
     return NextResponse.redirect(new URL("/", request.url));
   }
 
@@ -110,6 +142,10 @@ export async function GET(request: NextRequest) {
   // unapproved, which locks the three paid features and nothing else. The
   // refusal below is what still runs when signup is closed, and it is the
   // behaviour this route shipped with.
+  //
+  // notifyAdminsOfSignup makes the same claim for itself, so this branch and
+  // the one above claim it exactly once between them: they are mutually
+  // exclusive, an allowlisted account approving itself and staying silent.
   if (isOpenSignup(process.env.OPEN_SIGNUP)) {
     await notifyAdminsOfSignup(data.user.id, email);
     return NextResponse.redirect(new URL("/", request.url));

@@ -9,6 +9,14 @@ alter table user_settings
 -- Grandfather everyone who predates this branch, the demo account included.
 -- Unconditional and immediately after the add, so no existing account can find
 -- itself locked out of a feature it was already using.
+--
+-- WARNING: this one statement makes the file unsafe to re-run. The rest of it
+-- is idempotent, but this update carries no condition and cannot have one: on
+-- first run every row it touches is a grandfathered account, and afterwards it
+-- cannot tell those apart from an account the admin has deliberately revoked.
+-- Running the file a second time would approve every revoked account in the
+-- database. The grandfathering is correct on first run, which is the only run
+-- it is meant to have.
 update user_settings set approved = true;
 
 -- Defence in depth. The user facing settings writes go through the anon key

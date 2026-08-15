@@ -77,9 +77,9 @@ describe("notifyAdminsOfSignup", () => {
     await notifyAdminsOfSignup("new-user-1", "stranger@c.com");
 
     expect(fromMock).toHaveBeenCalledWith("user_settings");
-    expect(updateMock).toHaveBeenCalledWith({ signup_notified: true });
+    expect(updateMock).toHaveBeenCalledWith({ signup_seen: true });
     expect(updateEqMock).toHaveBeenCalledWith("user_id", "new-user-1");
-    expect(updateEqMock).toHaveBeenCalledWith("signup_notified", false);
+    expect(updateEqMock).toHaveBeenCalledWith("signup_seen", false);
     expect(claimMock).toHaveBeenCalledWith("user_id");
 
     expect(sendToUserWithMock).toHaveBeenCalledWith(
@@ -188,7 +188,7 @@ describe("notifyAdminsOfSignup", () => {
   // The claim is attempted before any push is sent, and before the admin
   // roster is even looked up: when it finds the marker already set, nothing
   // downstream of it runs at all.
-  it("never looks up admins or pushes when the claim finds the account already notified", async () => {
+  it("never looks up admins or pushes when the claim finds the account has landed before", async () => {
     vi.stubEnv("ADMIN_EMAILS", "boss@b.com");
     claimMock.mockResolvedValue({ data: [] });
     listUsersMock.mockResolvedValue({

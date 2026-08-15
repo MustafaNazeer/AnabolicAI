@@ -6,12 +6,14 @@ const {
   checkRateLimitMock,
   markApprovedMock,
   notifyAdminsOfSignupMock,
+  claimSignupSeenMock,
 } = vi.hoisted(() => ({
   signUpMock: vi.fn(),
   headersGetMock: vi.fn(() => null),
   checkRateLimitMock: vi.fn(),
   markApprovedMock: vi.fn(),
   notifyAdminsOfSignupMock: vi.fn(),
+  claimSignupSeenMock: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
@@ -44,6 +46,10 @@ vi.mock("@/lib/accounts/notify", () => ({
   notifyAdminsOfSignup: notifyAdminsOfSignupMock,
 }));
 
+vi.mock("@/lib/accounts/seen", () => ({
+  claimSignupSeen: claimSignupSeenMock,
+}));
+
 import { signUp } from "@/lib/auth/actions";
 
 function formDataFor(email: string, password: string): FormData {
@@ -57,6 +63,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   headersGetMock.mockReturnValue(null);
   checkRateLimitMock.mockResolvedValue(true);
+  // A brand new account, which is what every signup below is.
+  claimSignupSeenMock.mockResolvedValue(true);
 });
 
 describe("signUp", () => {
@@ -75,6 +83,27 @@ describe("signUp", () => {
     signUpMock.mockResolvedValue({ data: { user: { id: "u1" } }, error: null });
     await signUp(formDataFor("invited@b.com", "password123"));
     expect(markApprovedMock).toHaveBeenCalledWith("u1");
+  });
+
+  // The same claim the OAuth callback makes, made here too, so an email that
+  // signs up with a password and later signs in with a provider is auto
+  // approved once rather than approved again on the second arrival. Without
+  // the claim on this path the callback would find the marker unset and
+  // re-approve an account the admin may have revoked in between.
+  it("claims the first landing before approving an invited email", async () => {
+    vi.stubEnv("ALLOWED_EMAILS", "invited@b.com");
+    signUpMock.mockResolvedValue({ data: { user: { id: "u1" } }, error: null });
+    await signUp(formDataFor("invited@b.com", "password123"));
+    expect(claimSignupSeenMock).toHaveBeenCalledWith("u1");
+  });
+
+  it("does not approve an invited email whose landing was already claimed", async () => {
+    vi.stubEnv("ALLOWED_EMAILS", "invited@b.com");
+    claimSignupSeenMock.mockResolvedValue(false);
+    signUpMock.mockResolvedValue({ data: { user: { id: "u1" } }, error: null });
+    const result = await signUp(formDataFor("invited@b.com", "password123"));
+    expect(result).toEqual({ ok: true });
+    expect(markApprovedMock).not.toHaveBeenCalled();
   });
 
   // The closed default, which is the state the app ships in.

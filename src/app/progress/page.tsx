@@ -22,7 +22,8 @@ export default async function ProgressPage() {
         data={data}
         routineVolume={routineVolume}
         goals={goals}
-        aiPlateau={aiPlateau}
+        aiPlateau={aiPlateau.enabled}
+        aiVisible={aiPlateau.visible}
       />
     </main>
   );

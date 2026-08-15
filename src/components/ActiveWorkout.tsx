@@ -142,6 +142,7 @@ export function ActiveWorkout({
   stale = false,
   restAlert = true,
   aiQuickEntry = false,
+  aiVisible = true,
 }: {
   snapshot: Snapshot;
   serverSets: LocalSet[];
@@ -149,6 +150,9 @@ export function ActiveWorkout({
   stale?: boolean;
   restAlert?: boolean;
   aiQuickEntry?: boolean;
+  // Defaults visible, matching the column, so a caller that has not been taught
+  // about the switch shows quick entry rather than silently swallowing it.
+  aiVisible?: boolean;
 }) {
   const router = useRouter();
   const online = useOnline();
@@ -501,8 +505,13 @@ export function ActiveWorkout({
                 ? () => void handleUndoSwap(c.slotExerciseId)
                 : undefined
             }
-            aiEnabled={aiEnabled}
-            onAiEnabled={() => setAiEnabled(true)}
+            // Hidden by withholding both props rather than by a new one on the
+            // card. ExerciseLogCard already renders quick entry only when it
+            // has both, which is its existing contract for "this card has no
+            // quick entry", so the switch reuses that instead of teaching the
+            // card a second way to say the same thing.
+            aiEnabled={aiVisible ? aiEnabled : undefined}
+            onAiEnabled={aiVisible ? () => setAiEnabled(true) : undefined}
           />
         ))}
       </div>

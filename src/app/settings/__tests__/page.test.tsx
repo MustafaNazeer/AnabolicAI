@@ -80,9 +80,9 @@ beforeEach(() => {
   getNotificationSettingsMock.mockResolvedValue({});
   // All three off, which is what an account that has never been approved has:
   // the consent columns default false.
-  getAiQuickEntryMock.mockResolvedValue(false);
-  getAiPlateauMock.mockResolvedValue(false);
-  getAiInsightsMock.mockResolvedValue(false);
+  getAiQuickEntryMock.mockResolvedValue({ enabled: false, visible: true });
+  getAiPlateauMock.mockResolvedValue({ enabled: false, visible: true });
+  getAiInsightsMock.mockResolvedValue({ enabled: false, visible: true });
   getApprovedMock.mockResolvedValue(true);
   getUntaggedCustomExercisesMock.mockResolvedValue([]);
 });
@@ -118,7 +118,7 @@ describe("the settings page AI section", () => {
   // switchable off. This is the page level half of the one directional lock.
   it("still lets an unapproved account turn off a feature that is on", async () => {
     getApprovedMock.mockResolvedValue(false);
-    getAiInsightsMock.mockResolvedValue(true);
+    getAiInsightsMock.mockResolvedValue({ enabled: true, visible: true });
     await renderSettings();
     expect(
       screen.getByRole("checkbox", { name: /weekly insights/i }),
@@ -126,5 +126,41 @@ describe("the settings page AI section", () => {
     expect(
       screen.getByRole("checkbox", { name: /ai quick entry/i }),
     ).toBeDisabled();
+  });
+
+  // THE TRAP THIS SECTION IS BUILT AROUND. The switch removes the three AI
+  // surfaces from the rest of the app, and if it removed this section too it
+  // would take its own undo with it: someone who hid everything and later
+  // wanted just quick entry back would have to remember a switch exists and
+  // find it in a section showing nothing.
+  it("keeps the AI section and all four rows when the features are hidden", async () => {
+    getAiQuickEntryMock.mockResolvedValue({ enabled: false, visible: false });
+    getAiPlateauMock.mockResolvedValue({ enabled: false, visible: false });
+    getAiInsightsMock.mockResolvedValue({ enabled: false, visible: false });
+    await renderSettings();
+
+    expect(
+      screen.getByRole("checkbox", { name: /show ai features/i }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: /ai quick entry/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /plateau/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /weekly insights/i }),
+    ).toBeInTheDocument();
+  });
+
+  // Hiding costs nothing to run, so it is the one control in this section an
+  // unapproved account may always use. Gating it would be perverse: the lock
+  // notice sits on the very rows this switch exists to clear away.
+  it("leaves the visibility switch usable by an unapproved account", async () => {
+    getApprovedMock.mockResolvedValue(false);
+    await renderSettings();
+    expect(
+      screen.getByRole("checkbox", { name: /show ai features/i }),
+    ).toBeEnabled();
   });
 });

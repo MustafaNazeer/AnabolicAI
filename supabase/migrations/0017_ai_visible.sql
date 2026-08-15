@@ -1,0 +1,33 @@
+-- Whether the AI features appear in the interface at all.
+--
+-- THIS IS NOT A FOURTH CONSENT FLAG, and the distinction is the whole reason it
+-- is a separate column. ai_quick_entry (0009), ai_plateau (0010) and
+-- ai_insights (0011) decide what may be SENT to Anthropic, which is a privacy
+-- promise the README makes in specific words. This decides what is SEEN.
+-- Collapsing the two would mean either a privacy switch that silently
+-- rearranges the interface, or a layout preference that silently grants
+-- permission to send training data, and both are worse than two columns.
+--
+-- Turning it off leaves all three consent flags exactly as they were. Nothing
+-- is sent while it is off, because there is nothing left to tap, so a user who
+-- hides the features without clearing consent is not exposed by the difference.
+-- The Settings AI section deliberately stays visible either way: it holds this
+-- switch, and a switch that hides the controls for turning individual features
+-- back on would hide its own undo.
+--
+-- Defaults true, so every existing account sees exactly what it saw before this
+-- migration and nothing disappears from anyone's app on deploy. That is the
+-- opposite of how the three consent columns default, and deliberately so: those
+-- default false because sending data needs an explicit yes, while hiding an
+-- interface needs an explicit no.
+--
+-- notif_master (0001_initial_schema.sql:73) is the shape this copies, a single
+-- switch above a set of per item toggles. Its own history carries the warning
+-- that the pattern is not automatic: 0008_rest_push.sql:5 records
+-- notif_rest_push as deliberately ungated by notif_master, because a push
+-- toggle turned out to be a different question from the toggles around it.
+-- Each of the three AI surfaces was checked against this switch rather than
+-- assumed under it, and all three are genuinely the same question: whether the
+-- feature is on screen.
+alter table user_settings
+  add column if not exists ai_visible boolean not null default true;

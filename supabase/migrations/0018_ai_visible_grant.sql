@@ -1,0 +1,45 @@
+-- Makes ai_visible writable by the account that owns the row. Without this the
+-- switch added in 0017 saves nothing and raises "permission denied for table
+-- user_settings", because the column arrives with no grant on it at all.
+--
+-- WHAT WAS OBSERVED, which is less than a full explanation and is written that
+-- way on purpose. After 0017 added the column,
+-- has_column_privilege('authenticated', 'user_settings', 'ai_visible', 'UPDATE')
+-- returned FALSE, while every pre-existing column except approved and
+-- signup_seen returned true. So the column arrived with no write permission for
+-- the role that has to write it.
+--
+-- The likely cause is that this table no longer carries a table level UPDATE
+-- grant for authenticated, only per column ones: has_table_privilege returned
+-- false for UPDATE after the column level revokes in 0014 and 0015, and a
+-- column created later is covered by no existing column grant. **That is a
+-- hypothesis and it does not fully fit**, because notif_new_account is added
+-- after 0014's revoke and reads as writable. The mechanism was not chased down,
+-- and the rule below does not depend on it.
+--
+-- **THE RULE, WHICH RESTS ON THE OBSERVATION RATHER THAN ON THE THEORY: check
+-- has_column_privilege after adding any column to user_settings, and grant it
+-- explicitly if the user's own session has to write it.**
+--
+-- Columns written only through the service role client, the way `approved` and
+-- `signup_seen` are, deliberately do not get a grant.
+--
+-- The same mechanism took the live app down on 2026-08-15 by removing UPDATE on
+-- user_id, which every PostgREST upsert writes. That was diagnosed and fixed in
+-- 0016, and this is the same lesson arriving from the other side: 0016 restored
+-- a grant that was taken away, this supplies one that was never given.
+--
+-- Not a widening. The policy at 0001_initial_schema.sql:209 is
+-- FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id), so
+-- this lets an account set its own visibility preference and nobody else's. The
+-- column decides what that account sees, spends nothing, and is the one control
+-- in the AI section an unapproved account may always use.
+--
+-- Idempotent and safe to re-run.
+grant update (ai_visible) on user_settings to authenticated;
+
+-- Verification. Expect true, unlike approved and signup_seen which must stay
+-- false:
+--
+--   select has_column_privilege('authenticated', 'public.user_settings',
+--                               'ai_visible', 'UPDATE') as can_update;

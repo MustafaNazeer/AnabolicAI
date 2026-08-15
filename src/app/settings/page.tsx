@@ -9,6 +9,7 @@ import { NotificationSettings } from "@/components/NotificationSettings";
 import { AiQuickEntryToggle } from "@/components/AiQuickEntryToggle";
 import { AiPlateauToggle } from "@/components/AiPlateauToggle";
 import { AiInsightsToggle } from "@/components/AiInsightsToggle";
+import { AiVisibilityToggle } from "@/components/AiVisibilityToggle";
 import { UntaggedExercises } from "@/components/UntaggedExercises";
 import { ExportPanel } from "@/components/ExportPanel";
 import { SettingsSection } from "@/components/ui/SettingsSection";
@@ -50,11 +51,21 @@ export default async function SettingsPage() {
         <NotificationSettings initial={settings} />
       </SettingsSection>
 
+      {/*
+        This section renders whether or not the features are shown elsewhere,
+        and that is deliberate. It holds the switch that brings them back, so
+        hiding it along with the surfaces would hide the switch's own undo and
+        strand anyone who later wants just one of the three again.
+      */}
       <SettingsSection title="AI">
         <div className="flex flex-col gap-3">
-          <AiQuickEntryToggle initial={aiQuickEntry} approved={approved} />
-          <AiPlateauToggle initial={aiPlateau} approved={approved} />
-          <AiInsightsToggle initial={aiInsights} approved={approved} />
+          <AiVisibilityToggle initial={aiQuickEntry.visible} />
+          <AiQuickEntryToggle
+            initial={aiQuickEntry.enabled}
+            approved={approved}
+          />
+          <AiPlateauToggle initial={aiPlateau.enabled} approved={approved} />
+          <AiInsightsToggle initial={aiInsights.enabled} approved={approved} />
         </div>
       </SettingsSection>
 

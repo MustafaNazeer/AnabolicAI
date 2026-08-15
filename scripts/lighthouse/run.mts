@@ -10,7 +10,13 @@ import path from "node:path";
 import puppeteer from "puppeteer";
 import type { Browser, Page } from "puppeteer";
 import lighthouse from "lighthouse";
-import { BASE_URL, ROUTES, RUNS_PER_ROUTE, type Route } from "./targets.mts";
+import {
+  BASE_URL,
+  ROUTES,
+  RUNS_PER_ROUTE,
+  measurementOrder,
+  type Route,
+} from "./targets.mts";
 import {
   summarizeRoute,
   type MinimalLhr,
@@ -155,19 +161,40 @@ async function main(): Promise<void> {
     });
     const page = await browser.newPage();
 
-    console.log(`Signing in as the demo user at ${BASE_URL}`);
     await bypassDeploymentProtection(page);
+
+    // Public routes first, while there is still no session to redirect them
+    // away. See measurementOrder for what measuring them afterwards silently
+    // produced instead.
+    const { before, after } = measurementOrder(ROUTES);
+    const byLabel = new Map<string, RouteSummary>();
+
+    for (const route of before) {
+      console.log(`Measuring ${route.path}, signed out`);
+      byLabel.set(
+        route.label,
+        summarizeRoute(route.label, route.path, await measure(page, route)),
+      );
+    }
+
+    console.log(`\nSigning in as the demo user at ${BASE_URL}`);
     await signInAsDemo(page);
     console.log("Signed in.\n");
 
-    const summaries: RouteSummary[] = [];
-    for (const route of ROUTES) {
+    for (const route of after) {
       console.log(`Measuring ${route.path}`);
-      const lhrs = await measure(page, route);
-      summaries.push(summarizeRoute(route.label, route.path, lhrs));
-
-      if (route.authenticated) await verifyStillSignedIn(page, route.path);
+      byLabel.set(
+        route.label,
+        summarizeRoute(route.label, route.path, await measure(page, route)),
+      );
+      await verifyStillSignedIn(page, route.path);
     }
+
+    // Reported in the order the routes are declared, not the order they were
+    // measured, so the output stays comparable run to run.
+    const summaries = ROUTES.map((r) => byLabel.get(r.label)).filter(
+      (s): s is RouteSummary => s !== undefined,
+    );
 
     await writeFile(
       path.join(OUT_DIR, "summary.json"),

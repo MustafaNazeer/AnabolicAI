@@ -177,6 +177,7 @@ async function main(): Promise<void> {
     console.log("\nMedians:");
     for (const s of summaries) {
       const tbt = s.metrics["total-blocking-time"];
+      const srt = s.metrics["server-response-time"];
       console.log(
         `  ${s.path}  performance ${s.scores.performance} ` +
           `(spread ${s.spread.performance})  ` +
@@ -184,7 +185,11 @@ async function main(): Promise<void> {
           `(spread ${s.spread.accessibility})` +
           // The score is noisy enough that the milliseconds are the number to
           // watch across an optimization pass.
-          (tbt ? `  blocking ${tbt.median}ms (${tbt.min} to ${tbt.max})` : ""),
+          (tbt ? `  blocking ${tbt.median}ms (${tbt.min} to ${tbt.max})` : "") +
+          // Printed beside it so a server side change, which moves this and
+          // leaves blocking time alone, is visible from the command itself
+          // rather than only from the raw reports.
+          (srt ? `  server ${srt.median}ms (${srt.min} to ${srt.max})` : ""),
       );
     }
     console.log(`\nRaw reports and summary.json written to ${OUT_DIR}`);

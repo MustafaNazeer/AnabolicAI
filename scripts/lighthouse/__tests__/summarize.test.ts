@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { median, summarizeRoute } from "../summarize.mts";
 import type { MinimalLhr } from "../summarize.mts";
 
-function lhr(perf: number, a11y: number, tbt = 500): MinimalLhr {
+function lhr(perf: number, a11y: number, tbt = 500, srt = 240): MinimalLhr {
   return {
     lighthouseVersion: "13.4.1",
     configSettings: { formFactor: "mobile" },
@@ -30,6 +30,11 @@ function lhr(perf: number, a11y: number, tbt = 500): MinimalLhr {
         title: "Total Blocking Time",
         score: 0.38,
         numericValue: tbt,
+      },
+      "server-response-time": {
+        title: "Initial server response time was short",
+        score: 1,
+        numericValue: srt,
       },
       "unused-javascript": { title: "Reduce unused JavaScript", score: 0.2 },
       "color-contrast": { title: "Contrast is satisfactory", score: 1 },
@@ -140,6 +145,23 @@ describe("summarizeRoute metrics", () => {
   it("tracks largest contentful paint alongside it", () => {
     const s = summarizeRoute("progress", "/progress", [lhr(0.7, 1, 900)]);
     expect(s.metrics["largest-contentful-paint"].median).toBe(1080);
+  });
+
+  // Time to first byte of the main document, read from the observed trace
+  // rather than from the simulation, so it measures the server rather than the
+  // CPU throttling the mobile preset applies. It is the only number that can
+  // show what an identity check costs before anything renders.
+  it("tracks server response time, which is what a per request auth check moves", () => {
+    const s = summarizeRoute("dashboard", "/", [
+      lhr(0.9, 1, 500, 310),
+      lhr(0.9, 1, 500, 188),
+      lhr(0.9, 1, 500, 244),
+    ]);
+    expect(s.metrics["server-response-time"]).toEqual({
+      median: 244,
+      min: 188,
+      max: 310,
+    });
   });
 
   it("omits a metric no run reported rather than recording it as zero", () => {

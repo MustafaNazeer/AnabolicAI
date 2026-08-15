@@ -24,9 +24,17 @@ export type MinimalLhr = {
 // The underlying milliseconds can. Largest contentful paint rides along as the
 // control: it stayed near 1.07 seconds on every route, which is what shows the
 // gap is script execution rather than load time.
+//
+// Server response time is the third, and it measures something the other two
+// cannot see. It is the time to first byte of the main document, taken from
+// the observed trace rather than from Lighthouse's simulation, so it reports
+// the server rather than the CPU throttling the mobile preset applies. Work
+// the server does before it can answer at all, an identity check above every
+// route being the example this repo cares about, lands here and nowhere else.
 export const TRACKED_METRICS = [
   "total-blocking-time",
   "largest-contentful-paint",
+  "server-response-time",
 ] as const;
 
 export type MetricStat = { median: number; min: number; max: number };

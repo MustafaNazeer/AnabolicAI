@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { getVerifiedUser } from "@/lib/auth/user";
 import { getNotificationSettings } from "@/lib/notifications/queries";
 import { getAiQuickEntry, getAiPlateau, getAiInsights } from "@/lib/ai/queries";
 import { getApproved } from "@/lib/accounts/queries";
+import { isAdminEmail } from "@/lib/accounts/approval";
 import { getUntaggedCustomExercises } from "@/lib/data/queries";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { AiQuickEntryToggle } from "@/components/AiQuickEntryToggle";
@@ -22,6 +24,7 @@ export default async function SettingsPage() {
   const aiInsights = await getAiInsights();
   const approved = await getApproved();
   const untagged = await getUntaggedCustomExercises();
+  const admin = isAdminEmail(user?.email ?? null, process.env.ADMIN_EMAILS);
 
   return (
     <main className="px-5 pt-12 pb-24">
@@ -54,6 +57,14 @@ export default async function SettingsPage() {
           <AiInsightsToggle initial={aiInsights} approved={approved} />
         </div>
       </SettingsSection>
+
+      {admin ? (
+        <SettingsSection title="Accounts">
+          <Link href="/settings/accounts" style={{ color: "var(--accent)" }}>
+            Review accounts
+          </Link>
+        </SettingsSection>
+      ) : null}
 
       <SettingsSection title="Your exercises">
         <UntaggedExercises initial={untagged} />

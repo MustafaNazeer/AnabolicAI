@@ -6,9 +6,11 @@ import { AiToggle } from "@/components/AiToggle";
 export function AiQuickEntryToggle({
   initial,
   approved,
+  locked,
 }: {
   initial: boolean;
   approved?: boolean;
+  locked?: boolean;
 }) {
   return (
     <AiToggle
@@ -17,6 +19,7 @@ export function AiQuickEntryToggle({
       initial={initial}
       save={setAiQuickEntry}
       approved={approved}
+      locked={locked}
     />
   );
 }

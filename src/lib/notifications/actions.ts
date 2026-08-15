@@ -50,9 +50,31 @@ export async function updateNotificationSettings(values: {
   const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
-  const { error } = await supabase
-    .from("user_settings")
-    .upsert({ user_id: user.id, ...values }, { onConflict: "user_id" });
+  // Named one by one rather than spread. This is a server action, so `values`
+  // arrives over the wire and the type annotation above is erased before this
+  // line runs. Spreading it put every column of user_settings within reach of a
+  // crafted call carrying an extra key. The database refuses `approved` and
+  // `signup_seen` through the column level revokes in 0014 and 0015, but that
+  // is a backstop covering the two columns someone thought to name, and it is
+  // not this function's job to rely on it.
+  const { error } = await supabase.from("user_settings").upsert(
+    {
+      user_id: user.id,
+      notif_master: values.notif_master,
+      notif_rest_timer: values.notif_rest_timer,
+      notif_rest_push: values.notif_rest_push,
+      notif_reminder: values.notif_reminder,
+      reminder_days: values.reminder_days,
+      reminder_time: values.reminder_time,
+      notif_streak: values.notif_streak,
+      notif_pr: values.notif_pr,
+      notif_weekly: values.notif_weekly,
+      notif_goal: values.notif_goal,
+      notif_unfinished: values.notif_unfinished,
+      rest_timer_seconds: values.rest_timer_seconds,
+    },
+    { onConflict: "user_id" },
+  );
   if (error) return { error: error.message };
   revalidatePath("/settings");
   return { ok: true };

@@ -135,7 +135,7 @@ describe("the oauth callback", () => {
     vi.stubEnv("OPEN_SIGNUP", "true");
     exchangeMock.mockResolvedValue(SESSION("stranger@c.com"));
     await GET(REQ());
-    expect(notifyAdminsOfSignupMock).toHaveBeenCalledWith("stranger@c.com");
+    expect(notifyAdminsOfSignupMock).toHaveBeenCalledWith("u1", "stranger@c.com");
   });
 
   // The invariant that must survive this branch untouched.

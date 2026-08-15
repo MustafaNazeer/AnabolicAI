@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
   // refusal below is what still runs when signup is closed, and it is the
   // behaviour this route shipped with.
   if (isOpenSignup(process.env.OPEN_SIGNUP)) {
-    await notifyAdminsOfSignup(email);
+    await notifyAdminsOfSignup(data.user.id, email);
     return NextResponse.redirect(new URL("/", request.url));
   }
 

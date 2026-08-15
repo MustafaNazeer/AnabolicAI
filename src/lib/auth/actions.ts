@@ -57,7 +57,9 @@ export async function signUp(formData: FormData) {
   // confirmed, so the settings row exists too and can be marked.
   if (invited && data.user) await markApproved(data.user.id);
   // Only an account that lands unapproved needs the admin to do anything.
-  if (!invited) await notifyAdminsOfSignup(email);
+  // notifyAdminsOfSignup needs the id to claim signup_notified, so this also
+  // requires data.user, matching the markApproved branch above it.
+  if (!invited && data.user) await notifyAdminsOfSignup(data.user.id, email);
   return { ok: true };
 }
 

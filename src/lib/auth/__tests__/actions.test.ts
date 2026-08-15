@@ -103,7 +103,7 @@ describe("signUp", () => {
     vi.stubEnv("OPEN_SIGNUP", "true");
     signUpMock.mockResolvedValue({ data: { user: { id: "u1" } }, error: null });
     await signUp(formDataFor("stranger@c.com", "password123"));
-    expect(notifyAdminsOfSignupMock).toHaveBeenCalledWith("stranger@c.com");
+    expect(notifyAdminsOfSignupMock).toHaveBeenCalledWith("u1", "stranger@c.com");
   });
 
   // The property Step 7 proves has teeth: an allowlisted signup approves

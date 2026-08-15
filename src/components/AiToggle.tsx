@@ -62,7 +62,13 @@ export function AiToggle({
       <input
         type="checkbox"
         checked={checked}
-        disabled={busy || !approved}
+        // The lock only points one way, matching the three save actions this
+        // row calls. Each of them gates enabling and leaves disabling open, so
+        // that an account whose approval was revoked while a feature was on can
+        // still withdraw that consent: revoking approval deliberately does not
+        // clear the consent columns. Disabling the row outright would leave the
+        // switch checked and frozen, with nowhere in the app to turn it off.
+        disabled={busy || (!approved && !checked)}
         onChange={(e) => void change(e.target.checked)}
         aria-label={label}
         aria-describedby={approved ? undefined : explanationId}

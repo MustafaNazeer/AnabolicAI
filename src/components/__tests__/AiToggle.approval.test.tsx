@@ -43,4 +43,36 @@ describe("AiToggle approval lock", () => {
     expect(screen.getByRole("checkbox")).toBeEnabled();
     expect(screen.queryByText(/waiting to be approved/i)).not.toBeInTheDocument();
   });
+
+  // A screen reader user must hear why a disabled control is disabled, not
+  // just that it is dimmed. The aria label already overrides the label
+  // element's text as the accessible name, so the explanation only reaches
+  // assistive technology through aria-describedby.
+  it("exposes the explanation as the accessible description when unapproved", () => {
+    render(
+      <AiToggle
+        label="AI quick entry"
+        description="Turns typed set descriptions into sets."
+        initial={false}
+        save={vi.fn()}
+        approved={false}
+      />,
+    );
+    expect(screen.getByRole("checkbox")).toHaveAccessibleDescription(
+      "This account is waiting to be approved.",
+    );
+  });
+
+  it("leaves the accessible description empty when approved", () => {
+    render(
+      <AiToggle
+        label="AI quick entry"
+        description="Turns typed set descriptions into sets."
+        initial={false}
+        save={vi.fn()}
+        approved
+      />,
+    );
+    expect(screen.getByRole("checkbox")).toHaveAccessibleDescription("");
+  });
 });

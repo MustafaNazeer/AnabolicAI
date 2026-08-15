@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 // One consent row per AI feature, all rendered identically. Kept visually the
 // same row as the notification settings rows, standalone so the AI section
@@ -20,6 +20,7 @@ export function AiToggle({
 }) {
   const [checked, setChecked] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const explanationId = useId();
 
   async function change(next: boolean) {
     setChecked(next);
@@ -50,6 +51,7 @@ export function AiToggle({
         </span>
         {approved ? null : (
           <span
+            id={explanationId}
             className="block text-xs"
             style={{ color: "var(--text-dim)" }}
           >
@@ -63,6 +65,7 @@ export function AiToggle({
         disabled={busy || !approved}
         onChange={(e) => void change(e.target.checked)}
         aria-label={label}
+        aria-describedby={approved ? undefined : explanationId}
         className="h-6 w-6"
         style={{ accentColor: "var(--accent)" }}
       />

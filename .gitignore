@@ -68,3 +68,7 @@ test-results/
 
 # saved sessions for the end to end suite, these hold real auth cookies
 e2e/.auth/
+
+# one off SQL run by hand against the database, symlinked in from src-private
+backfill-customs.sql
+delete-duplicate-chest-press.sql

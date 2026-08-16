@@ -1,5 +1,8 @@
-// Still "onyx" after the rename. This string is versioned deliberately, so it
-// is safe to change, but changing it buys nothing. See docs/rename.md.
+// Still "onyx" after the rename. This string is versioned deliberately, so
+// the version number is safe to bump, but it MUST stay byte identical to
+// PAGE_CACHE in src/lib/offline/warmSessionCache.ts when it does: these are
+// the only two definitions of this name, and serviceWorker.test.ts checks
+// they agree. See docs/rename.md.
 const CACHE = "onyx-shell-v5";
 const SHELL = ["/", "/manifest.webmanifest"];
 
@@ -127,12 +130,12 @@ self.addEventListener("push", (event) => {
   } catch {
     data = {};
   }
-  const title = data.title || "Onyx";
+  const title = data.title || "AnabolicAI";
   const options = {
     body: data.body || "",
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
-    tag: data.tag || "onyx",
+    tag: data.tag || "anabolicai",
     data: { url: data.url || "/" },
   };
   // A rest ending while the app is open already played a local beep, so a

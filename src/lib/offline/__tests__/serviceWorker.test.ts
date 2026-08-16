@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { PAGE_CACHE } from "@/lib/offline/warmSessionCache";
+import { appName } from "@/lib/app";
 
 type Handler = (event: unknown) => void;
 
@@ -295,5 +296,15 @@ describe("service worker", () => {
   it("uses the same cache name the client warms into", () => {
     const src = readFileSync("public/sw.js", "utf8");
     expect(src).toContain(`const CACHE = "${PAGE_CACHE}"`);
+  });
+
+  // sw.js cannot import appName either, so the title fallback is a literal
+  // that has to be checked against the app's own name. A push with no title,
+  // or one whose payload fails JSON.parse, falls back to this string, and a
+  // test push from the devtools Application panel carries exactly that, so
+  // this is reachable in practice, not just in theory.
+  it("falls back to the app name when a push arrives with no title", () => {
+    const src = readFileSync("public/sw.js", "utf8");
+    expect(src).toContain(`const title = data.title || "${appName}"`);
   });
 });

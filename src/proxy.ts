@@ -47,12 +47,20 @@ export async function proxy(request: NextRequest) {
 // therefore means adding it here too, and generated-assets.test.ts fails until
 // it is.
 //
+// The splash set is enumerated for the same reason and one more. It ships
+// FEWER accents than the app offers, because a splash costs 11 PNGs per accent
+// and the launch behaviour is still being proved on a device, so the accents
+// with no generated files must stay OUT of this list: excluding them would turn
+// a nonexistent path into a policy-less 404 instead of a redirect. Both
+// directions are asserted in generated-assets.test.ts, and SPLASH_THEMES in
+// src/lib/brand/themeAssets.ts is the list this has to agree with.
+//
 // Keep the "$" anchors and keep this matching the pathname only. Next stamps a
 // cache busting query on metadata icon hrefs, so the browser requests
 // "/icon.svg?icon.<hash>.svg", and an anchored pattern run against a full URL
 // would never match.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico$|sw\\.js$|manifest\\.webmanifest$|icons/icon-(?:192|512|maskable-512)\\.png$|icons/apple-icon-(?:cobalt|magenta|emerald|crimson|rose)\\.png$|splash/splash-\\d+x\\d+\\.png$|apple-icon\\.png$|icon\\.svg$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico$|sw\\.js$|manifest\\.webmanifest$|icons/icon-(?:192|512|maskable-512)\\.png$|icons/apple-icon-(?:cobalt|magenta|emerald|crimson|rose)\\.png$|splash/splash-(?:crimson|emerald)-\\d+x\\d+\\.png$|apple-icon\\.png$|icon\\.svg$).*)",
   ],
 };

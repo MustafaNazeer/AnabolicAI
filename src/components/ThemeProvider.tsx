@@ -8,7 +8,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { type Theme, DEFAULT_THEME, resolveTheme } from "@/lib/theme";
-import { appleIconHref } from "@/lib/brand/themeAssets";
+import { appleIconHref, splashThemeFor } from "@/lib/brand/themeAssets";
+import { splashLinks } from "@/lib/brand/devices";
 
 type ThemeContextValue = { theme: Theme; setTheme: (t: Theme) => void };
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -58,6 +59,35 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document
       .querySelector('link[rel="apple-touch-icon"]')
       ?.setAttribute("href", appleIconHref(theme));
+
+    // The launch splash, same idea and a different unknown. There are eleven
+    // links rather than one, each aimed at a device by its media query, and
+    // SplashLinks renders them all on the default accent because the server
+    // cannot know which one the user picked.
+    //
+    // Matched by media rather than by position: the lookup then survives a link
+    // being added, removed or reordered, and it needs no RegExp built from the
+    // accent, which semgrep's detect-non-literal-regexp rule blocks and which
+    // CI is the only place that would catch.
+    //
+    // splashThemeFor, not theme: only some accents have generated files, and an
+    // href with no file behind it is not a missing image. The proxy matcher
+    // excludes exactly the accents that exist, so anything else is redirected
+    // to /sign-in in the middle of a launch.
+    //
+    // WHETHER iOS EVER READS THIS AFTER INSTALL IS UNPROVEN. Apple documents
+    // nothing, and the best source available says the images are cached at Add
+    // to Home Screen, which would make this effective only at install time, the
+    // way the icon is. That is what the device pass on this branch answers.
+    const byMedia = new Map(
+      splashLinks(splashThemeFor(theme)).map((l) => [l.media, l.href]),
+    );
+    document
+      .querySelectorAll('link[rel="apple-touch-startup-image"]')
+      .forEach((el) => {
+        const href = byMedia.get(el.getAttribute("media") ?? "");
+        if (href) el.setAttribute("href", href);
+      });
   }, [theme]);
 
   return (

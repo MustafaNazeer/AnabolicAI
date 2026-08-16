@@ -7,7 +7,7 @@ import sharp from "sharp";
 
 import { markSvg, MARK_VIEWBOX } from "../src/lib/brand/mark.ts";
 import { IPHONE_SPLASH, splashFile } from "../src/lib/brand/devices.ts";
-import { THEME_ASSETS, appleIconFile } from "../src/lib/brand/themeAssets.ts";
+import { THEME_ASSETS, appleIconFile, SPLASH_THEMES } from "../src/lib/brand/themeAssets.ts";
 import { THEMES, DEFAULT_THEME } from "../src/lib/theme.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -40,9 +40,10 @@ function iconSvg(px, { tile = true, markScale = 0.62, theme = DEFAULT_THEME } = 
   </svg>`;
 }
 
-// Splash: full-bleed crimson base, mark centered, modest size.
-function splashSvg(w, h) {
-  const { accent: ACCENT, baseTop: BASE_TOP, baseBot: BASE_BOT } = THEME_ASSETS[DEFAULT_THEME];
+// Splash: full-bleed base, mark centered, modest size. One set per accent in
+// SPLASH_THEMES, because a PNG cannot follow the user's chosen accent.
+function splashSvg(w, h, theme = DEFAULT_THEME) {
+  const { accent: ACCENT, baseTop: BASE_TOP, baseBot: BASE_BOT } = THEME_ASSETS[theme];
   const markH = Math.min(w, h) * 0.22;
   const markW = markH * (VBW / VBH);
   const sx = (w - markW) / 2;
@@ -89,10 +90,21 @@ async function main() {
   execFileSync("convert", [p("public/_fav32.png"), p("public/_fav16.png"), p("src/app/favicon.ico")]);
   await rm(p("public/_fav32.png")); await rm(p("public/_fav16.png"));
 
-  // Splash set.
-  for (const d of IPHONE_SPLASH) {
-    const w = d.cssWidth * d.ratio, h = d.cssHeight * d.ratio;
-    await png(splashSvg(w, h), p("public/splash", splashFile(d)), w, h);
+  // Splash set, one per device per accent that has one.
+  //
+  // The directory is emptied first rather than written over. The names carry
+  // the accent, so narrowing SPLASH_THEMES or renaming the scheme leaves files
+  // behind that no link points at, and those are not merely dead weight: the
+  // proxy matcher stops excluding them, so a stray request for one falls
+  // through to the app's 404 with no policy. generated-assets.test.ts fails on
+  // any leftover, and this is what stops it happening in the first place.
+  await rm(p("public/splash"), { recursive: true, force: true });
+  await mkdir(p("public/splash"), { recursive: true });
+  for (const theme of SPLASH_THEMES) {
+    for (const d of IPHONE_SPLASH) {
+      const w = d.cssWidth * d.ratio, h = d.cssHeight * d.ratio;
+      await png(splashSvg(w, h, theme), p("public/splash", splashFile(d, theme)), w, h);
+    }
   }
   console.log("brand assets generated");
 }

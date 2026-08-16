@@ -117,7 +117,17 @@ test("rejects an unsigned scheduler callback rather than redirecting it", async 
 // carried no policy. Same defect class as the blanket png exclusion above, one
 // directory narrower.
 test("runs the proxy on a nonexistent brand asset rather than excluding it", async ({ request }) => {
-  for (const path of ["/splash/nope.png", "/icons/nope.png", "/sw.js.map"]) {
+  for (const path of [
+    "/splash/nope.png",
+    "/icons/nope.png",
+    "/sw.js.map",
+    // A well formed splash name for an accent that ships no files. SPLASH_THEMES
+    // is a subset of the app's accents, so this shape is reachable in a way the
+    // icon set's equivalent is not, and it is the case the enumeration in the
+    // matcher exists to keep out. Excluded, it would 404 into the root layout
+    // with no policy; left out, it lands here.
+    "/splash/splash-cobalt-1170x2532.png",
+  ]) {
     const response = await request.get(path, { maxRedirects: 0 });
     expect(response.status(), `${path} should reach the proxy`).toBe(307);
     expect(
@@ -135,7 +145,10 @@ test("still serves the real brand assets to a signed out visitor", async ({ requ
     "/icons/icon-192.png",
     "/icons/icon-512.png",
     "/icons/icon-maskable-512.png",
-    "/splash/splash-1170x2532.png",
+    // One splash per accent in SPLASH_THEMES. iOS fetches these while the
+    // visitor is signed out, so a redirect means a launch with no splash.
+    "/splash/splash-crimson-1170x2532.png",
+    "/splash/splash-emerald-1170x2532.png",
     // The per accent home screen icons. ThemeProvider points the
     // apple-touch-icon link at one of these, and iOS fetches it while the
     // visitor is signed out at the moment they add the app, so a redirect here

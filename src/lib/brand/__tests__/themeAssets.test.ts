@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { THEME_ASSETS, appleIconFile, appleIconHref } from "../themeAssets";
-import { THEMES } from "@/lib/theme";
+import {
+  THEME_ASSETS,
+  appleIconFile,
+  appleIconHref,
+  SPLASH_THEMES,
+  splashThemeFor,
+} from "../themeAssets";
+import { THEMES, DEFAULT_THEME } from "@/lib/theme";
 
 const css = readFileSync("src/app/globals.css", "utf8");
 
@@ -67,5 +73,45 @@ describe("apple touch icon naming", () => {
   it("gives every theme a distinct file", () => {
     const files = THEMES.map(appleIconFile);
     expect(new Set(files).size).toBe(THEMES.length);
+  });
+});
+
+// A splash set costs 11 PNGs per accent, against 1 for an icon, so the accents
+// that have one are tracked separately from the accents the app offers. Today
+// that is deliberately a subset: the launch splash is being proved on a device
+// before the remaining accents are paid for.
+//
+// The invariant that matters is that the app can never point a startup image at
+// an accent with no file behind it. Such a href would 404 into the app's own
+// error page, a real HTML document rendered with no policy, which is the exact
+// defect the proxy matcher comment warns about twice.
+describe("splash accent coverage", () => {
+  it("is a non empty subset of the accents the app offers", () => {
+    expect(SPLASH_THEMES.length).toBeGreaterThan(0);
+    for (const t of SPLASH_THEMES) {
+      expect(THEMES, `${t} has splash assets but is not a real accent`).toContain(t);
+    }
+  });
+
+  // layout.tsx renders the links on the server, where it cannot know the user's
+  // accent, so it emits the default one. A default with no generated splash
+  // would ship a broken href to every visitor.
+  it("includes the default accent, which is what the server renders", () => {
+    expect(SPLASH_THEMES).toContain(DEFAULT_THEME);
+  });
+
+  it("passes an accent through when it has generated files", () => {
+    for (const t of SPLASH_THEMES) {
+      expect(splashThemeFor(t)).toBe(t);
+    }
+  });
+
+  it("folds an accent with no generated files back onto the default", () => {
+    const ungenerated = THEMES.filter((t) => !SPLASH_THEMES.includes(t));
+    for (const t of ungenerated) {
+      expect(splashThemeFor(t), `${t} would point at a splash that does not exist`).toBe(
+        DEFAULT_THEME,
+      );
+    }
   });
 });

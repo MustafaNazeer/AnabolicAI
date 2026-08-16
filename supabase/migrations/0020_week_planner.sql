@@ -1,0 +1,55 @@
+-- Whether this account sees the week planner: logging a day by category, the
+-- weekly calendar that reads back what each day was, and the balance summary
+-- across a week. It exists because one account trains consistently without a
+-- fixed split, so the unit she reasons in is the day and its category, while
+-- this app is routine first from the schema up: workout_sessions.routine_id is
+-- NOT NULL, workout_sets demands reps and weight, and a rest day has no row at
+-- all. None of that changes. The planner is additive and lives beside it.
+--
+-- THIS IS A GATE, NOT A PREFERENCE, AND THE DIFFERENCE IS THE WHOLE DESIGN.
+-- ai_visible (0017) is its owner's own choice about their own interface, which
+-- is why 0018 grants it to authenticated. This column decides whether an
+-- account gets a different way of using the app, it is set by an admin, and it
+-- must not be settable by the account it applies to. approved (0014) and
+-- signup_seen (0015) are the columns it belongs with.
+--
+-- DEFAULTS FALSE, so it fails closed and nothing changes for anyone on deploy.
+-- That is the same direction as approved and the three ai_* consent columns,
+-- and the opposite of ai_visible, which defaults true because hiding an
+-- interface needs an explicit no while granting one needs an explicit yes.
+alter table user_settings
+  add column if not exists week_planner boolean not null default false;
+
+-- Readable by its owner, because the app has to know which interface to draw.
+--
+-- EXPLICIT RATHER THAN ASSUMED, and that is 0018's lesson applied to the other
+-- privilege. After 0017 added a column, has_column_privilege returned FALSE for
+-- writing it while every older column returned true, because this table no
+-- longer carries table level grants for every privilege, only per column ones,
+-- and a column created afterwards is covered by none of them. Whether reading
+-- has the same hole was not worth discovering in production, so it is granted
+-- here. Idempotent and safe to re-run.
+grant select (week_planner) on user_settings to authenticated;
+
+-- NO WRITE PRIVILEGE IS GIVEN, AND ITS ABSENCE IS THE SECURITY PROPERTY.
+--
+-- The policy at 0001_initial_schema.sql:209 is FOR UPDATE USING (auth.uid() =
+-- user_id) WITH CHECK (auth.uid() = user_id), so RLS alone would happily let a
+-- row's owner set this on themselves. The only thing standing between any
+-- signed in account and switching itself into the planner with one PostgREST
+-- request is that the privilege was never given. Supplying it later, by habit
+-- or by copying 0018, silently turns this gate into decoration.
+--
+-- src/lib/planner/actions.ts therefore writes through the service role client
+-- behind an admin check, exactly as src/lib/accounts/actions.ts does for
+-- approved, and src/lib/planner/__tests__/migration.test.ts fails if a write
+-- privilege ever appears in this file.
+--
+-- Verification, expecting TRUE for reading and FALSE for writing, which is the
+-- pairing that distinguishes this column from ai_visible:
+--
+--   select
+--     has_column_privilege('authenticated', 'public.user_settings',
+--                          'week_planner', 'select') as can_read,
+--     has_column_privilege('authenticated', 'public.user_settings',
+--                          'week_planner', 'update') as can_write;

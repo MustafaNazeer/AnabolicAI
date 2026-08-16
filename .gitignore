@@ -72,3 +72,4 @@ e2e/.auth/
 # one off SQL run by hand against the database, symlinked in from src-private
 backfill-customs.sql
 delete-duplicate-chest-press.sql
+enable-week-planner.sql

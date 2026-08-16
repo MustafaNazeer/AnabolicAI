@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ErrorRetry } from "@/components/ui/ErrorRetry";
 import { BrandMark } from "@/components/BrandMark";
+import { appName } from "@/lib/app";
 
 type Mode = "sign-in" | "sign-up";
 type Result = { error?: string; ok?: boolean } | void;
@@ -73,7 +74,7 @@ export function AuthForm({
           className="text-4xl font-semibold mb-2"
           style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
         >
-          Onyx
+          {appName}
         </h1>
         <p style={{ color: "var(--text-dim)" }}>
           Check your email for a confirmation link, then sign in.
@@ -98,7 +99,7 @@ export function AuthForm({
         className="text-4xl font-semibold mb-1"
         style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
       >
-        Onyx
+        {appName}
       </h1>
       <p style={{ color: "var(--text-dim)" }} className="mb-8">
         {title}

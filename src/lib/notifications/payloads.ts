@@ -1,4 +1,5 @@
 import { formatCompact } from "@/lib/progress/strength";
+import { appName } from "@/lib/app";
 
 export type PushPayload = {
   title: string;
@@ -23,7 +24,7 @@ export function prCelebrationPayload(
 export function workoutReminderPayload(): PushPayload {
   return {
     title: "Time to train",
-    body: "You have a workout scheduled today. Open Onyx to start.",
+    body: `You have a workout scheduled today. Open ${appName} to start.`,
     url: "/",
     tag: "reminder",
   };
@@ -40,7 +41,7 @@ export function streakWarningPayload(weeks: number): PushPayload {
 
 export function weeklyRecapPayload(workouts: number, volume: number): PushPayload {
   return {
-    title: "This week in Onyx",
+    title: `This week in ${appName}`,
     body: `${workouts} workouts, ${formatCompact(volume)} lbs moved. Nice work.`,
     url: "/",
     tag: "weekly",

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Spectral } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
+import { appName } from "@/lib/app";
 import { AppearanceProvider } from "@/components/AppearanceProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabs } from "@/components/BottomTabs";
@@ -27,13 +28,13 @@ const spectral = Spectral({
 });
 
 export const metadata: Metadata = {
-  title: "Onyx",
+  title: appName,
   description: "Strength progress tracker",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Onyx",
+    title: appName,
   },
 };
 

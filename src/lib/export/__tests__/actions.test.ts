@@ -50,7 +50,7 @@ describe("exportCsv", () => {
   it("returns a csv and a filename carrying both dates", async () => {
     const result = await exportCsv(BASE);
     if (!result.ok) throw new Error(result.error);
-    expect(result.filename).toBe("onyx-sets-2026-08-01-to-2026-08-12.csv");
+    expect(result.filename).toBe("anabolicai-sets-2026-08-01-to-2026-08-12.csv");
     expect(result.csv).toBe("Date,Exercise,Reps\r\n2026-08-05,Bench Press,5");
   });
 
@@ -104,7 +104,7 @@ describe("exportCsv", () => {
       columns: ["date", "totalSets"],
     });
     if (!result.ok) throw new Error(result.error);
-    expect(result.filename).toBe("onyx-sessions-2026-08-01-to-2026-08-12.csv");
+    expect(result.filename).toBe("anabolicai-sessions-2026-08-01-to-2026-08-12.csv");
     expect(result.csv).toBe("Date,Total sets\r\n2026-08-05,12");
     expect(getSetRowsMock).not.toHaveBeenCalled();
   });

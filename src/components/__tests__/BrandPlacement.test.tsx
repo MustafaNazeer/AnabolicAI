@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 
 describe("dashboard brand mark", () => {
-  it("renders a small Onyx mark in the header", () => {
+  it("renders a small AnabolicAI mark in the header", () => {
     const { container } = render(<DashboardHeader name="there" />);
     // The mark is inside aria-hidden="true" so getByRole won't find it —
     // query the DOM directly. The SVG must be present in the tree.

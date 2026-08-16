@@ -4,6 +4,7 @@ import { toCsv } from "@/lib/export/csv";
 import { selectColumns, type Dataset } from "@/lib/export/columns";
 import { getSetRows, getSessionRows } from "@/lib/export/queries";
 import { getVerifiedUser } from "@/lib/auth/user";
+import { appName } from "@/lib/app";
 
 // Annotated explicitly rather than inferred. An inferred union widens to
 // { ok: boolean; error?: undefined } on the success arm, and a caller
@@ -50,7 +51,7 @@ export async function exportCsv(input: ExportInput): Promise<ExportResult> {
 
   return {
     ok: true,
-    filename: `onyx-${input.dataset}-${input.startDate}-to-${input.endDate}.csv`,
+    filename: `${appName.toLowerCase()}-${input.dataset}-${input.startDate}-to-${input.endDate}.csv`,
     csv,
   };
 }

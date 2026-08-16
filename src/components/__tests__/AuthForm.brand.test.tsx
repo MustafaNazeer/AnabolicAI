@@ -9,7 +9,7 @@ vi.mock("next/navigation", () => ({
 const noopAction = async () => {};
 
 describe("AuthForm brand", () => {
-  it("shows the Onyx mark above the wordmark on sign-in", () => {
+  it("shows the AnabolicAI mark above the wordmark on sign-in", () => {
     const { container } = render(
       <AuthForm mode="sign-in" action={noopAction} />,
     );
@@ -19,7 +19,7 @@ describe("AuthForm brand", () => {
     expect(container.querySelector('[aria-hidden="true"] svg')).toBeTruthy();
   });
 
-  it("shows the Onyx mark above the wordmark on sign-up", () => {
+  it("shows the AnabolicAI mark above the wordmark on sign-up", () => {
     const { container } = render(
       <AuthForm mode="sign-up" action={noopAction} />,
     );

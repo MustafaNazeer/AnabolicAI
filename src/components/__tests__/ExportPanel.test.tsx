@@ -8,7 +8,7 @@ vi.mock("@/lib/export/actions", () => ({ exportCsv: exportCsvMock }));
 
 import { ExportPanel } from "@/components/ExportPanel";
 
-const OK = { ok: true as const, filename: "onyx-sets-a-to-b.csv", csv: "Date\r\n2026-08-05" };
+const OK = { ok: true as const, filename: "anabolicai-sets-a-to-b.csv", csv: "Date\r\n2026-08-05" };
 
 beforeEach(() => {
   exportCsvMock.mockReset().mockResolvedValue(OK);

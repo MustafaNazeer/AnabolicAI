@@ -1,4 +1,15 @@
-import type { Theme } from "@/lib/theme";
+// RELATIVE, NOT "@/lib/theme", AND IT HAS TO STAY THAT WAY.
+// scripts/generate-brand-assets.mjs imports this file directly under Node's
+// type stripping, which resolves neither the tsconfig "@/" alias nor anything
+// that needs a bundler. A TYPE-only import across the alias is fine, because
+// Node erases it before resolving; this one pulls a real value, so it must be a
+// path Node can follow. Changing it back breaks "npm run gen:brand" only, which
+// no test runs, so the breakage would surface the next time someone regenerates
+// the assets rather than here.
+// The ".ts" is required too: Node's ESM resolver does no extension guessing.
+// tsconfig.json already enables allowImportingTsExtensions for the same reason,
+// for the .mts lighthouse scripts, and its comment there explains the rest.
+import { type Theme, DEFAULT_THEME } from "../theme.ts";
 
 // The colours the asset generator bakes into PNGs, one set per accent.
 //
@@ -28,3 +39,30 @@ export const THEME_ASSETS: Record<Theme, { accent: string; baseTop: string; base
 // request for it is redirected to /sign-in and the icon silently fails.
 export const appleIconFile = (theme: Theme): string => `apple-icon-${theme}.png`;
 export const appleIconHref = (theme: Theme): string => `/icons/${appleIconFile(theme)}`;
+
+// Which accents have a generated launch splash set. THIS IS DELIBERATELY A
+// SUBSET OF THEMES, and that is the current state of an unfinished experiment
+// rather than a design choice to keep.
+//
+// A splash set costs 11 PNGs per accent against the icon's 1, and the reason
+// the icon was worth paying for does not obviously carry over. iOS is
+// documented nowhere on when it captures a startup image: the best source
+// available says the device caches them when the user taps Add to Home Screen,
+// which would mean a swap after install changes nothing until the app is
+// deleted and re-added, exactly like the icon. If that is what a real iPhone
+// does, the remaining accents buy a splash that matches at install time and
+// nothing more, and that is a decision to take with the answer in hand.
+//
+// So one alternate accent ships first, the device answers the question, and
+// FINISHING THIS IS ONE EDIT: set this to THEMES and re-run "npm run gen:brand".
+// The proxy matcher must be widened in the same commit, and
+// generated-assets.test.ts fails until it is.
+export const SPLASH_THEMES: readonly Theme[] = ["crimson", "emerald"];
+
+// The app offers five accents and ships splashes for two, so every href has to
+// be resolved through here. Pointing a startup image at an accent with no file
+// is worse than pointing it at the wrong colour: the matcher only excludes the
+// accents that exist, so the request is not a missing image but a 307 to
+// /sign-in in the middle of a launch.
+export const splashThemeFor = (theme: Theme): Theme =>
+  SPLASH_THEMES.includes(theme) ? theme : DEFAULT_THEME;

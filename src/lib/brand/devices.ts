@@ -1,3 +1,5 @@
+import type { Theme } from "@/lib/theme";
+
 // Current-iPhone portrait splash matrix (logical CSS size + device pixel ratio).
 export type SplashDevice = { name: string; cssWidth: number; cssHeight: number; ratio: 2 | 3 };
 
@@ -15,16 +17,28 @@ export const IPHONE_SPLASH: SplashDevice[] = [
   { name: "16 Pro Max", cssWidth: 440, cssHeight: 956, ratio: 3 },
 ];
 
-export function splashFile(d: SplashDevice): string {
-  return `splash-${d.cssWidth * d.ratio}x${d.cssHeight * d.ratio}.png`;
+// The accent is in the filename because a generated PNG cannot follow a CSS
+// custom property, so one image per accent per device is the only way to make
+// the launch splash themeable at all.
+//
+// The theme is a required argument rather than a defaulted one on purpose:
+// every call site has to say which accent it means, so a splash cannot quietly
+// ship the default under a user who chose something else. Resolve it through
+// splashThemeFor first, since not every accent has generated files.
+export function splashFile(d: SplashDevice, theme: Theme): string {
+  return `splash-${theme}-${d.cssWidth * d.ratio}x${d.cssHeight * d.ratio}.png`;
 }
 
 export type SplashLink = { rel: "apple-touch-startup-image"; href: string; media: string };
 
-export function splashLinks(): SplashLink[] {
+// The media query deliberately carries no accent. ThemeProvider rewrites these
+// hrefs by looking each link up by its media string, so making that string
+// depend on the theme would break every lookup on the first theme change and do
+// it silently, leaving the hrefs untouched with nothing to notice.
+export function splashLinks(theme: Theme): SplashLink[] {
   return IPHONE_SPLASH.map((d) => ({
     rel: "apple-touch-startup-image" as const,
-    href: `/splash/${splashFile(d)}`,
+    href: `/splash/${splashFile(d, theme)}`,
     media:
       `screen and (device-width: ${d.cssWidth}px) and (device-height: ${d.cssHeight}px) ` +
       `and (-webkit-device-pixel-ratio: ${d.ratio}) and (orientation: portrait)`,

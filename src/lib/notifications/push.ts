@@ -6,8 +6,10 @@ import type { PushPayload } from "@/lib/notifications/payloads";
 
 // The VAPID sub claim identifies the sender to the push service. It is not
 // required to resolve or to match the request origin, but it should track the
-// canonical origin for correctness. Renaming it does NOT invalidate existing
-// subscriptions; only changing the VAPID keys or the origin does that.
+// canonical origin for correctness. Changing this string does not invalidate
+// any subscription. Only changing the VAPID key pair does. Moving the app to a
+// new domain does not invalidate the old subscriptions either: it creates
+// separate ones at the new origin, and stale rows are pruned on 410 below.
 export const VAPID_SUBJECT = "https://anabolicai.app";
 
 let configured: boolean | null = null;

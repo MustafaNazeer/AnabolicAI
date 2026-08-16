@@ -7,22 +7,22 @@ import sharp from "sharp";
 
 import { markSvg, MARK_VIEWBOX } from "../src/lib/brand/mark.ts";
 import { IPHONE_SPLASH, splashFile } from "../src/lib/brand/devices.ts";
+import { THEME_ASSETS, appleIconFile } from "../src/lib/brand/themeAssets.ts";
+import { THEMES, DEFAULT_THEME } from "../src/lib/theme.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const p = (...x) => path.join(ROOT, ...x);
 
-// A generated PNG cannot follow the user's accent, so the shipped assets bake
-// the default. These three values are crimson's, copied from DEFAULT_THEME in
-// src/lib/theme.ts and the [data-mode="dark"][data-theme="crimson"] block in
-// src/app/globals.css. If the default accent ever moves again, they move with
-// it, or the home screen icon quietly disagrees with the app it opens.
-const ACCENT = "#ef4444";
-const BASE_TOP = "#251114";
-const BASE_BOT = "#0a0708";
+// A generated PNG cannot follow the user's accent, so every asset bakes one.
+// The values come from THEME_ASSETS, which themeAssets.test.ts proves still
+// match globals.css, so a colour changed in the stylesheet cannot leave a
+// stale icon shipping behind it. Everything except the per-accent apple icons
+// bakes DEFAULT_THEME.
 const [, , VBW, VBH] = MARK_VIEWBOX.split(" ").map(Number);
 
-// Compose an opaque square: crimson radial base + optional rounded-square tile + centered mark.
-function iconSvg(px, { tile = true, markScale = 0.62 } = {}) {
+// Compose an opaque square: the theme's radial base + optional rounded-square tile + centered mark.
+function iconSvg(px, { tile = true, markScale = 0.62, theme = DEFAULT_THEME } = {}) {
+  const { accent: ACCENT, baseTop: BASE_TOP, baseBot: BASE_BOT } = THEME_ASSETS[theme];
   const markH = px * markScale;
   const markW = markH * (VBW / VBH);
   const sx = (px - markW) / 2;
@@ -42,6 +42,7 @@ function iconSvg(px, { tile = true, markScale = 0.62 } = {}) {
 
 // Splash: full-bleed crimson base, mark centered, modest size.
 function splashSvg(w, h) {
+  const { accent: ACCENT, baseTop: BASE_TOP, baseBot: BASE_BOT } = THEME_ASSETS[DEFAULT_THEME];
   const markH = Math.min(w, h) * 0.22;
   const markW = markH * (VBW / VBH);
   const sx = (w - markW) / 2;
@@ -70,6 +71,14 @@ async function main() {
   await png(iconSvg(512), p("public/icons/icon-512.png"), 512, 512);
   await png(iconSvg(512, { tile: false, markScale: 0.5 }), p("public/icons/icon-maskable-512.png"), 512, 512);
   await png(iconSvg(180), p("src/app/apple-icon.png"), 180, 180);
+
+  // One apple icon per accent. iOS snapshots whatever <link rel="apple-touch-icon">
+  // points at when the user taps Add to Home Screen, so ThemeProvider swaps the
+  // href and the installed tile matches the accent in use at that moment. It
+  // cannot change an already installed icon; nothing on the web platform can.
+  for (const theme of THEMES) {
+    await png(iconSvg(180, { theme }), p("public/icons", appleIconFile(theme)), 180, 180);
+  }
 
   // Browser icon: ship the lit mark on a tile as a crisp SVG favicon.
   await writeFile(p("src/app/icon.svg"), iconSvg(64) + "\n", "utf8");

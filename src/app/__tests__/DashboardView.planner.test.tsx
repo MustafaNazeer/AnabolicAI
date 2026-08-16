@@ -61,6 +61,10 @@ describe("DashboardView planner gate", () => {
       />,
     );
     expect(screen.queryByTestId("planner-day-2026-08-10")).toBeNull();
+    // The balance is a second surface behind the same flag, and it is the one
+    // that would leak a category name rather than only a shape.
+    expect(screen.queryByText(/this week by category/i)).toBeNull();
+    expect(screen.queryByTestId("balance-c1")).toBeNull();
   });
 
   // The counterpart direction, so the test above cannot be satisfied by a
@@ -78,6 +82,7 @@ describe("DashboardView planner gate", () => {
     );
     expect(screen.getByTestId("planner-day-2026-08-10")).toBeInTheDocument();
     expect(screen.getAllByTestId(/^planner-day-/)).toHaveLength(7);
+    expect(screen.getByTestId("balance-c1")).toHaveTextContent("1");
   });
 
   // The names come from the category list rather than from the day rows, which

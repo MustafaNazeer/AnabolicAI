@@ -11,6 +11,7 @@ import { GoalsSummary } from "@/components/dashboard/GoalsSummary";
 import { InsightsCard } from "@/components/InsightsCard";
 import { PlannerWeek } from "@/components/PlannerWeek";
 import { PlannerDaySheet } from "@/components/PlannerDaySheet";
+import { PlannerBalance } from "@/components/PlannerBalance";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { formatCompact } from "@/lib/progress/strength";
 import { pluralize } from "@/lib/format/plural";
@@ -112,6 +113,7 @@ export function DashboardView({
               />
             </div>
           ) : null}
+          <PlannerBalance days={plannerDays} categoryNames={categoryNames} />
         </>
       ) : null}
 

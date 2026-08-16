@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Spectral } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import { appName } from "@/lib/app";
+import { CHROME_COLOR } from "@/lib/chrome";
 import { AppearanceProvider } from "@/components/AppearanceProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabs } from "@/components/BottomTabs";
@@ -40,8 +41,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#eef3fc" },
-    { media: "(prefers-color-scheme: dark)", color: "#070a10" },
+    { media: "(prefers-color-scheme: light)", color: CHROME_COLOR.light },
+    { media: "(prefers-color-scheme: dark)", color: CHROME_COLOR.dark },
   ],
   viewportFit: "cover",
 };

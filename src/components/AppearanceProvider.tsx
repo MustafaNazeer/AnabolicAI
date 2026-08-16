@@ -14,6 +14,7 @@ import {
   resolveMode,
   resolveAppearance,
 } from "@/lib/appearance";
+import { CHROME_COLOR } from "@/lib/chrome";
 
 type AppearanceContextValue = {
   mode: Mode;
@@ -24,10 +25,7 @@ const AppearanceContext = createContext<AppearanceContextValue | null>(null);
 // Still "onyx" after the rename. Changing it resets every user's saved
 // preference. See docs/rename.md.
 const STORAGE_KEY = "onyx-mode";
-const THEME_COLOR: Record<Appearance, string> = {
-  dark: "#070a10",
-  light: "#eef3fc",
-};
+const THEME_COLOR: Record<Appearance, string> = CHROME_COLOR;
 
 const listeners = new Set<() => void>();
 

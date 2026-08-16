@@ -73,13 +73,13 @@ describe("AppearanceProvider", () => {
       lightMeta = document.createElement("meta");
       lightMeta.setAttribute("name", "theme-color");
       lightMeta.setAttribute("media", "(prefers-color-scheme: light)");
-      lightMeta.setAttribute("content", "#eef3fc");
+      lightMeta.setAttribute("content", "#fceceb");
       document.head.appendChild(lightMeta);
 
       darkMeta = document.createElement("meta");
       darkMeta.setAttribute("name", "theme-color");
       darkMeta.setAttribute("media", "(prefers-color-scheme: dark)");
-      darkMeta.setAttribute("content", "#070a10");
+      darkMeta.setAttribute("content", "#0a0708");
       document.head.appendChild(darkMeta);
     });
 
@@ -96,8 +96,8 @@ describe("AppearanceProvider", () => {
           <Probe />
         </AppearanceProvider>,
       );
-      expect(lightMeta.getAttribute("content")).toBe("#eef3fc");
-      expect(darkMeta.getAttribute("content")).toBe("#eef3fc");
+      expect(lightMeta.getAttribute("content")).toBe("#fceceb");
+      expect(darkMeta.getAttribute("content")).toBe("#fceceb");
     });
   });
 });

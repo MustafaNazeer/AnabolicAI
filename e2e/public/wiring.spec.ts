@@ -136,6 +136,12 @@ test("still serves the real brand assets to a signed out visitor", async ({ requ
     "/icons/icon-512.png",
     "/icons/icon-maskable-512.png",
     "/splash/splash-1170x2532.png",
+    // The per accent home screen icons. ThemeProvider points the
+    // apple-touch-icon link at one of these, and iOS fetches it while the
+    // visitor is signed out at the moment they add the app, so a redirect here
+    // means the install silently takes no icon at all.
+    "/icons/apple-icon-crimson.png",
+    "/icons/apple-icon-emerald.png",
   ];
   for (const path of real) {
     const response = await request.get(path, { maxRedirects: 0 });

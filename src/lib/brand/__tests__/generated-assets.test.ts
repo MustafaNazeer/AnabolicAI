@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { statSync, readdirSync } from "node:fs";
+import { statSync, readdirSync, readFileSync } from "node:fs";
 import sharp from "sharp";
 import { IPHONE_SPLASH, splashFile } from "../devices";
+import { appleIconFile } from "../themeAssets";
+import { THEMES } from "@/lib/theme";
 
 const exists = (f: string) => { try { return statSync(f).isFile(); } catch { return false; } };
 
@@ -20,6 +22,19 @@ describe("generated brand assets", () => {
     expect(m.width).toBe(180); expect(m.height).toBe(180);
     expect(exists("src/app/favicon.ico")).toBe(true);
     expect(exists("src/app/icon.svg")).toBe(true);
+  });
+
+  // One per accent, because iOS snapshots whatever the apple-touch-icon link
+  // points at when the user taps Add to Home Screen. A theme with no file
+  // would leave the link pointing at a 404 and the install would take no icon
+  // at all, which is worse than taking the default one.
+  it("ships a 180x180 apple-icon for every theme", async () => {
+    for (const theme of THEMES) {
+      const f = `public/icons/${appleIconFile(theme)}`;
+      expect(exists(f), `${theme} has no generated apple icon`).toBe(true);
+      const m = await sharp(f).metadata();
+      expect(m.width).toBe(180); expect(m.height).toBe(180);
+    }
   });
 
   it("ships one splash per device at the px size", async () => {
@@ -55,9 +70,44 @@ describe("generated brand assets", () => {
       );
     }
     for (const f of readdirSync("public/icons")) {
-      expect(f, `${f} is shipped but the matcher does not exclude it`).toMatch(
-        /^icon-(?:192|512|maskable-512)\.png$/,
-      );
+      const ok =
+        /^icon-(?:192|512|maskable-512)\.png$/.test(f) ||
+        /^apple-icon-[a-z]+\.png$/.test(f);
+      expect(ok, `${f} is shipped but the matcher does not exclude it`).toBe(true);
+    }
+  });
+
+  // The test above catches a FILE that stops matching the matcher. This one
+  // catches the other direction, the MATCHER losing a pattern the files still
+  // rely on, which nothing else would notice until a signed out visitor got a
+  // redirect to /sign-in where an icon should have been.
+  it("keeps every shape the generated assets rely on in the proxy matcher", () => {
+    const proxy = readFileSync("src/proxy.ts", "utf8");
+    for (const pattern of [
+      "icons/icon-(?:192|512|maskable-512)\\\\.png$",
+      "splash/splash-\\\\d+x\\\\d+\\\\.png$",
+      "apple-icon\\\\.png$",
+      "icon\\\\.svg$",
+    ]) {
+      expect(proxy, `the matcher no longer excludes ${pattern}`).toContain(pattern);
+    }
+  });
+
+  // The accents are enumerated in the matcher rather than matched as a shape,
+  // so that a nonexistent "/icons/apple-icon-nope.png" still reaches the proxy
+  // instead of falling through to a policy-less 404. The cost of that choice is
+  // that adding a sixth accent means editing the matcher, and this is what
+  // makes forgetting it fail here rather than in production.
+  it("excludes every theme's apple icon by name in the proxy matcher", () => {
+    const proxy = readFileSync("src/proxy.ts", "utf8");
+    const start = proxy.indexOf("icons/apple-icon-(?:");
+    expect(start, "the matcher has no per theme apple icon pattern").toBeGreaterThan(-1);
+    const group = proxy.slice(start, proxy.indexOf(")", start));
+    for (const theme of THEMES) {
+      expect(
+        group,
+        `${theme} is not excluded, so its icon would 307 to /sign-in`,
+      ).toContain(theme);
     }
   });
 });

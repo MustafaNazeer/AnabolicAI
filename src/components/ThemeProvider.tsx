@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { type Theme, DEFAULT_THEME, resolveTheme } from "@/lib/theme";
+import { appleIconHref } from "@/lib/brand/themeAssets";
 
 type ThemeContextValue = { theme: Theme; setTheme: (t: Theme) => void };
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -44,6 +45,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    // iOS reads this tag rather than the web manifest for the home screen
+    // icon, and it snapshots whatever the href points at AT THE MOMENT the
+    // user taps Add to Home Screen, then never refetches. Keeping it aimed at
+    // the current accent is the only control the web platform gives over the
+    // installed icon. It cannot change one that is already installed; that
+    // needs a delete and re-add, and no API avoids it.
+    //
+    // Optional chaining rather than a guard: the tag is rendered by Next from
+    // src/app/apple-icon.png and is always there in the app, but tests and any
+    // future page that drops it should not crash the whole provider.
+    document
+      .querySelector('link[rel="apple-touch-icon"]')
+      ?.setAttribute("href", appleIconHref(theme));
   }, [theme]);
 
   return (

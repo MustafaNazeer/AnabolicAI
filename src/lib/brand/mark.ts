@@ -1,57 +1,47 @@
-// Onyx mark: an upright faceted cut-stone. Six facets, symmetric about x=60.
-// Outline vertices: A(44,36) B(76,36) C(92,58) D(78,92) E(60,118) F(42,92) G(28,58).
-// Center spine: Tc(60,36) C2(60,58) Mc(60,88) to point E(60,118). Light from upper-left.
+// AnabolicAI mark: a loaded dumbbell in flat, hard-cornered geometry.
+// Four plates and a bar, symmetric about x=60 on a square viewBox.
+//
+// Two properties carry the whole design, and both are pinned by mark.test.ts:
+//
+// 1. EVERY PLATE TAPERS, shorter at its outer edge and taller at its inner one.
+//    That slant is the only reason it reads as faceted rather than as flat
+//    slabs. Flatten it and this becomes a duller, more generic mark.
+//
+// 2. DEPTH IS OPACITY, NEVER A SECOND COLOUR. The falloff left to right is the
+//    light. Because it is opacity against whatever sits behind, one mark works
+//    for all five accents in both light and dark with no per-theme table. The
+//    mark this replaced hardcoded cobalt and stayed blue after crimson became
+//    the default accent, which is the bug that shape is designed out of.
 
-export const MARK_VIEWBOX = "0 0 120 140";
+export const MARK_VIEWBOX = "0 0 120 120";
 
 type Variant = "lit" | "mono";
 
-// Facet polygons, drawn back-to-front. Order matters only for the rim overlay.
-const FACETS = [
-  // id, points, litFill, monoOpacity
-  ["crownL", "44,36 60,36 60,58 28,58", "url(#onyxLit)", 0.95], // top-left crown, brightest
-  ["crownR", "60,36 76,36 92,58 60,58", "#16243a", 0.55],       // top-right crown, mid dark
-  ["pavLU", "28,58 60,58 60,88 42,92", "url(#onyxMid)", 0.7],   // pavilion left upper, secondary lit
-  ["pavRU", "60,58 92,58 78,92 60,88", "#0a0e16", 0.4],         // pavilion right upper, darkest
-  ["pavLL", "42,92 60,88 60,118", "#101a2c", 0.5],              // pavilion left lower
-  ["pavRL", "60,88 78,92 60,118", "#0c1320", 0.35],             // pavilion right lower
+// id, path, opacity. Drawn left to right; the opacity ladder is the lighting.
+const PARTS = [
+  ["outerL", "M4,46 L18,40 L18,80 L4,74 Z", 1],
+  ["innerL", "M22,26 L46,20 L46,100 L22,94 Z", 1],
+  ["bar", "M46,54 L74,54 L74,66 L46,66 Z", 0.7],
+  ["innerR", "M74,20 L98,26 L98,94 L74,100 Z", 0.6],
+  ["outerR", "M102,40 L116,46 L116,74 L102,80 Z", 0.45],
 ] as const;
 
-function facetPaths(variant: Variant): string {
-  return FACETS.map(([id, points, litFill, monoOpacity]) => {
-    const fill = variant === "lit" ? litFill : "currentColor";
-    const opacity = variant === "lit" ? "" : ` opacity="${monoOpacity}"`;
-    // points -> path "M x,y L ... Z"
-    const pts = points.split(" ");
-    const d = `M${pts[0]} ${pts.slice(1).map((p) => `L${p}`).join(" ")} Z`;
-    return `<path data-facet="${id}" d="${d}" fill="${fill}"${opacity} />`;
-  }).join("");
+function parts(variant: Variant, color?: string): string {
+  // "lit" follows the user's accent live. A caller may bake a literal instead,
+  // which the asset generator must do because a PNG cannot carry a CSS
+  // custom property.
+  const fill = variant === "mono" ? "currentColor" : (color ?? "var(--accent)");
+  return PARTS.map(
+    ([id, d, opacity]) =>
+      `<path data-part="${id}" d="${d}" fill="${fill}" opacity="${opacity}" />`,
+  ).join("");
 }
 
-function defs(): string {
-  return (
-    `<defs>` +
-    `<linearGradient id="onyxLit" x1="44" y1="36" x2="28" y2="58" gradientUnits="userSpaceOnUse">` +
-    `<stop offset="0" stop-color="#7aa9f9"/><stop offset="1" stop-color="#3b82f6"/>` +
-    `</linearGradient>` +
-    `<linearGradient id="onyxMid" x1="28" y1="58" x2="60" y2="92" gradientUnits="userSpaceOnUse">` +
-    `<stop offset="0" stop-color="#2c5aa0"/><stop offset="1" stop-color="#16243a"/>` +
-    `</linearGradient>` +
-    `</defs>`
-  );
-}
+export const MARK_INNER = parts("lit");
 
-// Hairline rim on the lit (left) outline edge A->G->F.
-function rim(variant: Variant): string {
-  const stroke = variant === "lit" ? "#7aa9f9" : "currentColor";
-  const opacity = variant === "lit" ? "0.9" : "0.8";
-  return `<polyline points="44,36 28,58 42,92" fill="none" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="${opacity}" />`;
-}
-
-export const MARK_INNER = `${defs()}<g>${facetPaths("lit")}</g>${rim("lit")}`;
-
-export function markSvg(opts: { variant?: Variant } = {}): string {
-  const variant = opts.variant ?? "lit";
-  const inner = `${variant === "lit" ? defs() : ""}<g>${facetPaths(variant)}</g>${rim(variant)}`;
+export function markSvg(
+  opts: { variant?: Variant; color?: string } = {},
+): string {
+  const inner = parts(opts.variant ?? "lit", opts.color);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${MARK_VIEWBOX}" fill="none">${inner}</svg>`;
 }

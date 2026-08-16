@@ -14,12 +14,19 @@ describe("BrandMark", () => {
     const { getByRole } = render(<BrandMark size={120} />);
     const el = getByRole("img", { name: appName });
     expect(el).toHaveAttribute("width", "120");
-    expect(el).toHaveAttribute("height", "140"); // preserves 120x140 aspect
+    expect(el).toHaveAttribute("height", "120"); // the mark is square
   });
 
-  it("renders the mono variant without the cobalt gradient fill", () => {
+  it("renders the mono variant from currentColor, not the accent", () => {
     const { container } = render(<BrandMark variant="mono" />);
     expect(container.innerHTML).toContain("currentColor");
-    expect(container.innerHTML).not.toContain("#3b82f6");
+    expect(container.innerHTML).not.toContain("var(--accent)");
+  });
+
+  it("renders the lit variant from the theme accent", () => {
+    // This is what makes the sign in mark follow the user's chosen accent
+    // instead of being pinned to whichever one happened to be the default.
+    const { container } = render(<BrandMark />);
+    expect(container.innerHTML).toContain("var(--accent)");
   });
 });

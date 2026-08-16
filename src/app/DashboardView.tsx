@@ -16,6 +16,12 @@ import type { WeekDay } from "@/lib/progress/weekstrip";
 import type { PersonalRecord } from "@/lib/progress/prs";
 import type { RecentWorkout, WeeklySummary } from "@/lib/progress/types";
 import type { GoalWithProgress } from "@/lib/goals/types";
+// Types only. dayQueries reaches the database through the server client, so a
+// value import here would pull it into the browser bundle; `import type` is
+// erased at compile time and every other type in this file arrives the same
+// way.
+import type { PlannerDay } from "@/lib/planner/week";
+import type { PlannerCategory } from "@/lib/planner/dayQueries";
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -46,6 +52,17 @@ export function DashboardView({
   // Defaults visible, matching the column, so a caller that has not been taught
   // about the switch shows the card rather than silently swallowing it.
   aiVisible?: boolean;
+  // The week planner, for gated accounts only. Every one of these defaults to
+  // off or empty so an existing caller, including the tests that already render
+  // this view, keeps behaving exactly as it did.
+  //
+  // plannerWeekDays is the seven day keys of the current week and plannerDays
+  // is only the days that have a row, which is usually fewer. The interface
+  // pairs them; the query deliberately does not return five nulls.
+  plannerOn?: boolean;
+  plannerWeekDays?: string[];
+  plannerDays?: PlannerDay[];
+  plannerCategories?: PlannerCategory[];
 }) {
   return (
     <main className="px-4 pt-12 pb-28">

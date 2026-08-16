@@ -8,6 +8,7 @@ import { MatrixCard } from "@/components/dashboard/MatrixCard";
 import { StatChip } from "@/components/dashboard/StatChip";
 import { GoalsSummary } from "@/components/dashboard/GoalsSummary";
 import { InsightsCard } from "@/components/InsightsCard";
+import { PlannerWeek } from "@/components/PlannerWeek";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { formatCompact } from "@/lib/progress/strength";
 import { pluralize } from "@/lib/format/plural";
@@ -39,6 +40,10 @@ export function DashboardView({
   goals = [],
   aiInsights,
   aiVisible = true,
+  plannerOn = false,
+  plannerWeekDays = [],
+  plannerDays = [],
+  plannerCategories = [],
 }: {
   name: string;
   weekly: WeeklySummary;
@@ -64,11 +69,30 @@ export function DashboardView({
   plannerDays?: PlannerDay[];
   plannerCategories?: PlannerCategory[];
 }) {
+  // Derived from the list rather than fetched again. The strip and the balance
+  // only ever resolve an id to a name, while the sheet needs the ordered list
+  // to render a chip per category, so one query feeds both shapes.
+  const categoryNames = Object.fromEntries(plannerCategories.map((c) => [c.id, c.name]));
+
   return (
     <main className="px-4 pt-12 pb-28">
       <DashboardHeader name={name} />
 
       <WeekStrip days={weekDays} />
+
+      {/*
+        Gated on the flag rather than on having any planner rows, because an
+        account with the flag and an empty week still needs somewhere to tap.
+        An account without it renders nothing at all here.
+      */}
+      {plannerOn ? (
+        <PlannerWeek
+          week={plannerWeekDays}
+          days={plannerDays}
+          categoryNames={categoryNames}
+          onPick={() => {}}
+        />
+      ) : null}
 
       <MatrixCard days={matrixDays} />
 

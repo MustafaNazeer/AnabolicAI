@@ -1,3 +1,5 @@
+// Still "onyx" after the rename. This string is versioned deliberately, so it
+// is safe to change, but changing it buys nothing. See docs/rename.md.
 const CACHE = "onyx-shell-v5";
 const SHELL = ["/", "/manifest.webmanifest"];
 

@@ -1,6 +1,7 @@
 // src/app/DashboardView.tsx
 "use client";
 
+import { useState } from "react";
 import { Star } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { WeekStrip } from "@/components/dashboard/WeekStrip";
@@ -8,6 +9,9 @@ import { MatrixCard } from "@/components/dashboard/MatrixCard";
 import { StatChip } from "@/components/dashboard/StatChip";
 import { GoalsSummary } from "@/components/dashboard/GoalsSummary";
 import { InsightsCard } from "@/components/InsightsCard";
+import { PlannerWeek } from "@/components/PlannerWeek";
+import { PlannerDaySheet } from "@/components/PlannerDaySheet";
+import { PlannerBalance } from "@/components/PlannerBalance";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { formatCompact } from "@/lib/progress/strength";
 import { pluralize } from "@/lib/format/plural";
@@ -16,6 +20,12 @@ import type { WeekDay } from "@/lib/progress/weekstrip";
 import type { PersonalRecord } from "@/lib/progress/prs";
 import type { RecentWorkout, WeeklySummary } from "@/lib/progress/types";
 import type { GoalWithProgress } from "@/lib/goals/types";
+// Types only. dayQueries reaches the database through the server client, so a
+// value import here would pull it into the browser bundle; `import type` is
+// erased at compile time and every other type in this file arrives the same
+// way.
+import type { PlannerDay } from "@/lib/planner/week";
+import type { PlannerCategory } from "@/lib/planner/dayQueries";
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -33,6 +43,10 @@ export function DashboardView({
   goals = [],
   aiInsights,
   aiVisible = true,
+  plannerOn = false,
+  plannerWeekDays = [],
+  plannerDays = [],
+  plannerCategories = [],
 }: {
   name: string;
   weekly: WeeklySummary;
@@ -46,12 +60,62 @@ export function DashboardView({
   // Defaults visible, matching the column, so a caller that has not been taught
   // about the switch shows the card rather than silently swallowing it.
   aiVisible?: boolean;
+  // The week planner, for gated accounts only. Every one of these defaults to
+  // off or empty so an existing caller, including the tests that already render
+  // this view, keeps behaving exactly as it did.
+  //
+  // plannerWeekDays is the seven day keys of the current week and plannerDays
+  // is only the days that have a row, which is usually fewer. The interface
+  // pairs them; the query deliberately does not return five nulls.
+  plannerOn?: boolean;
+  plannerWeekDays?: string[];
+  plannerDays?: PlannerDay[];
+  plannerCategories?: PlannerCategory[];
 }) {
+  // Derived from the list rather than fetched again. The strip and the balance
+  // only ever resolve an id to a name, while the sheet needs the ordered list
+  // to render a chip per category, so one query feeds both shapes.
+  const categoryNames = Object.fromEntries(plannerCategories.map((c) => [c.id, c.name]));
+  // Which day's sheet is open, by key, or none. Held here rather than inside
+  // the strip because the sheet sits beside the strip rather than inside a day,
+  // and a tap on one day while another is open has to move the sheet.
+  const [openDay, setOpenDay] = useState<string | null>(null);
+
   return (
     <main className="px-4 pt-12 pb-28">
       <DashboardHeader name={name} />
 
       <WeekStrip days={weekDays} />
+
+      {/*
+        Gated on the flag rather than on having any planner rows, because an
+        account with the flag and an empty week still needs somewhere to tap.
+        An account without it renders nothing at all here.
+      */}
+      {plannerOn ? (
+        <>
+          <PlannerWeek
+            week={plannerWeekDays}
+            days={plannerDays}
+            categoryNames={categoryNames}
+            onPick={setOpenDay}
+          />
+          {openDay ? (
+            <div className="mt-2.5">
+              <PlannerDaySheet
+                // Keyed by day so moving between two days rebuilds the sheet
+                // rather than carrying the first day's picks onto the second.
+                key={openDay}
+                day={openDay}
+                categories={plannerCategories}
+                initial={plannerDays.find((d) => d.day === openDay) ?? null}
+                onDone={() => setOpenDay(null)}
+              />
+            </div>
+          ) : null}
+          <PlannerBalance days={plannerDays} categoryNames={categoryNames} />
+        </>
+      ) : null}
 
       <MatrixCard days={matrixDays} />
 

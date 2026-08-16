@@ -41,22 +41,37 @@ export const appleIconFile = (theme: Theme): string => `apple-icon-${theme}.png`
 export const appleIconHref = (theme: Theme): string => `/icons/${appleIconFile(theme)}`;
 
 // Which accents have a generated launch splash set. THIS IS DELIBERATELY A
-// SUBSET OF THEMES, and that is the current state of an unfinished experiment
-// rather than a design choice to keep.
+// SUBSET OF THEMES, and it is a probe that has NOT yet returned a usable
+// answer. Do not widen it without reading the rest of this comment.
 //
 // A splash set costs 11 PNGs per accent against the icon's 1, and the reason
 // the icon was worth paying for does not obviously carry over. iOS is
 // documented nowhere on when it captures a startup image: the best source
 // available says the device caches them when the user taps Add to Home Screen,
 // which would mean a swap after install changes nothing until the app is
-// deleted and re-added, exactly like the icon. If that is what a real iPhone
-// does, the remaining accents buy a splash that matches at install time and
-// nothing more, and that is a decision to take with the answer in hand.
+// deleted and re-added, exactly like the icon.
 //
-// So one alternate accent ships first, the device answers the question, and
-// FINISHING THIS IS ONE EDIT: set this to THEMES and re-run "npm run gen:brand".
-// The proxy matcher must be widened in the same commit, and
-// generated-assets.test.ts fails until it is.
+// SO ONE ALTERNATE ACCENT SHIPPED FIRST, AND THE DEVICE PASS THAT FOLLOWED DID
+// NOT ANSWER THE QUESTION. Selecting emerald and relaunching showed a green
+// launch screen, which looks like proof that iOS re-reads these links. It is
+// not. Selecting COBALT, which has no generated artwork at all, showed a BLUE
+// one, and no file on the device can produce that: the app's own background and
+// mark follow the accent through live CSS, applied before first paint by
+// NO_FLASH_SCRIPT, and for one frame that is very hard to tell from the
+// artwork, which is near black with a small centred mark and no text. The
+// emerald result was the app painting itself. Whether iOS draws these images at
+// all on a current iPhone is STILL UNKNOWN, and a colour is not a discriminator
+// for it: use the presence of text, the mark's vertical position, or a screen
+// recording scrubbed to the launch frame.
+//
+// AND FINISHING THIS IS NOT ONE EDIT, THOUGH IT LOOKS LIKE IT. Setting this to
+// THEMES also needs the proxy matcher widened in the same commit, and it
+// silently hollows out three assertions that iterate THEMES minus this list,
+// which becomes empty: the fold in themeAssets.test.ts, the matcher counterpart
+// in generated-assets.test.ts, and the fold in ThemeProvider.test.tsx. They go
+// on passing while proving nothing. Re-point the two fold tests at a synthetic
+// accent and rewrite the counterpart to assert the matcher's enumerated group
+// EQUALS the accent set, which has teeth in both directions.
 export const SPLASH_THEMES: readonly Theme[] = ["crimson", "emerald"];
 
 // The app offers five accents and ships splashes for two, so every href has to

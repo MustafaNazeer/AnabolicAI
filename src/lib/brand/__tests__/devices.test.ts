@@ -4,7 +4,12 @@ import { SPLASH_THEMES } from "../themeAssets";
 import { DEFAULT_THEME } from "@/lib/theme";
 
 describe("splash devices", () => {
-  it("covers a representative span of current iPhones", () => {
+  // NAMED FOR WHAT IT ACTUALLY CHECKS. It used to say "covers a representative
+  // span of current iPhones", which is a claim about currency that its body
+  // cannot support and that would keep passing however stale the matrix got.
+  // No test can detect a phone released after it was written; the ceiling and
+  // its silent failure mode are documented above IPHONE_SPLASH instead.
+  it("carries a floor of ten devices, which is a count and not a currency check", () => {
     expect(IPHONE_SPLASH.length).toBeGreaterThanOrEqual(10);
   });
 

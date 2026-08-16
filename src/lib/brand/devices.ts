@@ -1,6 +1,19 @@
 import type { Theme } from "@/lib/theme";
 
 // Current-iPhone portrait splash matrix (logical CSS size + device pixel ratio).
+//
+// THIS LIST HAS A CEILING AND IT GOES STALE SILENTLY. Every link splashLinks()
+// builds pins an exact device-width, device-height and pixel ratio, so a phone
+// that is not in this list matches NO media query and gets no startup image at
+// all. Nothing fails when that happens: no test, no build, no request. The app
+// just quietly stops having a splash on the newest hardware.
+//
+// The list currently stops at the 16 Pro Max. NO TEST CAN CLOSE THIS, because
+// no test can know an iPhone that did not exist when it was written, which is
+// why the guard is this note sitting where the matrix is edited rather than an
+// assertion pretending to check currency. Adding a model needs its real logical
+// size and ratio, verified rather than guessed, plus one generated PNG per
+// accent in SPLASH_THEMES.
 export type SplashDevice = { name: string; cssWidth: number; cssHeight: number; ratio: 2 | 3 };
 
 export const IPHONE_SPLASH: SplashDevice[] = [

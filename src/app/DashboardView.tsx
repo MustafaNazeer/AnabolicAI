@@ -6,6 +6,7 @@ import { WeekStrip } from "@/components/dashboard/WeekStrip";
 import { MatrixCard } from "@/components/dashboard/MatrixCard";
 import { StatChip } from "@/components/dashboard/StatChip";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { NamePrompt } from "@/components/NamePrompt";
 import { PlannerDaySheet } from "@/components/PlannerDaySheet";
 import { PlannerBalance } from "@/components/PlannerBalance";
 import type { MatrixDay } from "@/lib/progress/matrix";
@@ -24,6 +25,7 @@ import type { PlannerCategory } from "@/lib/planner/dayQueries";
 // were read only displays with no links in them, so nothing became unreachable.
 export function DashboardView({
   name,
+  askName = false,
   weekly,
   streakWeeks,
   matrixDays,
@@ -35,6 +37,9 @@ export function DashboardView({
   plannerCategories = [],
 }: {
   name: string;
+  // Whether this account has ever been asked what to call it. Defaults false so
+  // a caller that has not been taught about the prompt shows no card at all.
+  askName?: boolean;
   weekly: WeeklySummary;
   streakWeeks: number;
   matrixDays: MatrixDay[];
@@ -58,6 +63,13 @@ export function DashboardView({
   return (
     <main className="px-4 pt-12 pb-28">
       <DashboardHeader name={name} />
+
+      {/*
+        Asked once, at the top, where the greeting it changes already is.
+        The card records a refusal too, so dismissing it settles the question
+        rather than deferring it to the next load.
+      */}
+      {askName ? <NamePrompt /> : null}
 
       {/*
         One strip for every account. A gated account additionally gets its

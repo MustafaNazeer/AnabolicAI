@@ -1,6 +1,8 @@
 // src/app/page.tsx
 import { getDashboardData, getMatrixData } from "@/lib/progress/queries";
 import { getWeekPlanner } from "@/lib/planner/queries";
+import { getDisplayName } from "@/lib/profile/queries";
+import { greetingName, needsName } from "@/lib/profile/name";
 import { getPlannerWeek, getPlannerCategories } from "@/lib/planner/dayQueries";
 import { plannerWeek } from "@/lib/planner/week";
 import { dayKey, dateKeyInZone } from "@/lib/progress/matrix";
@@ -11,9 +13,10 @@ import { DashboardView } from "@/app/DashboardView";
 export default async function HomePage() {
   const now = new Date();
   // Both reads are independent, so they go together.
-  const [data, matrixDays] = await Promise.all([
+  const [data, matrixDays, displayName] = await Promise.all([
     getDashboardData(now),
     getMatrixData(now),
+    getDisplayName(),
   ]);
 
   // The week the strip draws, and the two facts it needs about it. Every date
@@ -33,11 +36,12 @@ export default async function HomePage() {
     : [[], []];
 
   const user = await getVerifiedUser();
-  const name = user?.email?.split("@")[0] ?? "there";
+  const name = greetingName(displayName, user?.email);
 
   return (
     <DashboardView
       name={name}
+      askName={needsName(displayName)}
       weekly={data.weekly}
       streakWeeks={data.streakWeeks}
       matrixDays={matrixDays}

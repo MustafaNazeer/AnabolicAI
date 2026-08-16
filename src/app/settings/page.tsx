@@ -6,6 +6,7 @@ import { getApproved } from "@/lib/accounts/queries";
 import { isAdminEmail } from "@/lib/accounts/approval";
 import { getUntaggedCustomExercises } from "@/lib/data/queries";
 import { getWeekPlanner } from "@/lib/planner/queries";
+import { getDisplayName } from "@/lib/profile/queries";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { AiSettings } from "@/components/AiSettings";
 import { UntaggedExercises } from "@/components/UntaggedExercises";
@@ -15,6 +16,7 @@ import { SignOutButton } from "@/components/SignOutButton";
 import { ThemePicker } from "@/components/ThemePicker";
 import { AppearanceControl } from "@/components/AppearanceControl";
 import { WeekPlannerToggle } from "@/components/WeekPlannerToggle";
+import { NameField } from "@/components/NameField";
 
 export default async function SettingsPage() {
   const user = await getVerifiedUser();
@@ -24,6 +26,7 @@ export default async function SettingsPage() {
   const aiInsights = await getAiInsights();
   const approved = await getApproved();
   const untagged = await getUntaggedCustomExercises();
+  const displayName = await getDisplayName();
   const admin = isAdminEmail(user?.email ?? null, process.env.ADMIN_EMAILS);
   // Read only when it can be rendered. The switch is admin only, so fetching
   // the flag for everyone else would add a round trip to every settings load
@@ -90,6 +93,15 @@ export default async function SettingsPage() {
           </SettingsSection>
         </>
       ) : null}
+
+      {/*
+        The dashboard prompt asks once. This is the only way to change that
+        answer afterwards, and the only way in at all for someone who dismissed
+        the prompt and later wants a name.
+      */}
+      <SettingsSection title="Your name">
+        <NameField initial={displayName ?? ""} />
+      </SettingsSection>
 
       <SettingsSection title="Your exercises">
         <UntaggedExercises initial={untagged} />

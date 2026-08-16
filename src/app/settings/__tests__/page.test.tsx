@@ -29,6 +29,10 @@ vi.mock("@/lib/ai/queries", () => ({
   getAiInsights: getAiInsightsMock,
 }));
 vi.mock("@/lib/accounts/queries", () => ({ getApproved: getApprovedMock }));
+// The page reads the stored name to seed the Settings field. Mocked like every
+// other query here, because the real one reaches cookies and there is no
+// request scope in a test.
+vi.mock("@/lib/profile/queries", () => ({ getDisplayName: vi.fn(async () => null) }));
 vi.mock("@/lib/data/queries", () => ({
   getUntaggedCustomExercises: getUntaggedCustomExercisesMock,
 }));
@@ -52,6 +56,7 @@ vi.mock("@/components/UntaggedExercises", () => ({
   UntaggedExercises: () => <div />,
 }));
 vi.mock("@/components/ExportPanel", () => ({ ExportPanel: () => <div /> }));
+vi.mock("@/components/NameField", () => ({ NameField: () => <div /> }));
 vi.mock("@/components/ThemePicker", () => ({ ThemePicker: () => <div /> }));
 vi.mock("@/components/AppearanceControl", () => ({
   AppearanceControl: () => <div />,

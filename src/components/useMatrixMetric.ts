@@ -4,6 +4,8 @@ import { useCallback, useSyncExternalStore } from "react";
 import { resolveMetric, DEFAULT_METRIC } from "@/lib/progress/metric";
 import { type MatrixMetric } from "@/lib/progress/matrix";
 
+// Still "onyx" after the rename. Changing it resets the saved metric choice.
+// See docs/rename.md.
 const STORAGE_KEY = "onyx-matrix-metric";
 const listeners = new Set<() => void>();
 

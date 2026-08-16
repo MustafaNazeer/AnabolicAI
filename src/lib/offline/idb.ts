@@ -6,7 +6,9 @@ import type {
   Snapshot,
 } from "@/lib/offline/store";
 
-const DB_NAME = "onyx";
+// Deliberately still "onyx" after the 2026-08-15 rename to AnabolicAI.
+// Renaming this orphans every device's pending offline outbox. See docs/rename.md.
+export const DB_NAME = "onyx";
 const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBDatabase> | null = null;

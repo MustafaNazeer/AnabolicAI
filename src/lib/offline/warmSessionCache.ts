@@ -3,6 +3,9 @@
 
 // Duplicated from public/sw.js, which is a static file and cannot be imported.
 // serviceWorker.test.ts asserts the two agree.
+// Still "onyx" after the rename, and it MUST stay byte identical to the CACHE
+// constant in public/sw.js:1. These are the only two definitions of this name.
+// See docs/rename.md.
 export const PAGE_CACHE = "onyx-shell-v5";
 
 // A soft navigation issues an RSC fetch, not a document request, so the

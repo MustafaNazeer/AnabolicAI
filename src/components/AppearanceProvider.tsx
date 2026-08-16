@@ -21,6 +21,8 @@ type AppearanceContextValue = {
   setMode: (m: Mode) => void;
 };
 const AppearanceContext = createContext<AppearanceContextValue | null>(null);
+// Still "onyx" after the rename. Changing it resets every user's saved
+// preference. See docs/rename.md.
 const STORAGE_KEY = "onyx-mode";
 const THEME_COLOR: Record<Appearance, string> = {
   dark: "#070a10",

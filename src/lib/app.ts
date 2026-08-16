@@ -1,1 +1,1 @@
-export const appName = "Onyx";
+export const appName = "AnabolicAI";

@@ -1,10 +1,12 @@
-# Onyx
+# AnabolicAI
 
-[![CI](https://github.com/MustafaNazeer/Onyx/actions/workflows/ci.yml/badge.svg)](https://github.com/MustafaNazeer/Onyx/actions/workflows/ci.yml)
+Formerly Onyx. See [docs/rename.md](docs/rename.md).
+
+[![CI](https://github.com/MustafaNazeer/AnabolicAI/actions/workflows/ci.yml/badge.svg)](https://github.com/MustafaNazeer/AnabolicAI/actions/workflows/ci.yml)
 
 A dark, iPhone first strength progress tracker, built as an installable Progressive Web App. Create workout routines, log your sets, reps, weight, and reps in reserve during a session, time your rest between sets, and watch your strength trend over time in plain language. Routines are built from a library of 158 common exercises, filterable by muscle group and equipment, and anything you add yourself from now on is tagged the same way so the filters find it too, while Settings lists anything you added earlier that is still untagged.
 
-Onyx is a private app for a small group of users. Each person has their own account and their own isolated data, enforced at the database level.
+AnabolicAI is a private app for a small group of users. Each person has their own account and their own isolated data, enforced at the database level.
 
 An optional AI quick entry field on each exercise card turns a typed line like "185 for 5, then 5, then 4" into sets. The parse is schema constrained, every number is re-validated against the same rules the logging path enforces, and the result lands as editable preview rows that only reach your log once you confirm them. Each AI feature is off until you turn it on, and each says exactly what it sends before the first use. Quick entry sends only the text you type. An insights card on the dashboard answers one tap with up to three short observations about your recent training, and points at the Progress screen instead of repeating its stall suggestion.
 
@@ -36,8 +38,8 @@ Settings can export your training history as a CSV. Choose sets or sessions, tic
 1. Clone the repository and install dependencies:
 
    ```bash
-   git clone https://github.com/MustafaNazeer/Onyx.git
-   cd Onyx
+   git clone https://github.com/MustafaNazeer/AnabolicAI.git
+   cd AnabolicAI
    npm install
    ```
 
@@ -137,12 +139,12 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-14: 895 tests across 141 files, covering 77 percent of the application logic.
+As of 2026-08-15: 1090 tests across 172 files, covering 79 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a
-real database rather than a mock. Counting those 19 files, overall statement coverage is
-62 percent.
+real database rather than a mock. Counting those 25 files, overall statement coverage is
+67 percent.
 
 The offline outbox is additionally checked with property based tests. Generated sequences
 of logging, editing, deleting, swapping and finishing are run against a reference model of
@@ -200,12 +202,12 @@ Reproduce with `npm run lighthouse`. It requires no credentials.
 
 ## Installing on your iPhone
 
-Onyx installs to the home screen and runs full screen like a native app:
+AnabolicAI installs to the home screen and runs full screen like a native app:
 
 1. Open the deployed URL in Safari.
 2. Tap the Share button.
 3. Tap Add to Home Screen.
-4. Open Onyx from the home screen.
+4. Open AnabolicAI from the home screen.
 
 Notifications (such as the rest timer) require the app to be installed to the home screen first, on iOS 16.4 or newer.
 

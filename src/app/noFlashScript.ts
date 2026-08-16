@@ -5,6 +5,9 @@
 // and MODES in src/lib/appearance.ts.
 export const NO_FLASH_SCRIPT = `(function(){try{
 var THEMES=['cobalt','magenta','emerald','crimson','rose'];
+// These two keys must match ThemeProvider and AppearanceProvider exactly, or
+// every page load flashes the wrong theme before hydration. Still "onyx" after
+// the rename. See docs/rename.md.
 var t=localStorage.getItem('onyx-theme');
 if(THEMES.indexOf(t)===-1)t='cobalt';
 var m=localStorage.getItem('onyx-mode');

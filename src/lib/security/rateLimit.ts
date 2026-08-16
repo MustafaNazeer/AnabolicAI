@@ -89,6 +89,8 @@ function limiterFor(surface: LimitSurface): Ratelimit | null {
   limiters[surface] ??= new Ratelimit({
     redis: store,
     limiter: Ratelimit.slidingWindow(RULES[surface].limit, RULES[surface].window),
+    // Still "onyx" after the rename. Harmless to change and pointless to change:
+    // the counters would simply reset. See docs/rename.md.
     prefix: `onyx:${surface}`,
   });
   return limiters[surface];

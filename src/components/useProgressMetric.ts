@@ -7,6 +7,8 @@ import {
   type ProgressMetric,
 } from "@/lib/progress/progressMetric";
 
+// Still "onyx" after the rename. Changing it resets the saved metric choice.
+// See docs/rename.md.
 const STORAGE_KEY = "onyx-progress-metric";
 const listeners = new Set<() => void>();
 

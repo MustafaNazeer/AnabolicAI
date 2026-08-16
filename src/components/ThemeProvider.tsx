@@ -11,6 +11,8 @@ import { type Theme, DEFAULT_THEME, resolveTheme } from "@/lib/theme";
 
 type ThemeContextValue = { theme: Theme; setTheme: (t: Theme) => void };
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+// Still "onyx" after the rename. Changing it resets every user's saved
+// preference. See docs/rename.md.
 const STORAGE_KEY = "onyx-theme";
 
 const listeners = new Set<() => void>();

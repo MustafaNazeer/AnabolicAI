@@ -11,6 +11,7 @@ import {
   streakWarningPayload,
   weeklyRecapPayload,
 } from "@/lib/notifications/payloads";
+import { appName } from "@/lib/app";
 
 describe("dayNameInZone", () => {
   it("returns the lowercase short weekday in the given zone", () => {
@@ -63,7 +64,7 @@ describe("scheduled payloads", () => {
   it("builds plain-language pushes", () => {
     expect(workoutReminderPayload()).toEqual({
       title: "Time to train",
-      body: "You have a workout scheduled today. Open Onyx to start.",
+      body: `You have a workout scheduled today. Open ${appName} to start.`,
       url: "/",
       tag: "reminder",
     });
@@ -74,7 +75,7 @@ describe("scheduled payloads", () => {
       tag: "streak",
     });
     expect(weeklyRecapPayload(4, 28000)).toEqual({
-      title: "This week in Onyx",
+      title: `This week in ${appName}`,
       body: "4 workouts, 28k lbs moved. Nice work.",
       url: "/",
       tag: "weekly",

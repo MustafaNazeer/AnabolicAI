@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
+import { appName } from "@/lib/app";
 
 const manifest = JSON.parse(readFileSync("public/manifest.webmanifest", "utf8"));
 const exists = (f: string) => { try { return statSync(f).isFile(); } catch { return false; } };
@@ -17,5 +18,12 @@ describe("web manifest icons", () => {
     for (const icon of manifest.icons) {
       expect(exists(`public${icon.src}`)).toBe(true);
     }
+  });
+});
+
+describe("web manifest identity", () => {
+  it("names the app exactly as appName does", () => {
+    expect(manifest.name).toBe(appName);
+    expect(manifest.short_name).toBe(appName);
   });
 });

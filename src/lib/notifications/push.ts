@@ -4,7 +4,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { PushPayload } from "@/lib/notifications/payloads";
 
-const SUBJECT = "https://onyx-kappa-five.vercel.app";
+// The VAPID sub claim identifies the sender to the push service. It is not
+// required to resolve or to match the request origin, but it should track the
+// canonical origin for correctness. Changing this string does not invalidate
+// any subscription. Only changing the VAPID key pair does. Moving the app to a
+// new domain does not invalidate the old subscriptions either: it creates
+// separate ones at the new origin, and stale rows are pruned on 410 below.
+export const VAPID_SUBJECT = "https://anabolicai.app";
 
 let configured: boolean | null = null;
 
@@ -16,7 +22,7 @@ function ensureConfigured(): boolean {
     configured = false;
     return false;
   }
-  webpush.setVapidDetails(SUBJECT, publicKey, privateKey);
+  webpush.setVapidDetails(VAPID_SUBJECT, publicKey, privateKey);
   configured = true;
   return true;
 }

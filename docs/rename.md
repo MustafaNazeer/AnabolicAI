@@ -43,16 +43,22 @@ grep lands on an explanation rather than a dead end.
 
 - `src/lib/offline/sync.ts`, the `console.warn("onyx: dropping unsyncable op", ...)`
   prefix. A debug label, not a user facing or stored string.
-- `src/lib/brand/mark.ts`, the header comment and the `onyxLit` and `onyxMid`
-  gradient ids. This one matters most: the mark is literally a drawing of an
-  onyx gemstone, and it is being redesigned on a separate follow up branch,
-  which is why it was left for that work rather than half updated here.
+- `src/lib/brand/mark.ts` used to carry the header comment and the `onyxLit`
+  and `onyxMid` gradient ids, because the mark was literally a drawing of an
+  onyx gemstone. **That follow up branch has since shipped.** The mark is now a
+  loaded dumbbell in flat geometry, it holds no `onyx` string, and it takes its
+  colour from `var(--accent)` rather than pinning one, so it follows whichever
+  accent the user has chosen instead of the one that happened to be default.
 - `scripts/lighthouse/targets.mts` and `scripts/lighthouse/run.mts`, the
   `ONYX_BASE_URL` and `ONYX_SHARE_TOKEN` contributor environment variables,
   which `docs/lighthouse.md` documents publicly. Renaming them would break a
   documented contributor contract for no benefit.
-- `package.json` and `package-lock.json`, `"name": "onyx"`. The package is
-  private and never published, so nothing external ever resolves this name.
+- `package.json` and `package-lock.json` used to read `"name": "onyx"`. That was
+  deferred here because changing it regenerates the lockfile CI validates.
+  **It has since been renamed to `anabolicai`.** The lockfile was hand edited at
+  its two name fields rather than regenerated, because `npm install
+  --package-lock-only` also re-expanded 66 lines of unrelated bundled optional
+  dependencies.
 - `supabase/migrations/*.sql` and `supabase/seed.sql`, header comments in
   already applied migrations. A migration is a historical record of what ran,
   not a place to keep current, so applied migrations are not edited as a

@@ -2,7 +2,7 @@ import { markSvg, MARK_VIEWBOX } from "@/lib/brand/mark";
 import { appName } from "@/lib/app";
 
 const [, , VBW, VBH] = MARK_VIEWBOX.split(" ").map(Number);
-const ASPECT = VBH / VBW; // 140/120
+const ASPECT = VBH / VBW; // 120/120, the mark is square
 
 export function BrandMark({
   size = 64,

@@ -1,14 +1,29 @@
 import { describe, it, expect } from "vitest";
 import { markSvg, MARK_VIEWBOX, MARK_INNER } from "../mark";
 
-// Pulls the y coordinates of one part's path out of the rendered markup, so a
-// test can assert the SHAPE rather than just that a string is present.
-function partYs(svg: string, part: string): number[] {
-  const m = svg.match(new RegExp(`data-part="${part}" d="([^"]+)"`));
-  if (!m) throw new Error(`no part named ${part} in the mark`);
-  return [...m[1].matchAll(/[ML](-?[\d.]+),(-?[\d.]+)/g)].map((p) => Number(p[2]));
+// Pulls one part's path data out of the rendered markup, so a test can assert
+// the SHAPE rather than just that a string is present.
+//
+// Split and startsWith rather than a RegExp built from `part`: semgrep's
+// detect-non-literal-regexp rule runs in CI only and blocks the dynamic form.
+// generated-assets.test.ts carries the same warning.
+function pathFor(svg: string, part: string): string {
+  const seg = svg
+    .split("<path ")
+    .find((s) => s.startsWith(`data-part="${part}" `));
+  if (!seg) throw new Error(`no part named ${part} in the mark`);
+  const d = seg.match(/ d="([^"]+)"/);
+  if (!d) throw new Error(`part ${part} has no path data`);
+  return d[1];
 }
-const span = (ys: number[]) => Math.max(...ys) - Math.min(...ys);
+const points = (d: string): number[][] =>
+  [...d.matchAll(/[ML](-?[\d.]+),(-?[\d.]+)/g)].map((p) => [
+    Number(p[1]),
+    Number(p[2]),
+  ]);
+const partYs = (svg: string, part: string): number[] =>
+  points(pathFor(svg, part)).map(([, y]) => y);
+const span = (ns: number[]) => Math.max(...ns) - Math.min(...ns);
 
 describe("markSvg", () => {
   it("exposes a square viewBox", () => {
@@ -60,8 +75,7 @@ describe("markSvg", () => {
   it("tapers every plate, shorter outboard and taller inboard", () => {
     const svg = markSvg();
     for (const [part, outerX] of [["outerL", 4], ["innerL", 22], ["innerR", 98], ["outerR", 116]] as const) {
-      const m = svg.match(new RegExp(`data-part="${part}" d="([^"]+)"`))!;
-      const pts = [...m[1].matchAll(/[ML](-?[\d.]+),(-?[\d.]+)/g)].map((p) => [Number(p[1]), Number(p[2])]);
+      const pts = points(pathFor(svg, part));
       const outer = pts.filter(([x]) => x === outerX).map(([, y]) => y);
       const inner = pts.filter(([x]) => x !== outerX).map(([, y]) => y);
       expect(outer.length, `${part} has no edge at x=${outerX}`).toBe(2);

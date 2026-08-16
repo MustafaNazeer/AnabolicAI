@@ -8,14 +8,25 @@ const css = readFileSync("src/app/globals.css", "utf8");
 
 // Pulls one custom property out of a specific mode+theme block in globals.css,
 // so these tests compare against the real stylesheet rather than a copy of it.
+//
+// String slicing rather than a RegExp built from the arguments: semgrep's
+// detect-non-literal-regexp rule runs in CI only and blocks the dynamic form.
+// generated-assets.test.ts carries the same warning.
 function token(mode: string, theme: string, prop: string): string {
-  const block = css.match(
-    new RegExp(`\\[data-mode="${mode}"\\]\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`),
-  );
-  if (!block) throw new Error(`no ${mode}/${theme} block in globals.css`);
-  const m = block[1].match(new RegExp(`--${prop}:\\s*([^;]+);`));
-  if (!m) throw new Error(`no --${prop} in the ${mode}/${theme} block`);
-  return m[1].trim();
+  const selector = `[data-mode="${mode}"][data-theme="${theme}"]`;
+  const at = css.indexOf(selector);
+  if (at === -1) throw new Error(`no ${mode}/${theme} block in globals.css`);
+  const open = css.indexOf("{", at);
+  const close = css.indexOf("}", open);
+  if (open === -1 || close === -1) throw new Error(`${selector} has no body`);
+  const key = `--${prop}:`;
+  const line = css
+    .slice(open + 1, close)
+    .split(";")
+    .map((s) => s.trim())
+    .find((s) => s.startsWith(key));
+  if (!line) throw new Error(`no --${prop} in the ${mode}/${theme} block`);
+  return line.slice(key.length).trim();
 }
 
 describe("browser chrome colour", () => {

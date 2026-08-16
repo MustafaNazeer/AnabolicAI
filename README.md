@@ -8,7 +8,7 @@ A dark, iPhone first strength progress tracker, built as an installable Progress
 
 AnabolicAI is a private app for a small group of users. Each person has their own account and their own isolated data, enforced at the database level.
 
-An optional AI quick entry field on each exercise card turns a typed line like "185 for 5, then 5, then 4" into sets. The parse is schema constrained, every number is re-validated against the same rules the logging path enforces, and the result lands as editable preview rows that only reach your log once you confirm them. Each AI feature is off until you turn it on, and each says exactly what it sends before the first use. Quick entry sends only the text you type. An insights card on the dashboard answers one tap with up to three short observations about your recent training, and points at the Progress screen instead of repeating its stall suggestion.
+An optional AI quick entry field on each exercise card turns a typed line like "185 for 5, then 5, then 4" into sets. The parse is schema constrained, every number is re-validated against the same rules the logging path enforces, and the result lands as editable preview rows that only reach your log once you confirm them. Each AI feature is off until you turn it on, and each says exactly what it sends before the first use. Quick entry sends only the text you type. An insights card on the Progress screen answers one tap with up to three short observations about your recent training, and points at the charts beside it instead of repeating its stall suggestion.
 
 When a lift has genuinely stopped progressing, the Progress screen says so and can suggest one concrete next step: a weight, rep, rest, or deload change, framed simply. The stall call is statistical, made only when the last four sessions confidently rule progress out, and the suggestion is fetched only when you tap and only after turning the feature on. What leaves the device is that one lift's name, muscle group, recent sessions, and your default rest time, nothing else, and the suggestion is advice on screen, never something written to your log.
 
@@ -24,7 +24,7 @@ Settings can export your training history as a CSV. Choose sets or sessions, tic
 - Recharts for progress charts
 - Web Push (VAPID) for notifications
 - Upstash QStash to schedule the rest timer notification
-- Claude with structured outputs for AI quick entry, plateau suggestions, and dashboard insights
+- Claude with structured outputs for AI quick entry, plateau suggestions, and training insights
 - Vercel for hosting
 
 ## Prerequisites
@@ -108,7 +108,7 @@ state for local development.
 ### AI features (optional)
 
 The typed set parser on each exercise card, the plateau suggestion on the Progress screen, and
-the insights card on the dashboard all call the Claude API, through the same
+the insights card on the same screen all call the Claude API, through the same
 `ANTHROPIC_API_KEY`. Create a key in the Console
 at https://platform.claude.com/settings/keys and set it on the deployed environment:
 
@@ -139,11 +139,11 @@ npm test
 npm run test:coverage
 ```
 
-As of 2026-08-16: 1128 tests across 175 files, covering 79 percent of the application logic.
+As of 2026-08-16: 1192 tests across 186 files, covering 79 percent of the application logic.
 
 The data access layer (the server actions, the queries, the Supabase clients and the
 IndexedDB adapter) is deliberately not unit tested, since exercising it meaningfully needs a
-real database rather than a mock. Counting those 25 files, overall statement coverage is
+real database rather than a mock. Counting those 27 files, overall statement coverage is
 67 percent.
 
 The offline outbox is additionally checked with property based tests. Generated sequences

@@ -20,23 +20,19 @@ const BASE = {
   name: "mustafa",
   weekly: { workouts: 3, sets: 42, volume: 12000 },
   streakWeeks: 5,
-  prs: [],
-  recent: [],
-  weekDays: [],
   matrixDays: [],
-  goals: [],
-  aiInsights: false,
+  week: [
+    "2026-08-10",
+    "2026-08-11",
+    "2026-08-12",
+    "2026-08-13",
+    "2026-08-14",
+    "2026-08-15",
+    "2026-08-16",
+  ],
+  today: "2026-08-16",
+  workoutDays: [],
 };
-
-const WEEK = [
-  "2026-08-10",
-  "2026-08-11",
-  "2026-08-12",
-  "2026-08-13",
-  "2026-08-14",
-  "2026-08-15",
-  "2026-08-16",
-];
 
 const CATEGORIES = [
   { id: "c1", name: "Lower Body" },
@@ -55,12 +51,11 @@ describe("DashboardView planner gate", () => {
       <DashboardView
         {...BASE}
         plannerOn={false}
-        plannerWeekDays={WEEK}
         plannerDays={[{ day: "2026-08-10", done: true, categories: ["c1"] }]}
         plannerCategories={CATEGORIES}
       />,
     );
-    expect(screen.queryByTestId("planner-day-2026-08-10")).toBeNull();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
     // The balance is a second surface behind the same flag, and it is the one
     // that would leak a category name rather than only a shape.
     expect(screen.queryByText(/this week by category/i)).toBeNull();
@@ -75,18 +70,17 @@ describe("DashboardView planner gate", () => {
       <DashboardView
         {...BASE}
         plannerOn
-        plannerWeekDays={WEEK}
         plannerDays={[{ day: "2026-08-10", done: true, categories: ["c1"] }]}
         plannerCategories={CATEGORIES}
       />,
     );
-    expect(screen.getByTestId("planner-day-2026-08-10")).toBeInTheDocument();
-    expect(screen.getAllByTestId(/^planner-day-/)).toHaveLength(7);
+    expect(screen.getByTestId("day-2026-08-10")).toBeInTheDocument();
+    // Anchored on the date so it cannot also match day-label-*, which is a
+    // child of the cell rather than another cell.
+    expect(screen.getAllByTestId(/^day-\d{4}-/)).toHaveLength(7);
     expect(screen.getByTestId("balance-c1")).toHaveTextContent("1");
   });
 
-  // The names come from the category list rather than from the day rows, which
-  // carry ids only. A day resolving to a blank chip is how that wiring breaks.
   // WITHOUT THIS THE WHOLE SURFACE IS DECORATION. The strip and the sheet were
   // built as separate pieces and nothing in the plan ever mounted the second
   // one, so every day was tappable and no tap did anything.
@@ -95,14 +89,13 @@ describe("DashboardView planner gate", () => {
       <DashboardView
         {...BASE}
         plannerOn
-        plannerWeekDays={WEEK}
         plannerDays={[]}
         plannerCategories={CATEGORIES}
       />,
     );
     expect(screen.queryByRole("button", { name: "Log it" })).toBeNull();
 
-    await userEvent.click(screen.getByTestId("planner-day-2026-08-13"));
+    await userEvent.click(screen.getByTestId("day-2026-08-13"));
     expect(screen.getByRole("button", { name: "Log it" })).toBeInTheDocument();
   });
 
@@ -114,29 +107,29 @@ describe("DashboardView planner gate", () => {
       <DashboardView
         {...BASE}
         plannerOn
-        plannerWeekDays={WEEK}
         plannerDays={[{ day: "2026-08-13", done: true, categories: ["c2"] }]}
         plannerCategories={CATEGORIES}
       />,
     );
-    await userEvent.click(screen.getByTestId("planner-day-2026-08-13"));
+    await userEvent.click(screen.getByTestId("day-2026-08-13"));
     expect(screen.getByRole("button", { name: "Abs" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
   });
 
+  // The names come from the category list rather than from the day rows, which
+  // carry ids only. A day resolving to a blank chip is how that wiring breaks.
   it("resolves category ids to their names", () => {
     render(
       <DashboardView
         {...BASE}
         plannerOn
-        plannerWeekDays={WEEK}
         plannerDays={[{ day: "2026-08-10", done: true, categories: ["c1", "c2"] }]}
         plannerCategories={CATEGORIES}
       />,
     );
-    expect(screen.getByTestId("planner-day-2026-08-10")).toHaveTextContent(
+    expect(screen.getByTestId("day-2026-08-10")).toHaveTextContent(
       "Lower Body, Abs",
     );
   });

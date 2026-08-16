@@ -2,24 +2,14 @@
 "use client";
 
 import { useState } from "react";
-import { Star } from "lucide-react";
-import { Card } from "@/components/ui/Card";
 import { WeekStrip } from "@/components/dashboard/WeekStrip";
 import { MatrixCard } from "@/components/dashboard/MatrixCard";
 import { StatChip } from "@/components/dashboard/StatChip";
-import { GoalsSummary } from "@/components/dashboard/GoalsSummary";
-import { InsightsCard } from "@/components/InsightsCard";
-import { PlannerWeek } from "@/components/PlannerWeek";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { PlannerDaySheet } from "@/components/PlannerDaySheet";
 import { PlannerBalance } from "@/components/PlannerBalance";
-import { DashboardHeader } from "@/components/DashboardHeader";
-import { formatCompact } from "@/lib/progress/strength";
-import { pluralize } from "@/lib/format/plural";
 import type { MatrixDay } from "@/lib/progress/matrix";
-import type { WeekDay } from "@/lib/progress/weekstrip";
-import type { PersonalRecord } from "@/lib/progress/prs";
-import type { RecentWorkout, WeeklySummary } from "@/lib/progress/types";
-import type { GoalWithProgress } from "@/lib/goals/types";
+import type { WeeklySummary } from "@/lib/progress/types";
 // Types only. dayQueries reaches the database through the server client, so a
 // value import here would pull it into the browser bundle; `import type` is
 // erased at compile time and every other type in this file arrives the same
@@ -27,48 +17,33 @@ import type { GoalWithProgress } from "@/lib/goals/types";
 import type { PlannerDay } from "@/lib/planner/week";
 import type { PlannerCategory } from "@/lib/planner/dayQueries";
 
-function shortDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
+// Home is deliberately short: the week, the activity matrix, and the three
+// numbers. Personal records, recent workouts, the goals summary and the
+// insights card all used to sit below these and were removed on 2026-08-16.
+// Goals still live on Progress, and so does the insights card; the two lists
+// were read only displays with no links in them, so nothing became unreachable.
 export function DashboardView({
   name,
   weekly,
   streakWeeks,
-  prs,
-  recent,
-  weekDays,
   matrixDays,
-  goals = [],
-  aiInsights,
-  aiVisible = true,
+  week,
+  today,
+  workoutDays,
   plannerOn = false,
-  plannerWeekDays = [],
   plannerDays = [],
   plannerCategories = [],
 }: {
   name: string;
   weekly: WeeklySummary;
   streakWeeks: number;
-  prs: PersonalRecord[];
-  recent: RecentWorkout[];
-  weekDays: WeekDay[];
   matrixDays: MatrixDay[];
-  goals?: GoalWithProgress[];
-  aiInsights: boolean;
-  // Defaults visible, matching the column, so a caller that has not been taught
-  // about the switch shows the card rather than silently swallowing it.
-  aiVisible?: boolean;
+  week: string[];
+  today: string;
+  workoutDays: string[];
   // The week planner, for gated accounts only. Every one of these defaults to
-  // off or empty so an existing caller, including the tests that already render
-  // this view, keeps behaving exactly as it did.
-  //
-  // plannerWeekDays is the seven day keys of the current week and plannerDays
-  // is only the days that have a row, which is usually fewer. The interface
-  // pairs them; the query deliberately does not return five nulls.
+  // off or empty so an existing caller keeps behaving exactly as it did.
   plannerOn?: boolean;
-  plannerWeekDays?: string[];
   plannerDays?: PlannerDay[];
   plannerCategories?: PlannerCategory[];
 }) {
@@ -77,29 +52,29 @@ export function DashboardView({
   // to render a chip per category, so one query feeds both shapes.
   const categoryNames = Object.fromEntries(plannerCategories.map((c) => [c.id, c.name]));
   // Which day's sheet is open, by key, or none. Held here rather than inside
-  // the strip because the sheet sits beside the strip rather than inside a day,
-  // and a tap on one day while another is open has to move the sheet.
+  // the strip because the sheet sits beside the strip rather than inside a day.
   const [openDay, setOpenDay] = useState<string | null>(null);
 
   return (
     <main className="px-4 pt-12 pb-28">
       <DashboardHeader name={name} />
 
-      <WeekStrip days={weekDays} />
-
       {/*
-        Gated on the flag rather than on having any planner rows, because an
-        account with the flag and an empty week still needs somewhere to tap.
-        An account without it renders nothing at all here.
+        One strip for every account. A gated account additionally gets its
+        categories on each day and can tap one open; everyone else gets the same
+        calendar as a read only summary of the week.
       */}
+      <WeekStrip
+        week={week}
+        today={today}
+        workoutDays={workoutDays}
+        days={plannerDays}
+        categoryNames={categoryNames}
+        onPick={plannerOn ? setOpenDay : undefined}
+      />
+
       {plannerOn ? (
         <>
-          <PlannerWeek
-            week={plannerWeekDays}
-            days={plannerDays}
-            categoryNames={categoryNames}
-            onPick={setOpenDay}
-          />
           {openDay ? (
             <div className="mt-2.5">
               <PlannerDaySheet
@@ -124,111 +99,6 @@ export function DashboardView({
         <StatChip value={`${weekly.sets}`} label="Sets" />
         <StatChip value={`${streakWeeks}`} unit="wk" label="Streak" />
       </div>
-
-      <GoalsSummary goals={goals} />
-
-      {/*
-        The card owns its own "Insights" heading, so this removes the whole
-        block rather than only the button. Gating the button alone would leave
-        a labelled empty box on the dashboard.
-      */}
-      {aiVisible && recent.length > 0 ? (
-        <InsightsCard initialEnabled={aiInsights} />
-      ) : null}
-
-      <section className="mt-[18px]">
-        <h2
-          className="text-[10.5px] uppercase tracking-[.11em] mb-2.5"
-          style={{ color: "var(--text-dim)" }}
-        >
-          Recent personal records
-        </h2>
-        {prs.length === 0 ? (
-          <p className="text-sm" style={{ color: "var(--text-dim)" }}>
-            Keep logging. New bests show up here.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {prs.map((pr) => (
-              <li key={`${pr.exerciseId}-${pr.loggedAt}`}>
-                <Card
-                  className="flex items-center gap-3 px-3.5 py-2.5"
-                  style={{ borderRadius: "var(--radius-tile)" }}
-                >
-                  <span
-                    className="flex items-center justify-center"
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 9,
-                      background: "var(--accent-dim)",
-                      color: "var(--accent)",
-                    }}
-                  >
-                    <Star size={14} aria-hidden />
-                  </span>
-                  <span className="flex-1">
-                    <span
-                      className="block text-[15px] font-semibold"
-                      style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
-                    >
-                      {pr.exerciseName}
-                    </span>
-                    <span className="block text-[10.5px]" style={{ color: "var(--text-dim)" }}>
-                      New best this week
-                    </span>
-                  </span>
-                  <span
-                    className="text-[14px] font-semibold"
-                    style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
-                  >
-                    {pr.weight} &times; {pr.reps}
-                  </span>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="mt-[18px]">
-        <h2
-          className="text-[10.5px] uppercase tracking-[.11em] mb-2.5"
-          style={{ color: "var(--text-dim)" }}
-        >
-          Recent workouts
-        </h2>
-        {recent.length === 0 ? (
-          <p className="text-sm" style={{ color: "var(--text-dim)" }}>
-            No workouts yet. Start one from the Log tab.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {recent.map((w) => (
-              <li key={w.id}>
-                <Card
-                  className="flex items-center justify-between px-3.5 py-2.5"
-                  style={{ borderRadius: "var(--radius-tile)" }}
-                >
-                  <span>
-                    <span className="block font-medium" style={{ color: "var(--text)" }}>
-                      {w.routineName}
-                    </span>
-                    <span className="block text-xs" style={{ color: "var(--text-dim)" }}>
-                      {shortDate(w.completedAt)}
-                    </span>
-                  </span>
-                  <span className="text-xs text-right" style={{ color: "var(--text-dim)" }}>
-                    {pluralize(w.sets, "set")}
-                    <br />
-                    {formatCompact(w.volume)} lbs
-                  </span>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </main>
   );
 }

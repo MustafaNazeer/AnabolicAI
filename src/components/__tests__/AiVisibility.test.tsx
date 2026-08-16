@@ -13,28 +13,7 @@ vi.mock("@/components/PlateauCard", () => ({
   PlateauCard: () => <div data-testid="plateau-card" />,
 }));
 
-import { DashboardView } from "@/app/DashboardView";
 import { ProgressView } from "@/components/ProgressView";
-
-const DASHBOARD: Omit<ComponentProps<typeof DashboardView>, "aiVisible"> = {
-  name: "Mustafa",
-  weekly: { workouts: 2, sets: 12, volume: 4000 },
-  streakWeeks: 1,
-  prs: [],
-  recent: [
-    {
-      id: "w1",
-      routineName: "Push",
-      completedAt: "2026-08-14T00:00:00.000Z",
-      sets: 6,
-      volume: 2000,
-    },
-  ],
-  weekDays: [],
-  matrixDays: [],
-  goals: [],
-  aiInsights: true,
-};
 
 const PROGRESS: Omit<ComponentProps<typeof ProgressView>, "aiVisible"> = {
   data: {
@@ -55,6 +34,7 @@ const PROGRESS: Omit<ComponentProps<typeof ProgressView>, "aiVisible"> = {
   routineVolume: { routines: [], series: {} },
   goals: {},
   aiPlateau: true,
+  aiInsights: true,
 };
 
 beforeEach(() => {
@@ -62,13 +42,15 @@ beforeEach(() => {
 });
 
 describe("the AI visibility switch", () => {
-  it("shows the insights card on the dashboard when visible", () => {
-    render(<DashboardView {...DASHBOARD} aiVisible />);
+  // The insights card moved from the dashboard to progress on 2026-08-16, so
+  // both AI surfaces now live on this screen and both are asserted here.
+  it("shows the insights card on progress when visible", () => {
+    render(<ProgressView {...PROGRESS} aiVisible />);
     expect(screen.getByTestId("insights-card")).toBeInTheDocument();
   });
 
-  it("removes the insights card from the dashboard when hidden", () => {
-    render(<DashboardView {...DASHBOARD} aiVisible={false} />);
+  it("removes the insights card from progress when hidden", () => {
+    render(<ProgressView {...PROGRESS} aiVisible={false} />);
     expect(screen.queryByTestId("insights-card")).not.toBeInTheDocument();
   });
 
@@ -87,11 +69,11 @@ describe("the AI visibility switch", () => {
   // they had rather than silently resetting them to off.
   it("hides a surface whose feature is enabled without disturbing the flag", () => {
     const { rerender } = render(
-      <DashboardView {...DASHBOARD} aiVisible={false} />,
+      <ProgressView {...PROGRESS} aiVisible={false} />,
     );
     expect(screen.queryByTestId("insights-card")).not.toBeInTheDocument();
 
-    rerender(<DashboardView {...DASHBOARD} aiVisible />);
+    rerender(<ProgressView {...PROGRESS} aiVisible />);
     expect(screen.getByTestId("insights-card")).toBeInTheDocument();
   });
 });

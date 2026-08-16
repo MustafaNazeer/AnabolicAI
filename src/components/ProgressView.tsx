@@ -14,6 +14,7 @@ import {
 import { RoutineVolumeChart } from "@/components/RoutineVolumeChart";
 import { GoalCard } from "@/components/GoalCard";
 import { PlateauCard } from "@/components/PlateauCard";
+import { InsightsCard } from "@/components/InsightsCard";
 import { plateauStatus } from "@/lib/progress/plateau";
 import type { ProgressData, ProgressPoint, RoutineVolumeData } from "@/lib/progress/types";
 import type { GoalWithProgress } from "@/lib/goals/types";
@@ -79,12 +80,16 @@ export function ProgressView({
   routineVolume,
   goals,
   aiPlateau,
+  aiInsights = false,
   aiVisible = true,
 }: {
   data: ProgressData;
   routineVolume: RoutineVolumeData;
   goals: Record<string, { active: GoalWithProgress | null; achieved: GoalWithProgress[] }>
   aiPlateau: boolean;
+  // Whether the insights card starts enabled. Defaults off so a caller that
+  // has not been taught about it shows the consent notice rather than firing.
+  aiInsights?: boolean;
   // Defaults visible, matching the column, so a caller that has not been taught
   // about the switch shows the card rather than silently swallowing it.
   aiVisible?: boolean;
@@ -122,6 +127,22 @@ export function ProgressView({
 
   return (
     <div className="flex flex-col gap-8">
+      {/*
+        Moved here from the dashboard on 2026-08-16, when home was cut back to
+        the week, the matrix and the three numbers. This screen is where the
+        question it answers already lives, beside the goals and the trend
+        charts.
+
+        It sits after the empty state above, so an account with no exercises
+        yet sees neither, which is the same condition the dashboard used when
+        it gated on having a recent workout.
+
+        The card owns its own "Insights" heading, so this removes the whole
+        block rather than only the button; gating the button alone would leave
+        a labelled empty box.
+      */}
+      {aiVisible ? <InsightsCard initialEnabled={aiInsights} /> : null}
+
       <label className="text-xs" style={{ color: "var(--text-dim)" }}>
         Exercise
         <select

@@ -1,31 +1,27 @@
 // src/app/page.tsx
 import { getDashboardData, getMatrixData } from "@/lib/progress/queries";
-import { getActiveGoalsSummary } from "@/lib/goals/queries";
-import { getAiInsights } from "@/lib/ai/queries";
 import { getWeekPlanner } from "@/lib/planner/queries";
 import { getPlannerWeek, getPlannerCategories } from "@/lib/planner/dayQueries";
 import { plannerWeek } from "@/lib/planner/week";
-import { weekStripDays } from "@/lib/progress/weekstrip";
-import { APP_TIMEZONE } from "@/lib/notifications/schedule";
+import { dayKey, dateKeyInZone } from "@/lib/progress/matrix";
+import { zonedNow, APP_TIMEZONE } from "@/lib/notifications/schedule";
 import { getVerifiedUser } from "@/lib/auth/user";
 import { DashboardView } from "@/app/DashboardView";
 
 export default async function HomePage() {
   const now = new Date();
-  // All four reads are independent, so they go together. Awaiting the
-  // consent flag on its own added a round trip to every dashboard load,
-  // including for the users who never turn insights on.
-  const [data, matrixDays, goals, aiInsights] = await Promise.all([
+  // Both reads are independent, so they go together.
+  const [data, matrixDays] = await Promise.all([
     getDashboardData(now),
     getMatrixData(now),
-    getActiveGoalsSummary(),
-    getAiInsights(),
   ]);
-  const weekDays = weekStripDays(
-    data.recent.map((w) => ({ completedAt: w.completedAt })),
-    now,
-    APP_TIMEZONE,
-  );
+
+  // The week the strip draws, and the two facts it needs about it. Every date
+  // is resolved in APP_TIMEZONE through the existing helpers rather than in
+  // whatever zone the server happens to run in.
+  const week = plannerWeek(now, APP_TIMEZONE);
+  const today = dayKey(zonedNow(now, APP_TIMEZONE));
+  const workoutDays = data.recent.map((w) => dateKeyInZone(w.completedAt, APP_TIMEZONE));
 
   // The gate is read on its own and first, because the two planner reads must
   // not happen at all for an account without it. Folding them into the block
@@ -44,15 +40,11 @@ export default async function HomePage() {
       name={name}
       weekly={data.weekly}
       streakWeeks={data.streakWeeks}
-      prs={data.prs}
-      recent={data.recent}
-      weekDays={weekDays}
       matrixDays={matrixDays}
-      goals={goals}
-      aiInsights={aiInsights.enabled}
-      aiVisible={aiInsights.visible}
+      week={week}
+      today={today}
+      workoutDays={workoutDays}
       plannerOn={plannerOn}
-      plannerWeekDays={plannerWeek(now, APP_TIMEZONE)}
       plannerDays={plannerDays}
       plannerCategories={plannerCategories}
     />

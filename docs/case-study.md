@@ -1,13 +1,13 @@
-# Onyx, a case study
+# AnabolicAI, a case study
 
-Onyx is a strength progress tracker: an installable web app for iPhone where a small group
+AnabolicAI is a strength progress tracker: an installable web app for iPhone where a small group
 of us build routines, log sets during a workout, and watch our lifts trend over time. This
 is an account of how it was built, and specifically of the hardest thing in it, which was
 making the logging screen work with no connection.
 
 ## The problem
 
-Onyx is a rebuild of an earlier prototype of mine. That prototype was broad and rough: a
+AnabolicAI is a rebuild of an earlier prototype of mine. That prototype was broad and rough: a
 lot of features, none of them finished. I inverted the priority for the rebuild. The core
 would be small and genuinely polished, and anything outside it would be deferred on
 purpose and written down rather than half built.

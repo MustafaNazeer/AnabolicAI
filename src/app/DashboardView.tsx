@@ -1,6 +1,7 @@
 // src/app/DashboardView.tsx
 "use client";
 
+import { useState } from "react";
 import { Star } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { WeekStrip } from "@/components/dashboard/WeekStrip";
@@ -9,6 +10,7 @@ import { StatChip } from "@/components/dashboard/StatChip";
 import { GoalsSummary } from "@/components/dashboard/GoalsSummary";
 import { InsightsCard } from "@/components/InsightsCard";
 import { PlannerWeek } from "@/components/PlannerWeek";
+import { PlannerDaySheet } from "@/components/PlannerDaySheet";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { formatCompact } from "@/lib/progress/strength";
 import { pluralize } from "@/lib/format/plural";
@@ -73,6 +75,10 @@ export function DashboardView({
   // only ever resolve an id to a name, while the sheet needs the ordered list
   // to render a chip per category, so one query feeds both shapes.
   const categoryNames = Object.fromEntries(plannerCategories.map((c) => [c.id, c.name]));
+  // Which day's sheet is open, by key, or none. Held here rather than inside
+  // the strip because the sheet sits beside the strip rather than inside a day,
+  // and a tap on one day while another is open has to move the sheet.
+  const [openDay, setOpenDay] = useState<string | null>(null);
 
   return (
     <main className="px-4 pt-12 pb-28">
@@ -86,12 +92,27 @@ export function DashboardView({
         An account without it renders nothing at all here.
       */}
       {plannerOn ? (
-        <PlannerWeek
-          week={plannerWeekDays}
-          days={plannerDays}
-          categoryNames={categoryNames}
-          onPick={() => {}}
-        />
+        <>
+          <PlannerWeek
+            week={plannerWeekDays}
+            days={plannerDays}
+            categoryNames={categoryNames}
+            onPick={setOpenDay}
+          />
+          {openDay ? (
+            <div className="mt-2.5">
+              <PlannerDaySheet
+                // Keyed by day so moving between two days rebuilds the sheet
+                // rather than carrying the first day's picks onto the second.
+                key={openDay}
+                day={openDay}
+                categories={plannerCategories}
+                initial={plannerDays.find((d) => d.day === openDay) ?? null}
+                onDone={() => setOpenDay(null)}
+              />
+            </div>
+          ) : null}
+        </>
       ) : null}
 
       <MatrixCard days={matrixDays} />

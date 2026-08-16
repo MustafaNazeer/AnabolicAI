@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-const { suggestMock, setAiInsightsMock } = vi.hoisted(() => ({
+const { suggestMock, setAiInsightsMock, saveDayMock } = vi.hoisted(() => ({
   suggestMock: vi.fn(),
   setAiInsightsMock: vi.fn(),
+  saveDayMock: vi.fn(async () => ({ ok: true as const })),
 }));
 
 vi.mock("@/lib/ai/insights/actions", () => ({
   suggestInsights: suggestMock,
   setAiInsights: setAiInsightsMock,
 }));
+vi.mock("@/lib/planner/dayActions", () => ({ savePlannerDay: saveDayMock }));
 
 import { DashboardView } from "@/app/DashboardView";
 
@@ -79,6 +82,45 @@ describe("DashboardView planner gate", () => {
 
   // The names come from the category list rather than from the day rows, which
   // carry ids only. A day resolving to a blank chip is how that wiring breaks.
+  // WITHOUT THIS THE WHOLE SURFACE IS DECORATION. The strip and the sheet were
+  // built as separate pieces and nothing in the plan ever mounted the second
+  // one, so every day was tappable and no tap did anything.
+  it("opens the sheet for the day that was tapped", async () => {
+    render(
+      <DashboardView
+        {...BASE}
+        plannerOn
+        plannerWeekDays={WEEK}
+        plannerDays={[]}
+        plannerCategories={CATEGORIES}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Log it" })).toBeNull();
+
+    await userEvent.click(screen.getByTestId("planner-day-2026-08-13"));
+    expect(screen.getByRole("button", { name: "Log it" })).toBeInTheDocument();
+  });
+
+  // The sheet has to open on the day already as it stands, or saving it back
+  // drops whatever was on it. The strip holds the rows; the sheet has to be
+  // handed the right one.
+  it("opens the sheet already carrying that day's labels", async () => {
+    render(
+      <DashboardView
+        {...BASE}
+        plannerOn
+        plannerWeekDays={WEEK}
+        plannerDays={[{ day: "2026-08-13", done: true, categories: ["c2"] }]}
+        plannerCategories={CATEGORIES}
+      />,
+    );
+    await userEvent.click(screen.getByTestId("planner-day-2026-08-13"));
+    expect(screen.getByRole("button", { name: "Abs" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   it("resolves category ids to their names", () => {
     render(
       <DashboardView

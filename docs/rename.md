@@ -13,7 +13,8 @@ returns someone else's product.
 ## Why the code still says Onyx in places
 
 Nine internal identifiers deliberately keep the old string, because they are keys
-into data that already exists on users' devices:
+into state that already exists, on users' devices in eight cases and in this
+app's own server side rate limiting on Upstash in the ninth:
 
 | Identifier | Consequence of renaming it |
 | --- | --- |

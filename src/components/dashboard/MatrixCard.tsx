@@ -23,7 +23,7 @@ const LABELS: Record<MatrixMetric, string> = {
   prs: "Records this week",
 };
 
-export function MatrixCard({ days }: { days: MatrixDay[] }) {
+export function MatrixCard({ days, today }: { days: MatrixDay[]; today?: string }) {
   const { metric, setMetric } = useMatrixMetric();
   const hero = matrixHeroSummary(days, metric);
   return (
@@ -58,7 +58,7 @@ export function MatrixCard({ days }: { days: MatrixDay[] }) {
         {hero.caption}
       </div>
       <div className="mt-2">
-        <Heatmap days={days} metric={metric} />
+        <Heatmap days={days} metric={metric} today={today} />
       </div>
     </Card>
   );

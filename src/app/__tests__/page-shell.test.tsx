@@ -36,7 +36,12 @@ describe("DashboardView", () => {
     expect(screen.getByText("Welcome back, Mustafa")).toBeInTheDocument();
     expect(screen.getByText("Your week so far")).toBeInTheDocument();
     expect(screen.getByTestId("day-2026-08-14")).toHaveAttribute("data-trained", "true");
-    expect(screen.getByText("28")).toBeInTheDocument();
+    // Asserted by label rather than by value, because the matrix below now
+    // numbers its cells with the day of the month and a bare "28" matches both
+    // the sets total and the 28th.
+    expect(screen.getByText("Workouts")).toBeInTheDocument();
+    expect(screen.getByText("Sets")).toBeInTheDocument();
+    expect(screen.getByText("Streak")).toBeInTheDocument();
   });
 
   // Home was cut back on 2026-08-16 and these four are the things that came

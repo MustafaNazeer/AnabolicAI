@@ -1,4 +1,3 @@
-import { Star } from "lucide-react";
 import type { PlannerDay } from "@/lib/planner/week";
 
 const LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -14,30 +13,32 @@ const WEEKDAYS = [
 
 // The day number is read out of the key rather than parsed into a Date.
 // new Date("2026-08-10") is UTC midnight, so in any negative offset zone it
-// renders as the 9th, and this app resolves every date in America/Chicago. The
-// key is already the answer; parsing it can only lose. Number() also drops the
-// leading zero, so the first of a month reads 1 rather than 01.
+// renders as the 9th, and this app resolves every date in America/Chicago.
 function dayNumber(key: string): string {
   return String(Number(key.slice(8, 10)));
 }
 
 // The week, Monday first, for every account.
 //
+// DELIBERATELY NOT NUMBERED AND NOT STARRED. The day of the month and the mark
+// for today belong to the five week matrix below this, which is the calendar a
+// reader scans for a date. This bar answers a different question, what each of
+// the last seven days was, and it stays a letter and a label so that stays
+// readable at a glance in seven narrow columns.
+//
 // TWO MODES IN ONE COMPONENT, ON PURPOSE. Without `onPick` it is a read only
-// summary of the week: which days were trained, and which one is today. With
-// it, each day opens its planner sheet. A single component means one definition
-// of what a week is and one place where a day's state is decided, rather than
-// two strips drifting apart above the same calendar.
+// summary of the week: which days were trained. With it, each day opens its
+// planner sheet. A single component means one definition of what a week is and
+// one place where a day's state is decided, rather than two strips drifting
+// apart above the same calendar.
 export function WeekStrip({
   week,
-  today,
   workoutDays,
   days = [],
   categoryNames = {},
   onPick,
 }: {
   week: string[];
-  today: string;
   workoutDays: string[];
   days?: PlannerDay[];
   categoryNames?: Record<string, string>;
@@ -60,14 +61,12 @@ export function WeekStrip({
         // sources because one account logs sessions and another logs days.
         const trained = workoutDays.includes(day) || Boolean(entry?.done);
         const planned = entry !== undefined && !entry.done;
-        const isToday = day === today;
 
-        // Two of the seven letters repeat and a bare number says nothing about
-        // state, so the whole day is spelled out. A screen reader gets the same
-        // information the colours and the border carry.
+        // Two of the seven letters repeat, so the letter alone cannot identify
+        // a day. The date and the state are spelled out for a screen reader,
+        // which is also where the day of the month still lives here.
         const name = [
           `${WEEKDAYS[i]} ${dayNumber(day)}`,
-          isToday ? "today" : null,
           labels.length > 0 ? labels.join(", ") : null,
           trained ? "trained" : planned ? "planned" : null,
         ]
@@ -76,28 +75,8 @@ export function WeekStrip({
 
         const content = (
           <>
-            <span
-              className="flex items-center justify-center"
-              style={{ height: 11, color: "var(--accent)" }}
-              aria-hidden
-            >
-              {isToday ? (
-                <Star size={10} />
-              ) : (
-                <span className="text-[9px]" style={{ color: "var(--text-dim)" }}>
-                  {LETTERS[i]}
-                </span>
-              )}
-            </span>
-            <span
-              className="text-[13px] font-semibold leading-none"
-              style={{
-                fontFamily: "var(--font-spectral)",
-                color: trained ? "var(--accent)" : "var(--text)",
-              }}
-              aria-hidden
-            >
-              {dayNumber(day)}
+            <span className="text-[9px]" style={{ color: "var(--text-dim)" }} aria-hidden>
+              {LETTERS[i]}
             </span>
             {labels.length > 0 ? (
               <span
@@ -124,15 +103,15 @@ export function WeekStrip({
           // Planned is a dashed edge rather than a lighter colour, so the state
           // survives greyscale and low vision.
           borderStyle: planned ? ("dashed" as const) : ("solid" as const),
-          borderColor: planned || isToday ? "var(--accent)" : "var(--surface-border)",
+          borderColor: planned ? "var(--accent)" : "var(--surface-border)",
           color: "var(--text)",
         };
         const shared = {
           "data-testid": `day-${day}`,
-          "data-today": String(isToday),
           "data-trained": String(trained),
           "data-planned": String(planned),
-          className: "flex flex-col items-center justify-start flex-1 gap-1 px-0.5 py-1.5 border",
+          className:
+            "flex flex-col items-center justify-center flex-1 gap-1 px-0.5 py-1.5 border",
           style,
         };
 

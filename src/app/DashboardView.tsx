@@ -66,7 +66,6 @@ export function DashboardView({
       */}
       <WeekStrip
         week={week}
-        today={today}
         workoutDays={workoutDays}
         days={plannerDays}
         categoryNames={categoryNames}
@@ -92,7 +91,7 @@ export function DashboardView({
         </>
       ) : null}
 
-      <MatrixCard days={matrixDays} />
+      <MatrixCard days={matrixDays} today={today} />
 
       <div className="flex gap-2.5 mt-3.5">
         <StatChip value={`${weekly.workouts}`} label="Workouts" />

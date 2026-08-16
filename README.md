@@ -2,7 +2,7 @@
 
 Formerly Onyx. See [docs/rename.md](docs/rename.md).
 
-[![CI](https://github.com/MustafaNazeer/Onyx/actions/workflows/ci.yml/badge.svg)](https://github.com/MustafaNazeer/Onyx/actions/workflows/ci.yml)
+[![CI](https://github.com/MustafaNazeer/AnabolicAI/actions/workflows/ci.yml/badge.svg)](https://github.com/MustafaNazeer/AnabolicAI/actions/workflows/ci.yml)
 
 A dark, iPhone first strength progress tracker, built as an installable Progressive Web App. Create workout routines, log your sets, reps, weight, and reps in reserve during a session, time your rest between sets, and watch your strength trend over time in plain language. Routines are built from a library of 158 common exercises, filterable by muscle group and equipment, and anything you add yourself from now on is tagged the same way so the filters find it too, while Settings lists anything you added earlier that is still untagged.
 
@@ -38,8 +38,8 @@ Settings can export your training history as a CSV. Choose sets or sessions, tic
 1. Clone the repository and install dependencies:
 
    ```bash
-   git clone https://github.com/MustafaNazeer/Onyx.git
-   cd Onyx
+   git clone https://github.com/MustafaNazeer/AnabolicAI.git
+   cd AnabolicAI
    npm install
    ```
 

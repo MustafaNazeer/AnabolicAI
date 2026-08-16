@@ -55,7 +55,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="cobalt"
+      data-theme="crimson"
       data-mode="dark"
       className={`${geistSans.variable} ${geistMono.variable} ${spectral.variable} h-full antialiased`}
       suppressHydrationWarning

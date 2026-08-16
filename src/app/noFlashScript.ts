@@ -9,7 +9,7 @@ var THEMES=['cobalt','magenta','emerald','crimson','rose'];
 // every page load flashes the wrong theme before hydration. Still "onyx" after
 // the rename. See docs/rename.md.
 var t=localStorage.getItem('onyx-theme');
-if(THEMES.indexOf(t)===-1)t='cobalt';
+if(THEMES.indexOf(t)===-1)t='crimson';
 var m=localStorage.getItem('onyx-mode');
 if(['system','light','dark'].indexOf(m)===-1)m='system';
 var a=m==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):m;

@@ -78,6 +78,16 @@ describe("PlannerDaySheet", () => {
     expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c2"], true);
   });
 
+  // Adding a category has to be reachable from where the labels are chosen. On
+  // its own screen it would be a control she has to know exists, and the chips
+  // are the only place their absence is visible.
+  it("offers a way to add a category from inside the sheet", () => {
+    render(
+      <PlannerDaySheet day="2026-08-11" categories={categories} initial={null} onDone={() => {}} />,
+    );
+    expect(screen.getByLabelText(/new category/i)).toBeInTheDocument();
+  });
+
   it("closes only after the save succeeds", async () => {
     const onDone = vi.fn();
     render(

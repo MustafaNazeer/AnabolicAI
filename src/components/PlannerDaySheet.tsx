@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { savePlannerDay } from "@/lib/planner/dayActions";
+import { PlannerCategoryAdd } from "@/components/PlannerCategoryAdd";
 import type { PlannerDay } from "@/lib/planner/week";
 import type { PlannerCategory } from "@/lib/planner/dayQueries";
 
@@ -77,6 +78,16 @@ export function PlannerDaySheet({
           );
         })}
       </div>
+
+      {/*
+        Directly beneath the chips, because the moment a label she needs is
+        missing is the moment she is looking at the ones that exist.
+      */}
+      {/*
+        Directly beneath the chips, because the moment a label she needs is
+        missing is the moment she is looking at the ones that exist.
+      */}
+      <PlannerCategoryAdd />
 
       {/*
         Two actions rather than one with a switch beside it. The difference

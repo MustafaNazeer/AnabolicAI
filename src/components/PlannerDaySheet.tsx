@@ -88,7 +88,14 @@ export function PlannerDaySheet({
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      {/*
+        ONE ROW THAT SCROLLS SIDEWAYS RATHER THAN WRAPPING. Wrapping made the
+        sheet grow a line taller with every label added, which moved the Log it
+        button down the screen as the list grew. A flex row does not wrap by
+        default, so this needs no `flex-nowrap`, which would have been a Tailwind
+        class new to the codebase and therefore a forced deploy.
+      */}
+      <div data-chip-scroller className="flex gap-2 overflow-x-auto">
         {categories.map((c) => {
           const on = picked.includes(c.id);
           // ONE BUTTON WITH TWO MODES, NOT A BUTTON INSIDE A BUTTON. A remove
@@ -104,7 +111,7 @@ export function PlannerDaySheet({
               aria-label={editing ? `Remove ${c.name}` : undefined}
               disabled={busy}
               onClick={() => (editing ? void remove(c.id) : toggle(c.id))}
-              className="px-3.5 border text-[13px]"
+              className="px-3.5 border text-[13px] shrink-0"
               style={{
                 minHeight: 44,
                 borderRadius: "var(--radius-square)",
@@ -136,7 +143,7 @@ export function PlannerDaySheet({
         made it possible to record a future day as trained. savePlannerDay
         derives it now, so there is one definition rather than one per surface.
       */}
-      <div className="flex mt-4">
+      <div className="flex gap-2 mt-4">
         <button
           type="button"
           disabled={busy}
@@ -151,6 +158,29 @@ export function PlannerDaySheet({
           }}
         >
           Log it
+        </button>
+        {/*
+          A WAY OUT THAT WRITES NOTHING. Without it the only exit from the sheet
+          was to save, so opening the wrong day left a choice between recording
+          a day that was never wanted and leaving the sheet sitting open. It
+          calls the same close the save does and touches no state on the way, so
+          anything picked is simply discarded.
+        */}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onDone}
+          className="px-4 border font-medium"
+          style={{
+            minHeight: 44,
+            borderRadius: "var(--radius-square)",
+            background: "var(--surface)",
+            borderColor: "var(--surface-border)",
+            color: "var(--text)",
+            opacity: busy ? 0.6 : 1,
+          }}
+        >
+          Cancel
         </button>
       </div>
 

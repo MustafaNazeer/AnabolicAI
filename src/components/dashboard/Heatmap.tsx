@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Star, X } from "lucide-react";
 import {
   cellIntensity,
   leadingBlanks,
@@ -52,12 +52,18 @@ export function Heatmap({
           const intensity = cellIntensity(day, metric, max);
           const on = intensity > 0;
           const isToday = day.dateKey === today;
+          // Plain string comparison, which is exact on YYYY-MM-DD and needs no
+          // Date at all. `today` is always the real key rather than one only
+          // passed when it falls inside the drawn month, so a month entirely
+          // behind us crosses all of its days and shows no star.
+          const isPast = today !== undefined && day.dateKey < today;
           return (
             <span
               key={day.dateKey}
               data-cell={day.dateKey}
               data-on={on ? "1" : "0"}
               data-today={isToday ? "1" : "0"}
+              data-past={isPast ? "1" : "0"}
               className="relative flex items-center justify-center"
               style={{
                 aspectRatio: "1",
@@ -85,8 +91,42 @@ export function Heatmap({
               >
                 {dayNumber(day.dateKey)}
               </span>
+              {/*
+                Today is starred and never crossed, or the one day being looked
+                for would read as a day already gone. Filled rather than an
+                outline, because an 11px outline star is mostly background.
+              */}
               {isToday ? (
-                <Star size={11} aria-hidden style={{ color: "var(--accent)" }} />
+                <Star
+                  size={11}
+                  data-star
+                  fill="currentColor"
+                  aria-hidden
+                  style={{ color: "var(--accent)" }}
+                />
+              ) : null}
+              {/*
+                THE CROSS IS AN OVERLAY, NOT A REPLACEMENT. A past day that was
+                trained keeps the colour it earned and gets the cross on top, so
+                the grid still shows the training it exists to show.
+                `--text-dim` with a heavy stroke rather than `--text`: the shape
+                carries the visibility at this size, so the mark reads without
+                competing with the accent on the days that matter.
+
+                `!isToday` IS DELIBERATELY REDUNDANT and was measured to be so:
+                removing it fails no test, because the strict `<` above already
+                excludes today. It is kept so the invariant "today is never
+                crossed" is enforced here rather than resting entirely on the
+                choice of comparison operator two lines up.
+              */}
+              {isPast && !isToday ? (
+                <X
+                  size={12}
+                  strokeWidth={3}
+                  data-x
+                  aria-hidden
+                  style={{ color: "var(--text-dim)" }}
+                />
               ) : null}
             </span>
           );

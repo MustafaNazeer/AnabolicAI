@@ -32,3 +32,35 @@ export async function addPlannerCategory(
   revalidatePath("/");
   return { ok: true };
 }
+
+// Takes a category out of this account's picker.
+//
+// A HIDE, NOT A DELETE, AND THE DIFFERENCE IS THE WHOLE DESIGN. The six seeded
+// categories are one global row each, shared by every account, so deleting one
+// would take it from everybody, and the delete policy refuses anyway because it
+// keys on ownership and a seeded row has no owner. On top of that
+// planner_day_categories references a category with ON DELETE RESTRICT, so any
+// category a day already uses could not be removed even if it were hers.
+//
+// So the row stays. Days that already carry the label keep resolving its name,
+// which means removing a chip can never rewrite a week that has already
+// happened, and the balance for a past week does not move.
+//
+// NO categoryId OWNERSHIP CHECK IS NEEDED, because the row written is keyed to
+// the caller: hiding a category id that is not visible to this account writes a
+// row that only ever filters this account's own picker, and affects nobody.
+export async function hidePlannerCategory(
+  categoryId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("planner_hidden_categories")
+    .insert({ user_id: user.id, category_id: categoryId });
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  return { ok: true };
+}

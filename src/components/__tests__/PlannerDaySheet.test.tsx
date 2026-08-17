@@ -2,10 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const { saveMock } = vi.hoisted(() => ({
+const { saveMock, hideMock } = vi.hoisted(() => ({
   saveMock: vi.fn(async () => ({ ok: true as const })),
+  hideMock: vi.fn(async () => ({ ok: true as const })),
 }));
 vi.mock("@/lib/planner/dayActions", () => ({ savePlannerDay: saveMock }));
+vi.mock("@/lib/planner/categoryActions", () => ({
+  addPlannerCategory: vi.fn(async () => ({ ok: true as const })),
+  hidePlannerCategory: hideMock,
+}));
 
 import { PlannerDaySheet } from "@/components/PlannerDaySheet";
 
@@ -13,10 +18,10 @@ import { PlannerDaySheet } from "@/components/PlannerDaySheet";
 // copy of this file omitted it and its third test would have failed on a
 // missing button rather than on the behaviour it is about.
 const categories = [
-  { id: "c1", name: "Lower Body" },
-  { id: "c2", name: "Abs" },
-  { id: "c3", name: "Rest" },
-  { id: "c4", name: "Cardio" },
+  { id: "c1", name: "Lower Body", hidden: false },
+  { id: "c2", name: "Abs", hidden: false },
+  { id: "c3", name: "Rest", hidden: false },
+  { id: "c4", name: "Cardio", hidden: false },
 ];
 
 beforeEach(() => vi.clearAllMocks());
@@ -29,7 +34,7 @@ describe("PlannerDaySheet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Lower Body" }));
     await userEvent.click(screen.getByRole("button", { name: "Abs" }));
     await userEvent.click(screen.getByRole("button", { name: "Log it" }));
-    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c1", "c2"], true);
+    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c1", "c2"]);
   });
 
   // Rest is an ordinary label. She chose to allow any combination, so nothing
@@ -41,16 +46,23 @@ describe("PlannerDaySheet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Rest" }));
     await userEvent.click(screen.getByRole("button", { name: "Lower Body" }));
     await userEvent.click(screen.getByRole("button", { name: "Log it" }));
-    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c3", "c1"], true);
+    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c3", "c1"]);
   });
 
-  it("plans a day without marking it done", async () => {
+  // ONE BUTTON ONLY. Whether a day counts as trained is decided by the date in
+  // savePlannerDay, so a second button asking the user to restate the calendar
+  // is gone, and with it the ability to record a future day as trained.
+  it("offers one save button and no separate way to plan", async () => {
     render(
       <PlannerDaySheet day="2026-08-20" categories={categories} initial={null} onDone={() => {}} />,
     );
+    expect(screen.queryByRole("button", { name: "Plan it" })).toBeNull();
+
     await userEvent.click(screen.getByRole("button", { name: "Cardio" }));
-    await userEvent.click(screen.getByRole("button", { name: "Plan it" }));
-    expect(saveMock).toHaveBeenCalledWith("2026-08-20", expect.any(Array), false);
+    await userEvent.click(screen.getByRole("button", { name: "Log it" }));
+    // Two arguments, never three: the sheet does not get a say in done.
+    expect(saveMock).toHaveBeenCalledWith("2026-08-20", ["c4"]);
+    expect(saveMock.mock.calls[0]).toHaveLength(2);
   });
 
   // Opening a day that already has labels has to show them already picked, or
@@ -75,7 +87,7 @@ describe("PlannerDaySheet", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Log it" }));
-    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c2"], true);
+    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c2"]);
   });
 
   // Adding a category has to be reachable from where the labels are chosen. On
@@ -111,5 +123,52 @@ describe("PlannerDaySheet", () => {
 
     expect(await screen.findByText(/Network is down\./)).toBeInTheDocument();
     expect(onDone).not.toHaveBeenCalled();
+  });
+});
+
+// Removing a chip is a hide, not a delete, and it is behind an Edit toggle.
+// The chips are tap targets used constantly, so an always visible remove
+// control would sit a destructive action a few pixels from an ordinary one.
+describe("PlannerDaySheet, removing a chip", () => {
+  it("offers no remove control until Edit is tapped", () => {
+    render(
+      <PlannerDaySheet day="2026-08-11" categories={categories} initial={null} onDone={() => {}} />,
+    );
+    expect(screen.queryByRole("button", { name: /remove lower body/i })).toBeNull();
+  });
+
+  it("removes the chip that was tapped while editing", async () => {
+    render(
+      <PlannerDaySheet day="2026-08-11" categories={categories} initial={null} onDone={() => {}} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^edit$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /remove lower body/i }));
+    expect(hideMock).toHaveBeenCalledWith("c1");
+  });
+
+  // A seeded chip is removable too, which is the whole point of the request.
+  // Nothing in the interface treats the six differently from her own.
+  it("removes a seeded chip just as readily as a custom one", async () => {
+    render(
+      <PlannerDaySheet day="2026-08-11" categories={categories} initial={null} onDone={() => {}} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^edit$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /remove rest/i }));
+    expect(hideMock).toHaveBeenCalledWith("c3");
+  });
+
+  // THE ASSERTION THAT KEEPS THE TWO MODES APART. A tap while editing must not
+  // also select the label, or removing a chip would quietly add it to the day
+  // being saved.
+  it("does not select a chip that was tapped while editing", async () => {
+    render(
+      <PlannerDaySheet day="2026-08-11" categories={categories} initial={null} onDone={() => {}} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^edit$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /remove abs/i }));
+
+    await userEvent.click(screen.getByRole("button", { name: /^done$/i }));
+    await userEvent.click(screen.getByRole("button", { name: "Log it" }));
+    expect(saveMock).toHaveBeenCalledWith("2026-08-11", []);
   });
 });

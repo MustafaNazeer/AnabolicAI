@@ -15,7 +15,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-import { addPlannerCategory } from "@/lib/planner/categoryActions";
+import { addPlannerCategory, hidePlannerCategory } from "@/lib/planner/categoryActions";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -63,5 +63,32 @@ describe("addPlannerCategory", () => {
       error: "That name is too long.",
     });
     expect(fromMock).not.toHaveBeenCalled();
+  });
+});
+
+// Hiding rather than deleting, because a seeded category is one global row
+// shared by every account and planner_day_categories references it with
+// ON DELETE RESTRICT. A hide takes it out of this account's picker and leaves
+// every day that already carries the label reading exactly as it did.
+describe("hidePlannerCategory", () => {
+  it("refuses when signed out", async () => {
+    getVerifiedUserMock.mockResolvedValue(null);
+    await expect(hidePlannerCategory("c1")).resolves.toEqual({
+      error: "Not signed in.",
+    });
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  // Keyed to the caller, never to an id passed in, so this endpoint cannot hide
+  // a category for somebody else rather than merely refusing to.
+  it("writes the hide against the caller's own account", async () => {
+    await hidePlannerCategory("c1");
+    expect(insertMock).toHaveBeenCalledWith({ user_id: "u1", category_id: "c1" });
+  });
+
+  it("writes to the hidden table and never to the categories themselves", async () => {
+    await hidePlannerCategory("c1");
+    expect(fromMock).toHaveBeenCalledWith("planner_hidden_categories");
+    expect(fromMock).not.toHaveBeenCalledWith("planner_categories");
   });
 });

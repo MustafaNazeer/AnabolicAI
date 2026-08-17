@@ -33,20 +33,38 @@ export async function getPlannerWeek(now: Date): Promise<PlannerDay[]> {
   }));
 }
 
-export type PlannerCategory = { id: string; name: string };
+export type PlannerCategory = { id: string; name: string; hidden: boolean };
 
 // The seeded rows and this account's own arrive together, because
 // planner_categories_select unions them in the policy rather than in the query.
 // Seeded first, then hers, so the chips she sees keep a stable order and a new
 // one appears at the end rather than in the middle of the set she knows.
+// EVERY CATEGORY IS RETURNED, INCLUDING HIDDEN ONES, and that is deliberate.
+// A hidden category still has to resolve its name, because days logged before
+// it was hidden still carry it and must keep reading correctly. The caller
+// filters on `hidden` for the picker and uses the whole list for names, which
+// is one query feeding two shapes rather than two queries drifting apart.
+//
+// Both reads go together because they are independent, matching the pair on the
+// dashboard page. RLS scopes the hidden table to the caller, so no user filter
+// is written here and none is needed.
 export async function getPlannerCategories(): Promise<PlannerCategory[]> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("planner_categories")
-    .select("id, name, is_default")
-    .order("is_default", { ascending: false })
-    .order("created_at", { ascending: true });
+  const [categories, hidden] = await Promise.all([
+    supabase
+      .from("planner_categories")
+      .select("id, name, is_default")
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: true }),
+    supabase.from("planner_hidden_categories").select("category_id"),
+  ]);
 
-  const rows = (data ?? []) as unknown as { id: string; name: string }[];
-  return rows.map((c) => ({ id: c.id, name: c.name }));
+  const hiddenIds = new Set(
+    ((hidden.data ?? []) as unknown as { category_id: string }[]).map(
+      (h) => h.category_id,
+    ),
+  );
+
+  const rows = (categories.data ?? []) as unknown as { id: string; name: string }[];
+  return rows.map((c) => ({ id: c.id, name: c.name, hidden: hiddenIds.has(c.id) }));
 }

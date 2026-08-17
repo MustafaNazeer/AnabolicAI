@@ -100,3 +100,71 @@ describe("Heatmap", () => {
     expect(container.querySelectorAll('[data-today="1"]')).toHaveLength(0);
   });
 });
+
+describe("Heatmap, telling past from future", () => {
+  // THE POINT OF THE X IS ORIENTATION. Numbers alone did not make it obvious
+  // which day the calendar was sitting on, so every day already gone is
+  // crossed, today carries the star, and days still to come are left plain.
+  it("crosses every day before today and nothing from today onward", () => {
+    const { container } = render(
+      <Heatmap days={august()} metric="gym" today="2026-08-16" />,
+    );
+    // The 1st through the 15th, and not the 16th.
+    expect(container.querySelectorAll('[data-past="1"]')).toHaveLength(15);
+    expect(
+      container.querySelector('[data-cell="2026-08-15"]')?.getAttribute("data-past"),
+    ).toBe("1");
+    expect(
+      container.querySelector('[data-cell="2026-08-16"]')?.getAttribute("data-past"),
+    ).toBe("0");
+    expect(
+      container.querySelector('[data-cell="2026-08-17"]')?.getAttribute("data-past"),
+    ).toBe("0");
+  });
+
+  // THE X IS AN OVERLAY, NOT A REPLACEMENT. A past day that was trained keeps
+  // the colour it earned; crossing it out instead of colouring it would hide
+  // the one thing the grid exists to show.
+  it("keeps the training colour on a past day that was trained", () => {
+    const days = august();
+    days[9] = { ...days[9], trained: true }; // the 10th
+    const { container } = render(
+      <Heatmap days={days} metric="gym" today="2026-08-16" />,
+    );
+    const tenth = container.querySelector('[data-cell="2026-08-10"]');
+    expect(tenth?.getAttribute("data-past")).toBe("1");
+    expect(tenth?.getAttribute("data-on")).toBe("1");
+  });
+
+  // Today is marked by the star and never by the X, or the day being looked
+  // for would read as one already gone.
+  it("marks today with a star and never crosses it", () => {
+    const { container } = render(
+      <Heatmap days={august()} metric="gym" today="2026-08-16" />,
+    );
+    const todayCell = container.querySelector('[data-cell="2026-08-16"]');
+    expect(todayCell?.getAttribute("data-today")).toBe("1");
+    expect(todayCell?.querySelector("[data-star]")).not.toBeNull();
+    expect(todayCell?.querySelector("[data-x]")).toBeNull();
+  });
+
+  // The star is filled rather than an outline, which is the difference between
+  // a mark that reads at 11px on a phone and one that does not.
+  it("draws the star solid rather than as an outline", () => {
+    const { container } = render(
+      <Heatmap days={august()} metric="gym" today="2026-08-16" />,
+    );
+    const star = container.querySelector("[data-star]");
+    expect(star?.getAttribute("fill")).toBe("currentColor");
+  });
+
+  // Nothing is crossed when the grid is drawing a month today is not in and
+  // no key matches, rather than the whole month reading as gone.
+  it("crosses a whole month that is entirely in the past", () => {
+    const { container } = render(
+      <Heatmap days={august()} metric="gym" today="2026-09-04" />,
+    );
+    expect(container.querySelectorAll('[data-past="1"]')).toHaveLength(31);
+    expect(container.querySelectorAll("[data-star]")).toHaveLength(0);
+  });
+});

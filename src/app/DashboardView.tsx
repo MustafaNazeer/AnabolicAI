@@ -52,10 +52,17 @@ export function DashboardView({
   plannerDays?: PlannerDay[];
   plannerCategories?: PlannerCategory[];
 }) {
-  // Derived from the list rather than fetched again. The strip and the balance
-  // only ever resolve an id to a name, while the sheet needs the ordered list
-  // to render a chip per category, so one query feeds both shapes.
+  // Both derived from the one list rather than fetched again: the strip and the
+  // balance only resolve an id to a name, while the sheet needs the ordered
+  // categories to render a chip each.
+  //
+  // NAMES COME FROM EVERY CATEGORY, THE PICKER ONLY FROM THE VISIBLE ONES, and
+  // the difference is what makes hiding safe. A day logged before a label was
+  // hidden still carries it, so the name has to keep resolving or a past week
+  // silently loses what it recorded. Two shapes from one query, never two
+  // queries that can drift.
   const categoryNames = Object.fromEntries(plannerCategories.map((c) => [c.id, c.name]));
+  const pickableCategories = plannerCategories.filter((c) => !c.hidden);
   // Which day's sheet is open, by key, or none. Held here rather than inside
   // the strip because the sheet sits beside the strip rather than inside a day.
   const [openDay, setOpenDay] = useState<string | null>(null);
@@ -93,7 +100,7 @@ export function DashboardView({
                 // rather than carrying the first day's picks onto the second.
                 key={openDay}
                 day={openDay}
-                categories={plannerCategories}
+                categories={pickableCategories}
                 initial={plannerDays.find((d) => d.day === openDay) ?? null}
                 onDone={() => setOpenDay(null)}
               />

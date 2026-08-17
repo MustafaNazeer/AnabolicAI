@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const { saveMock, hideMock } = vi.hoisted(() => ({
+const { saveMock, hideMock, clearMock } = vi.hoisted(() => ({
   saveMock: vi.fn(async () => ({ ok: true as const })),
   hideMock: vi.fn(async () => ({ ok: true as const })),
+  clearMock: vi.fn(async () => ({ ok: true as const })),
 }));
-vi.mock("@/lib/planner/dayActions", () => ({ savePlannerDay: saveMock }));
+vi.mock("@/lib/planner/dayActions", () => ({
+  savePlannerDay: saveMock,
+  clearPlannerDay: clearMock,
+}));
 vi.mock("@/lib/planner/categoryActions", () => ({
   addPlannerCategory: vi.fn(async () => ({ ok: true as const })),
   hidePlannerCategory: hideMock,
@@ -204,5 +208,65 @@ describe("PlannerDaySheet, the chip row and cancelling", () => {
 
     expect(onDone).toHaveBeenCalled();
     expect(saveMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("PlannerDaySheet, undoing a day", () => {
+  // Offered only where there is something to undo. On a day with no row it
+  // would be a destructive looking control that does nothing, sitting next to
+  // one that does.
+  it("offers no undo on a day that was never logged", () => {
+    render(
+      <PlannerDaySheet day="2026-08-11" categories={categories} initial={null} onDone={() => {}} />,
+    );
+    expect(screen.queryByRole("button", { name: /undo/i })).toBeNull();
+  });
+
+  it("offers undo on a day that already has a row", () => {
+    render(
+      <PlannerDaySheet
+        day="2026-08-11"
+        categories={categories}
+        initial={{ day: "2026-08-11", done: true, categories: ["c1"] }}
+        onDone={() => {}}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /undo/i })).toBeInTheDocument();
+  });
+
+  it("clears the day and closes, without writing a save", async () => {
+    const onDone = vi.fn();
+    render(
+      <PlannerDaySheet
+        day="2026-08-11"
+        categories={categories}
+        initial={{ day: "2026-08-11", done: true, categories: ["c1"] }}
+        onDone={onDone}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /undo/i }));
+
+    expect(clearMock).toHaveBeenCalledWith("2026-08-11");
+    expect(saveMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
+  });
+
+  // Same rule as every other write here: a failure keeps the sheet open and
+  // says so, rather than closing over a day that is still there.
+  it("keeps the sheet open and says so when the undo fails", async () => {
+    clearMock.mockResolvedValueOnce({ error: "Network is down." } as never);
+    const onDone = vi.fn();
+    render(
+      <PlannerDaySheet
+        day="2026-08-11"
+        categories={categories}
+        initial={{ day: "2026-08-11", done: true, categories: ["c1"] }}
+        onDone={onDone}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /undo/i }));
+
+    expect(await screen.findByText(/Network is down\./)).toBeInTheDocument();
+    expect(onDone).not.toHaveBeenCalled();
   });
 });

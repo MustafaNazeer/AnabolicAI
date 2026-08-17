@@ -3,17 +3,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // selectMock stays inside the factory rather than being returned. The upsert
 // chain needs it; no assertion does, and an unused binding is a lint warning in
 // a project that holds eslint at zero of them.
-const { getVerifiedUserMock, upsertMock, fromMock, deleteMock, insertMock } = vi.hoisted(
+const { getVerifiedUserMock, upsertMock, fromMock, deleteMock, deleteEqMock, insertMock } = vi.hoisted(
   () => {
     const single = vi.fn(async () => ({ data: { id: "day-1" }, error: null }));
     const selectMock = vi.fn(() => ({ single }));
     const upsertMock = vi.fn(() => ({ select: selectMock }));
-    const deleteMock = vi.fn(() => ({ eq: vi.fn(async () => ({ error: null })) }));
+    // The eq is shared rather than fresh per call, so a test can assert what a
+    // delete was actually keyed on rather than only that one happened.
+    const deleteEqMock = vi.fn(async () => ({ error: null }));
+    const deleteMock = vi.fn(() => ({ eq: deleteEqMock }));
     const insertMock = vi.fn(async () => ({ error: null }));
     return {
       getVerifiedUserMock: vi.fn(),
       upsertMock,
       deleteMock,
+      deleteEqMock,
       insertMock,
       fromMock: vi.fn(() => ({
         upsert: upsertMock,
@@ -27,9 +31,10 @@ vi.mock("@/lib/auth/user", () => ({ getVerifiedUser: getVerifiedUserMock }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({ from: fromMock })),
 }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+const { revalidateMock } = vi.hoisted(() => ({ revalidateMock: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: revalidateMock }));
 
-import { savePlannerDay } from "@/lib/planner/dayActions";
+import { savePlannerDay, clearPlannerDay } from "@/lib/planner/dayActions";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -136,5 +141,43 @@ describe("savePlannerDay, done derived from the date", () => {
       expect.objectContaining({ done: false }),
       { onConflict: "user_id,day" },
     );
+  });
+});
+
+// Undoing a day removes its row rather than saving it empty. An empty row is
+// still a day that happened: it would keep its square on the strip and keep
+// counting toward the streak of days with an entry. Only a delete makes the
+// day read as though it was never logged.
+describe("clearPlannerDay", () => {
+  it("refuses when signed out", async () => {
+    getVerifiedUserMock.mockResolvedValue(null);
+    await expect(clearPlannerDay("2026-08-11")).resolves.toEqual({
+      error: "Not signed in.",
+    });
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  it("deletes the day's own row", async () => {
+    await clearPlannerDay("2026-08-11");
+    expect(fromMock).toHaveBeenCalledWith("planner_days");
+    expect(deleteMock).toHaveBeenCalled();
+    expect(deleteEqMock).toHaveBeenCalledWith("day", "2026-08-11");
+  });
+
+  // The labels are never deleted here and that is deliberate:
+  // planner_day_categories cascades off the day, so removing the day takes its
+  // labels with it in one statement. Deleting them separately would be a second
+  // round trip that can half fail.
+  it("leaves the labels to cascade rather than deleting them itself", async () => {
+    await clearPlannerDay("2026-08-11");
+    expect(fromMock).not.toHaveBeenCalledWith("planner_day_categories");
+  });
+
+  // THE BALANCE HAS TO MOVE TOO. Its counts are derived from the same rows the
+  // strip draws, so the page has to be revalidated or the chips would keep
+  // counting a day that no longer exists until something else refreshed them.
+  it("revalidates the dashboard so the week and the balance both drop it", async () => {
+    await clearPlannerDay("2026-08-11");
+    expect(revalidateMock).toHaveBeenCalledWith("/");
   });
 });

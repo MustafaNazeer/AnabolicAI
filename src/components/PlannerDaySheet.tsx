@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
-import { savePlannerDay } from "@/lib/planner/dayActions";
+import { savePlannerDay, clearPlannerDay } from "@/lib/planner/dayActions";
 import { hidePlannerCategory } from "@/lib/planner/categoryActions";
 import { PlannerCategoryAdd } from "@/components/PlannerCategoryAdd";
 import type { PlannerDay } from "@/lib/planner/week";
@@ -56,6 +56,18 @@ export function PlannerDaySheet({
       return;
     }
     setPicked((prev) => prev.filter((p) => p !== id));
+  }
+
+  async function clear() {
+    setBusy(true);
+    setError(null);
+    const result = await clearPlannerDay(day);
+    setBusy(false);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    onDone();
   }
 
   async function save() {
@@ -183,6 +195,24 @@ export function PlannerDaySheet({
           Cancel
         </button>
       </div>
+
+      {/*
+        ON ITS OWN LINE AND ONLY WHERE THERE IS SOMETHING TO UNDO. A destructive
+        action beside Log it and Cancel would be a third target in a crowded row
+        on a phone, and on a day with no row it would do nothing at all while
+        looking like it might.
+      */}
+      {initial ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void clear()}
+          className="w-full mt-2 text-[13px]"
+          style={{ minHeight: 44, color: "var(--trend-down)", opacity: busy ? 0.6 : 1 }}
+        >
+          Undo this day
+        </button>
+      ) : null}
 
       {error ? (
         <p role="alert" className="text-xs mt-2" style={{ color: "var(--trend-down)" }}>

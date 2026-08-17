@@ -21,15 +21,26 @@ describe("WeekStrip", () => {
     expect(screen.getAllByTestId(/^day-\d{4}-/)).toHaveLength(7);
   });
 
-  // The day of the month and the mark for today belong to the five week matrix
-  // below this bar, not to the bar. This asserts the division stays put, since
-  // putting the numbers here once already made the two calendars say the same
-  // thing twice.
-  it("shows the weekday letter and not the day of the month", () => {
+  // REVERSED 2026-08-16, BY MUSTAFA, AND THE OLD RULE IS RECORDED SO THIS DOES
+  // NOT READ AS AN ACCIDENT. This bar used to show the letter only, on the
+  // reasoning that the day of the month belonged to the calendar below it and
+  // that numbering both made two calendars say the same thing twice. On a real
+  // screen the letter alone did not say which date a cell was, so the number is
+  // here too now.
+  it("shows the weekday letter and the day of the month", () => {
     render(<WeekStrip week={week} workoutDays={[]} />);
     const monday = screen.getByTestId("day-2026-08-10");
     expect(monday).toHaveTextContent("M");
-    expect(monday).not.toHaveTextContent("10");
+    expect(screen.getByTestId("day-number-2026-08-10")).toHaveTextContent("10");
+  });
+
+  // Read out of the key rather than parsed, since new Date("2026-08-01") is UTC
+  // midnight and renders as July 31st in this app's zone, and Number() drops
+  // the leading zero so the first of a month reads 1 rather than 01.
+  it("numbers every day of the week from its own key", () => {
+    render(<WeekStrip week={week} workoutDays={[]} />);
+    expect(screen.getByTestId("day-number-2026-08-16")).toHaveTextContent("16");
+    expect(screen.getAllByTestId(/^day-number-/)).toHaveLength(7);
   });
 
   // Every account gets this strip now, so a day with a logged workout has to

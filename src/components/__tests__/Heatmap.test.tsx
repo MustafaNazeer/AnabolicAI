@@ -186,18 +186,20 @@ describe("Heatmap, the day number", () => {
 });
 
 describe("Heatmap, the cross", () => {
-  // Bigger and harder edged than it shipped at. Lucide rounds its line ends by
-  // default, which at this size reads as a soft blob rather than a cross, so
-  // the caps are squared off and the mark is drawn at full foreground strength
-  // rather than the dim token.
-  it("draws the cross large, square capped and at full strength", () => {
+  // POINTED, WHICH A STROKED LINE CANNOT BE. A stroke ends either flat (butt),
+  // flat and overhanging (square) or rounded, and none of those is a point, so
+  // the cross is drawn as two filled shapes that taper to their ends instead of
+  // as two stroked lines. Asserting the fill rather than a cap is what keeps it
+  // from quietly reverting to a stroke.
+  it("draws the cross as two tapered fills rather than stroked lines", () => {
     const { container } = render(
       <Heatmap days={august()} metric="gym" today="2026-08-16" />,
     );
     const cross = container.querySelector("[data-x]");
     expect(cross).not.toBeNull();
-    expect(cross?.getAttribute("width")).toBe("15");
-    expect(cross?.getAttribute("stroke-linecap")).toBe("square");
+    expect(cross?.getAttribute("width")).toBe("17");
+    expect(cross?.querySelectorAll("polygon")).toHaveLength(2);
+    expect(cross?.getAttribute("stroke-linecap")).toBeNull();
     expect((cross as HTMLElement | null)?.style.color).toBe("var(--text)");
   });
 });

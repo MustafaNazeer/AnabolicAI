@@ -82,10 +82,10 @@ export function Heatmap({
                   // The same face as the hero number above this grid, so the
                   // two read as one card rather than as two typefaces.
                   fontFamily: "var(--font-spectral)",
-                  // Half again as large as the 9px it shipped at. At that size
-                  // the number was present without being readable at a glance,
-                  // which is the whole job of numbering the grid.
-                  fontSize: 13.5,
+                  // 9px was present without being readable; 13.5 crowded the
+                  // cell against the cross. 12 is the setting that survived
+                  // both device passes.
+                  fontSize: 12,
                   // Full strength foreground rather than the dim token. A
                   // dimmed number on a faint tile is the same mistake that made
                   // a planned day's label invisible on a real phone; the tile's
@@ -125,11 +125,19 @@ export function Heatmap({
               */}
               {isPast && !isToday ? (
                 <X
-                  size={12}
+                  size={15}
                   strokeWidth={3}
+                  // SQUARE CAPS, WHICH IS WHAT "SHARPER" MEANT. Lucide rounds
+                  // its line ends by default, and at this size a rounded cross
+                  // reads as a soft blob rather than a cross. Squaring them
+                  // gives it points.
+                  strokeLinecap="square"
                   data-x
                   aria-hidden
-                  style={{ color: "var(--text-dim)" }}
+                  // Full strength rather than the dim token. It was dim so it
+                  // would not compete with the accent, and on a real screen it
+                  // simply read as faint.
+                  style={{ color: "var(--text)" }}
                 />
               ) : null}
             </span>

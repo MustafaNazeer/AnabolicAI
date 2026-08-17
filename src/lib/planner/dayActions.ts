@@ -66,3 +66,35 @@ export async function savePlannerDay(
   revalidatePath("/");
   return { ok: true };
 }
+
+// Undoes a day: removes the row entirely rather than saving it with no labels.
+//
+// THE DIFFERENCE MATTERS. A row with no labels is still a day that happened. It
+// keeps its square on the strip and it is still a `done` day, so anything
+// counting days with an entry keeps counting it. Only a delete makes the day
+// read as though it was never logged, which is what "I did that by mistake"
+// means.
+//
+// NO USER FILTER IS WRITTEN AND NONE IS NEEDED. planner_days_delete is
+// `using (auth.uid() = user_id)`, so RLS already refuses anybody else's row,
+// exactly as getPlannerWeek relies on for reading. Adding one would read as
+// though the policy were in doubt.
+//
+// THE LABELS ARE LEFT TO CASCADE. planner_day_categories references the day
+// with ON DELETE CASCADE, so they go with it in one statement rather than in a
+// second round trip that can half fail and leave labels pointing at nothing.
+export async function clearPlannerDay(
+  day: string,
+): Promise<{ ok: true } | { error: string }> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("planner_days").delete().eq("day", day);
+  if (error) return { error: error.message };
+
+  // The weekly balance counts the same rows the strip draws, so both are stale
+  // the moment one is removed.
+  revalidatePath("/");
+  return { ok: true };
+}

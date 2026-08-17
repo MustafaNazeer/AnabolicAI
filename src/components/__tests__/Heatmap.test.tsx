@@ -173,7 +173,7 @@ describe("Heatmap, the day number", () => {
   // Half again as large as it was, because at 9px in the corner of a cell it
   // was there without being readable at a glance, which is the same failure the
   // planner's own labels had.
-  it("draws the day number at 13.5px", () => {
+  it("draws the day number at 12px", () => {
     const { container } = render(
       <Heatmap days={august()} metric="gym" today="2026-08-16" />,
     );
@@ -181,6 +181,23 @@ describe("Heatmap, the day number", () => {
     const number = cell?.querySelector("[data-day-number]") as HTMLElement | null;
     expect(number).not.toBeNull();
     expect(number?.textContent).toBe("16");
-    expect(number?.style.fontSize).toBe("13.5px");
+    expect(number?.style.fontSize).toBe("12px");
+  });
+});
+
+describe("Heatmap, the cross", () => {
+  // Bigger and harder edged than it shipped at. Lucide rounds its line ends by
+  // default, which at this size reads as a soft blob rather than a cross, so
+  // the caps are squared off and the mark is drawn at full foreground strength
+  // rather than the dim token.
+  it("draws the cross large, square capped and at full strength", () => {
+    const { container } = render(
+      <Heatmap days={august()} metric="gym" today="2026-08-16" />,
+    );
+    const cross = container.querySelector("[data-x]");
+    expect(cross).not.toBeNull();
+    expect(cross?.getAttribute("width")).toBe("15");
+    expect(cross?.getAttribute("stroke-linecap")).toBe("square");
+    expect((cross as HTMLElement | null)?.style.color).toBe("var(--text)");
   });
 });

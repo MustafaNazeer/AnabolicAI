@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getVerifiedUser } from "@/lib/auth/user";
+import { dayKey } from "@/lib/progress/matrix";
+import { zonedNow, APP_TIMEZONE } from "@/lib/notifications/schedule";
 
 // Writes a day and sets its labels to exactly the ones passed.
 //
@@ -19,13 +21,23 @@ import { getVerifiedUser } from "@/lib/auth/user";
 // THE LABELS ARE CLEARED FIRST, not merged. Changing a day from cardio to arms
 // has to leave arms alone on it; a plain insert would leave the day reading as
 // both and quietly inflate the weekly balance.
+// DONE IS DERIVED FROM THE DATE, NOT PASSED IN, and that is what let the second
+// button go away. A day that has arrived is a workout; a day still to come is a
+// plan. The interface was asking the user a question the calendar already
+// answers, and two buttons meant a future day could be recorded as trained.
+//
+// Resolved in APP_TIMEZONE rather than UTC. At 02:00Z it is still the previous
+// day in Chicago, so a UTC boundary would count tomorrow as arrived for five
+// hours every night, which is exactly the claim the weekly balance must never
+// make.
 export async function savePlannerDay(
   day: string,
   categoryIds: string[],
-  done: boolean,
 ): Promise<{ ok: true } | { error: string }> {
   const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
+
+  const done = day <= dayKey(zonedNow(new Date(), APP_TIMEZONE));
 
   const supabase = await createClient();
   const { data, error } = await supabase

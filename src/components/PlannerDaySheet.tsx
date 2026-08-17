@@ -39,10 +39,10 @@ export function PlannerDaySheet({
     );
   }
 
-  async function save(done: boolean) {
+  async function save() {
     setBusy(true);
     setError(null);
-    const result = await savePlannerDay(day, picked, done);
+    const result = await savePlannerDay(day, picked);
     setBusy(false);
     // The sheet stays open on a failure, holding everything that was picked, so
     // a retry is one tap rather than a rebuild.
@@ -83,23 +83,20 @@ export function PlannerDaySheet({
         Directly beneath the chips, because the moment a label she needs is
         missing is the moment she is looking at the ones that exist.
       */}
-      {/*
-        Directly beneath the chips, because the moment a label she needs is
-        missing is the moment she is looking at the ones that exist.
-      */}
       <PlannerCategoryAdd />
 
       {/*
-        Two actions rather than one with a switch beside it. The difference
-        between logging and planning is the whole of what "done" means, and a
-        button that says which one it is cannot be misread the way a checkbox
-        left in its default state can.
+        ONE BUTTON, BECAUSE THE DATE ALREADY ANSWERS THE QUESTION THE SECOND ONE
+        ASKED. A day that has arrived is a workout and a day still to come is a
+        plan, so "Plan it" was asking the user to restate the calendar, and it
+        made it possible to record a future day as trained. savePlannerDay
+        derives it now, so there is one definition rather than one per surface.
       */}
-      <div className="flex gap-2 mt-4">
+      <div className="flex mt-4">
         <button
           type="button"
           disabled={busy}
-          onClick={() => void save(true)}
+          onClick={() => void save()}
           className="flex-1 font-medium"
           style={{
             minHeight: 44,
@@ -110,22 +107,6 @@ export function PlannerDaySheet({
           }}
         >
           Log it
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void save(false)}
-          className="flex-1 border font-medium"
-          style={{
-            minHeight: 44,
-            borderRadius: "var(--radius-square)",
-            background: "var(--surface)",
-            borderColor: "var(--surface-border)",
-            color: "var(--text)",
-            opacity: busy ? 0.6 : 1,
-          }}
-        >
-          Plan it
         </button>
       </div>
 

@@ -29,7 +29,7 @@ describe("PlannerDaySheet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Lower Body" }));
     await userEvent.click(screen.getByRole("button", { name: "Abs" }));
     await userEvent.click(screen.getByRole("button", { name: "Log it" }));
-    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c1", "c2"], true);
+    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c1", "c2"]);
   });
 
   // Rest is an ordinary label. She chose to allow any combination, so nothing
@@ -41,16 +41,23 @@ describe("PlannerDaySheet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Rest" }));
     await userEvent.click(screen.getByRole("button", { name: "Lower Body" }));
     await userEvent.click(screen.getByRole("button", { name: "Log it" }));
-    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c3", "c1"], true);
+    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c3", "c1"]);
   });
 
-  it("plans a day without marking it done", async () => {
+  // ONE BUTTON ONLY. Whether a day counts as trained is decided by the date in
+  // savePlannerDay, so a second button asking the user to restate the calendar
+  // is gone, and with it the ability to record a future day as trained.
+  it("offers one save button and no separate way to plan", async () => {
     render(
       <PlannerDaySheet day="2026-08-20" categories={categories} initial={null} onDone={() => {}} />,
     );
+    expect(screen.queryByRole("button", { name: "Plan it" })).toBeNull();
+
     await userEvent.click(screen.getByRole("button", { name: "Cardio" }));
-    await userEvent.click(screen.getByRole("button", { name: "Plan it" }));
-    expect(saveMock).toHaveBeenCalledWith("2026-08-20", expect.any(Array), false);
+    await userEvent.click(screen.getByRole("button", { name: "Log it" }));
+    // Two arguments, never three: the sheet does not get a say in done.
+    expect(saveMock).toHaveBeenCalledWith("2026-08-20", ["c4"]);
+    expect(saveMock.mock.calls[0]).toHaveLength(2);
   });
 
   // Opening a day that already has labels has to show them already picked, or
@@ -75,7 +82,7 @@ describe("PlannerDaySheet", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Log it" }));
-    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c2"], true);
+    expect(saveMock).toHaveBeenCalledWith("2026-08-11", ["c2"]);
   });
 
   // Adding a category has to be reachable from where the labels are chosen. On

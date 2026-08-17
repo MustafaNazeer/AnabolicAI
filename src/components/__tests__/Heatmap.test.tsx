@@ -145,7 +145,7 @@ describe("Heatmap, telling past from future", () => {
     const todayCell = container.querySelector('[data-cell="2026-08-16"]');
     expect(todayCell?.getAttribute("data-today")).toBe("1");
     expect(todayCell?.querySelector("[data-star]")).not.toBeNull();
-    expect(todayCell?.querySelector("[data-x]")).toBeNull();
+    expect(todayCell?.querySelector("[data-struck]")).toBeNull();
   });
 
   // The star is filled rather than an outline, which is the difference between
@@ -180,16 +180,16 @@ describe("Heatmap, telling past from future", () => {
   // The two marks are the same size. Today is not louder than a past day by
   // being bigger; it is louder by being the accent colour and a different
   // shape.
-  it("draws the star the same size as the cross", () => {
+  it("draws the star the same size as the mark on a past day", () => {
     const { container } = render(
       <Heatmap days={august()} metric="gym" today="2026-08-16" />,
     );
     const star = container.querySelector("[data-star]");
-    const cross = container.querySelector("[data-x]");
+    const struck = container.querySelector("[data-struck]");
     expect(star?.getAttribute("width")).toBe("24");
     // Asserted as equal rather than as two numbers that happen to match, so
     // moving one later fails here instead of silently drifting apart.
-    expect(star?.getAttribute("width")).toBe(cross?.getAttribute("width"));
+    expect(star?.getAttribute("width")).toBe(struck?.getAttribute("width"));
   });
 
   // Nothing is crossed when the grid is drawing a month today is not in and
@@ -222,26 +222,49 @@ describe("Heatmap, the day number", () => {
 describe("Heatmap, the cross", () => {
   // POINTED, WHICH A STROKED LINE CANNOT BE. A stroke ends either flat (butt),
   // flat and overhanging (square) or rounded, and none of those is a point, so
-  // the cross is drawn as two filled shapes that taper to their ends instead of
-  // as two stroked lines. Asserting the fill rather than a cap is what keeps it
-  // from quietly reverting to a stroke.
-  it("draws the cross as two tapered fills rather than stroked lines", () => {
+  // the mark is drawn as a filled shape that tapers to its ends instead of as a
+  // stroked line. Asserting the fill rather than a cap is what keeps it from
+  // quietly reverting to a stroke.
+  it("strikes a past day with one tapered blade rather than a cross", () => {
     const { container } = render(
       <Heatmap days={august()} metric="gym" today="2026-08-16" />,
     );
-    const cross = container.querySelector("[data-x]");
-    expect(cross).not.toBeNull();
-    expect(cross?.getAttribute("width")).toBe("24");
-    expect(cross?.querySelectorAll("polygon")).toHaveLength(2);
+    const struck = container.querySelector("[data-struck]");
+    expect(struck).not.toBeNull();
+    expect(struck?.getAttribute("width")).toBe("24");
+    // ONE, not two. The second arm was what crowded the day number.
+    expect(struck?.querySelectorAll("polygon")).toHaveLength(1);
 
-    // Each arm is a blade rather than a rhombus: a rhombus needs four points,
-    // so anything this shaped carries more. This is what stops it collapsing
-    // back to the plain diamond it started as.
-    for (const arm of Array.from(cross?.querySelectorAll("polygon") ?? [])) {
-      const points = (arm.getAttribute("points") ?? "").trim().split(/\s+/);
-      expect(points.length).toBeGreaterThanOrEqual(8);
-    }
-    expect(cross?.getAttribute("stroke-linecap")).toBeNull();
-    expect((cross as HTMLElement | null)?.style.color).toBe("var(--text)");
+    const points = (struck?.querySelector("polygon")?.getAttribute("points") ?? "")
+      .trim()
+      .split(/\s+/)
+      .map((pt) => pt.split(",").map(Number));
+
+    // A blade rather than a rhombus: a rhombus needs four points, so anything
+    // this shaped carries more. Stops it collapsing back to a plain diamond.
+    expect(points.length).toBeGreaterThanOrEqual(8);
+
+    // IT RUNS TOP RIGHT TO BOTTOM LEFT, and the direction is the whole reason
+    // it clears the number. Drawn the other way it would run straight through
+    // the top left corner the number now occupies, so this asserts the highest
+    // point sits on the right and the lowest on the left.
+    const highest = points.reduce((a, b) => (b[1] < a[1] ? b : a));
+    const lowest = points.reduce((a, b) => (b[1] > a[1] ? b : a));
+    expect(highest[0]).toBeGreaterThan(12);
+    expect(lowest[0]).toBeLessThan(12);
+
+    expect(struck?.getAttribute("stroke-linecap")).toBeNull();
+    expect((struck as HTMLElement | null)?.style.color).toBe("var(--text)");
+  });
+
+  // The number moved out of the tip's corner rather than the mark shrinking to
+  // avoid it.
+  it("puts the day number in the top left corner", () => {
+    const { container } = render(
+      <Heatmap days={august()} metric="gym" today="2026-08-16" />,
+    );
+    const number = container.querySelector("[data-day-number]") as HTMLElement | null;
+    expect(number?.style.left).toBe("4px");
+    expect(number?.style.right).toBe("");
   });
 });

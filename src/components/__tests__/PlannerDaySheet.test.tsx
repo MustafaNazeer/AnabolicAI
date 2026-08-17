@@ -172,3 +172,37 @@ describe("PlannerDaySheet, removing a chip", () => {
     expect(saveMock).toHaveBeenCalledWith("2026-08-11", []);
   });
 });
+
+describe("PlannerDaySheet, the chip row and cancelling", () => {
+  // The chips are a single row that scrolls sideways rather than wrapping onto
+  // more lines, so the sheet keeps one height however many labels exist. Each
+  // chip must refuse to shrink, or a long list squeezes every name unreadable
+  // instead of running off the edge to be scrolled to.
+  it("lays the chips out as one sideways scrolling row", () => {
+    const { container } = render(
+      <PlannerDaySheet day="2026-08-11" categories={categories} initial={null} onDone={() => {}} />,
+    );
+    const row = container.querySelector("[data-chip-scroller]");
+    expect(row).not.toBeNull();
+    expect(row?.className).toContain("overflow-x-auto");
+    expect(row?.className).not.toContain("flex-wrap");
+    expect(screen.getByRole("button", { name: "Lower Body" }).className).toContain(
+      "shrink-0",
+    );
+  });
+
+  // Opening a day and changing nothing has to be possible. Without this the
+  // only way out of the sheet is to save, so a tap on the wrong day writes a
+  // row that was never wanted.
+  it("closes without writing anything when cancelled", async () => {
+    const onDone = vi.fn();
+    render(
+      <PlannerDaySheet day="2026-08-11" categories={categories} initial={null} onDone={onDone} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Lower Body" }));
+    await userEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(onDone).toHaveBeenCalled();
+    expect(saveMock).not.toHaveBeenCalled();
+  });
+});

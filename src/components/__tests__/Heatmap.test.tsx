@@ -168,3 +168,19 @@ describe("Heatmap, telling past from future", () => {
     expect(container.querySelectorAll("[data-star]")).toHaveLength(0);
   });
 });
+
+describe("Heatmap, the day number", () => {
+  // Half again as large as it was, because at 9px in the corner of a cell it
+  // was there without being readable at a glance, which is the same failure the
+  // planner's own labels had.
+  it("draws the day number at 13.5px", () => {
+    const { container } = render(
+      <Heatmap days={august()} metric="gym" today="2026-08-16" />,
+    );
+    const cell = container.querySelector('[data-cell="2026-08-16"]');
+    const number = cell?.querySelector("[data-day-number]") as HTMLElement | null;
+    expect(number).not.toBeNull();
+    expect(number?.textContent).toBe("16");
+    expect(number?.style.fontSize).toBe("13.5px");
+  });
+});

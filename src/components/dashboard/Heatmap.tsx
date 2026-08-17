@@ -74,6 +74,7 @@ export function Heatmap({
               }}
             >
               <span
+                data-day-number
                 className="absolute leading-none"
                 style={{
                   top: 3,
@@ -81,7 +82,10 @@ export function Heatmap({
                   // The same face as the hero number above this grid, so the
                   // two read as one card rather than as two typefaces.
                   fontFamily: "var(--font-spectral)",
-                  fontSize: 9,
+                  // Half again as large as the 9px it shipped at. At that size
+                  // the number was present without being readable at a glance,
+                  // which is the whole job of numbering the grid.
+                  fontSize: 13.5,
                   // Full strength foreground rather than the dim token. A
                   // dimmed number on a faint tile is the same mistake that made
                   // a planned day's label invisible on a real phone; the tile's

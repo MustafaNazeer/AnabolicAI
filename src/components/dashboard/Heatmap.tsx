@@ -38,38 +38,33 @@ function PointedStar() {
   );
 }
 
-// A cross drawn after `design/x-inspo.jpg`: two long blades crossing, each
-// swelling past its middle and closing to a point at both ends.
+// The mark on a day already gone: one blade running from the top right corner
+// to the bottom left, drawn after `design/x-inspo.jpg`.
+//
+// ONE STROKE, NOT A CROSS, AND THE DIRECTION IS LOAD BEARING. The cross was two
+// blades and its top right tip landed on the day number. Rather than shrink the
+// mark, the number moved to the top left and the second arm went; a line
+// running top right to bottom left never passes through the corner the number
+// now occupies. Drawn the other way it would cut straight through it, so the
+// direction is asserted in the tests rather than left to whoever edits next.
 //
 // NOT A STROKED LINE, AND IT CANNOT BE. An SVG stroke ends flat, flat with an
-// overhang, or rounded, so no cap setting produces a point; lucide's X was
-// tried at round and at square and read blunt both times. Each arm is a filled
-// polygon instead, with its two tips on the arm's own endpoints.
+// overhang, or rounded, so no cap setting produces a point. This is a filled
+// polygon whose two tips are the line's own endpoints.
 //
 // THE REFERENCE'S BRUSH TEXTURE IS DELIBERATELY NOT REPRODUCED, and this is the
-// honest part. That artwork carries its streaks and broken edges at several
-// hundred pixels; this renders at 20, where one unit of the 24 wide box is
-// under a pixel, so a notch fine enough to read as texture there is smaller
-// than a pixel here and would only turn the shape to mush. What survives at
-// this size is the silhouette, so that is what was taken: long arms reaching
-// most of the cell, an asymmetric swell rather than a symmetric diamond, and
-// four fine points.
-//
-// The two side profiles differ on purpose, which is what keeps it from reading
-// as a machined lozenge. Points are generated from those profiles rather than
-// hand placed; the profiles are in the commit that added them.
-//
-// AT 24 THIS CROWDS THE DAY NUMBER, and it is worth knowing before it is
-// rediscovered. The number sits at top 3, right 4, so in a cell of roughly 43
-// the arm tip at viewBox (20.8, 2.8) lands about where the number's lower left
-// corner is. Both were asked for at this size, so it ships this way; if it
-// reads cluttered on a real screen the two levers are pulling the arm
-// endpoints in from 3.2 and 20.8, or moving the number to the opposite corner
-// from the tip.
-function PointedCross() {
+// honest part. That artwork carries its streaks at several hundred pixels; this
+// renders at 24, where a notch fine enough to read as texture there is under a
+// pixel here and would only turn the shape to mush. What survives at this size
+// is the silhouette, so that is what was taken: a long blade reaching most of
+// the cell, an asymmetric swell rather than a symmetric lozenge, and two fine
+// points. The two side profiles differ on purpose, which is what keeps it from
+// reading as machined; the points are generated from those profiles rather than
+// hand placed.
+function PointedSlash() {
   return (
     <svg
-      data-x
+      data-struck
       width={24}
       height={24}
       viewBox="0 0 24 24"
@@ -79,10 +74,6 @@ function PointedCross() {
       // simply read as faint.
       style={{ color: "var(--text)" }}
     >
-      <polygon
-        points="3.20,2.80 7.62,9.14 11.85,13.91 16.69,18.08 20.80,21.20 17.14,15.89 13.01,11.04 8.24,6.79"
-        fill="currentColor"
-      />
       <polygon
         points="20.80,2.80 14.66,7.50 10.09,11.93 6.13,16.96 3.20,21.20 8.34,17.31 13.01,12.96 17.04,8.01"
         fill="currentColor"
@@ -152,7 +143,7 @@ export function Heatmap({
                 className="absolute leading-none"
                 style={{
                   top: 3,
-                  right: 4,
+                  left: 4,
                   // The same face as the hero number above this grid, so the
                   // two read as one card rather than as two typefaces.
                   fontFamily: "var(--font-spectral)",
@@ -194,7 +185,7 @@ export function Heatmap({
                 choice of comparison operator two lines up.
               */}
               {isPast && !isToday ? (
-                <PointedCross />
+                <PointedSlash />
               ) : null}
             </span>
           );

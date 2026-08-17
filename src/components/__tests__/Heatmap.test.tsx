@@ -177,14 +177,19 @@ describe("Heatmap, telling past from future", () => {
     expect(inner / outer).toBeLessThan(0.42);
   });
 
-  // Today is the one cell a reader is hunting for, so its mark is the largest
-  // thing in the grid rather than the smallest.
-  it("draws the star larger than the cross that marks a past day", () => {
+  // The two marks are the same size. Today is not louder than a past day by
+  // being bigger; it is louder by being the accent colour and a different
+  // shape.
+  it("draws the star the same size as the cross", () => {
     const { container } = render(
       <Heatmap days={august()} metric="gym" today="2026-08-16" />,
     );
     const star = container.querySelector("[data-star]");
-    expect(star?.getAttribute("width")).toBe("15");
+    const cross = container.querySelector("[data-x]");
+    expect(star?.getAttribute("width")).toBe("24");
+    // Asserted as equal rather than as two numbers that happen to match, so
+    // moving one later fails here instead of silently drifting apart.
+    expect(star?.getAttribute("width")).toBe(cross?.getAttribute("width"));
   });
 
   // Nothing is crossed when the grid is drawing a month today is not in and
@@ -226,7 +231,7 @@ describe("Heatmap, the cross", () => {
     );
     const cross = container.querySelector("[data-x]");
     expect(cross).not.toBeNull();
-    expect(cross?.getAttribute("width")).toBe("20");
+    expect(cross?.getAttribute("width")).toBe("24");
     expect(cross?.querySelectorAll("polygon")).toHaveLength(2);
 
     // Each arm is a blade rather than a rhombus: a rhombus needs four points,

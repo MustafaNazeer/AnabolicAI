@@ -20,11 +20,12 @@ function dayNumber(key: string): string {
 
 // The week, Monday first, for every account.
 //
-// DELIBERATELY NOT NUMBERED AND NOT STARRED. The day of the month and the mark
-// for today belong to the five week matrix below this, which is the calendar a
-// reader scans for a date. This bar answers a different question, what each of
-// the last seven days was, and it stays a letter and a label so that stays
-// readable at a glance in seven narrow columns.
+// NUMBERED SINCE 2026-08-16, AND IT USED NOT TO BE. The rule was that the day
+// of the month belonged to the calendar below this bar, so that two calendars
+// did not say the same thing twice. It did not survive a real screen: two of
+// the seven letters repeat, so a cell could not say which date it was without
+// counting along the row. Still not starred, because today is marked on the
+// calendar and one mark for it is enough.
 //
 // TWO MODES IN ONE COMPONENT, ON PURPOSE. Without `onPick` it is a read only
 // summary of the week: which days were trained. With it, each day opens its
@@ -77,6 +78,22 @@ export function WeekStrip({
           <>
             <span className="text-[9px]" style={{ color: "var(--text-dim)" }} aria-hidden>
               {LETTERS[i]}
+            </span>
+            {/*
+              NUMBERED SINCE 2026-08-16, reversing the rule that the day of the
+              month belonged only to the calendar below. Two of the seven
+              letters repeat and the bar carries no dates otherwise, so a cell
+              could not say which day it was without counting along the row.
+              The screen reader name already carried the date; this puts it
+              where a sighted reader looks.
+            */}
+            <span
+              data-testid={`day-number-${day}`}
+              className="text-[11px] leading-none"
+              style={{ fontFamily: "var(--font-spectral)", color: "var(--text)" }}
+              aria-hidden
+            >
+              {dayNumber(day)}
             </span>
             {labels.length > 0 ? (
               <span

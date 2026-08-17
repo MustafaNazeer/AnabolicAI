@@ -1,4 +1,4 @@
-import { Star, X } from "lucide-react";
+import { Star } from "lucide-react";
 import {
   cellIntensity,
   leadingBlanks,
@@ -15,6 +15,39 @@ const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 // Number() also drops the leading zero, so the first reads 1 rather than 01.
 function dayNumber(key: string): string {
   return String(Number(key.slice(8, 10)));
+}
+
+
+// A cross whose four ends come to a point.
+//
+// NOT A STROKED LINE, AND IT CANNOT BE. An SVG stroke ends flat, flat with an
+// overhang, or rounded, so no cap setting produces a point; lucide's X was
+// tried at round and at square and reads blunt either way at this size. Each
+// arm is instead a filled quadrilateral: the two tips are the arm's endpoints
+// and the two side vertices sit either side of its midpoint, so the shape is
+// widest in the middle and converges to nothing at each end.
+//
+// The geometry is written out rather than computed. In a 16 by 16 box an arm
+// runs corner to corner from (3,3) to (13,13); its midpoint is (8,8) and the
+// perpendicular offset of half the mid width is about 1.41 in each axis, giving
+// the side vertices 6.59 and 9.41.
+function PointedCross() {
+  return (
+    <svg
+      data-x
+      width={17}
+      height={17}
+      viewBox="0 0 16 16"
+      aria-hidden
+      // Full strength rather than the dim token. It was dim so it would not
+      // compete with the accent on a trained day, and on a real screen it
+      // simply read as faint.
+      style={{ color: "var(--text)" }}
+    >
+      <polygon points="3,3 9.41,6.59 13,13 6.59,9.41" fill="currentColor" />
+      <polygon points="13,3 9.41,9.41 3,13 6.59,6.59" fill="currentColor" />
+    </svg>
+  );
 }
 
 export function Heatmap({
@@ -124,21 +157,7 @@ export function Heatmap({
                 choice of comparison operator two lines up.
               */}
               {isPast && !isToday ? (
-                <X
-                  size={15}
-                  strokeWidth={3}
-                  // SQUARE CAPS, WHICH IS WHAT "SHARPER" MEANT. Lucide rounds
-                  // its line ends by default, and at this size a rounded cross
-                  // reads as a soft blob rather than a cross. Squaring them
-                  // gives it points.
-                  strokeLinecap="square"
-                  data-x
-                  aria-hidden
-                  // Full strength rather than the dim token. It was dim so it
-                  // would not compete with the accent, and on a real screen it
-                  // simply read as faint.
-                  style={{ color: "var(--text)" }}
-                />
+                <PointedCross />
               ) : null}
             </span>
           );

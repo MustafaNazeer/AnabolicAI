@@ -180,16 +180,15 @@ describe("Heatmap, telling past from future", () => {
   // The two marks are the same size. Today is not louder than a past day by
   // being bigger; it is louder by being the accent colour and a different
   // shape.
-  it("draws the star the same size as the mark on a past day", () => {
+  it("draws the star at 24", () => {
     const { container } = render(
       <Heatmap days={august()} metric="gym" today="2026-08-16" />,
     );
     const star = container.querySelector("[data-star]");
-    const struck = container.querySelector("[data-struck]");
     expect(star?.getAttribute("width")).toBe("24");
-    // Asserted as equal rather than as two numbers that happen to match, so
-    // moving one later fails here instead of silently drifting apart.
-    expect(star?.getAttribute("width")).toBe(struck?.getAttribute("width"));
+    // The two are no longer compared. The mark on a past day stopped being a
+    // fixed size box and became a line spanning the whole cell, so there is no
+    // longer a single number on both sides to hold equal.
   });
 
   // Nothing is crossed when the grid is drawing a month today is not in and
@@ -222,38 +221,33 @@ describe("Heatmap, the day number", () => {
 describe("Heatmap, the cross", () => {
   // POINTED, WHICH A STROKED LINE CANNOT BE. A stroke ends either flat (butt),
   // flat and overhanging (square) or rounded, and none of those is a point, so
-  // the mark is drawn as a filled shape that tapers to its ends instead of as a
-  // stroked line. Asserting the fill rather than a cap is what keeps it from
-  // quietly reverting to a stroke.
-  it("strikes a past day with one tapered blade rather than a cross", () => {
+  // A PLAIN STROKE, corner to corner of the cell. It was a tapered fill before,
+  // which read as a blade rather than as a line struck through a day.
+  it("strikes a past day with one plain line corner to corner", () => {
     const { container } = render(
       <Heatmap days={august()} metric="gym" today="2026-08-16" />,
     );
     const struck = container.querySelector("[data-struck]");
     expect(struck).not.toBeNull();
-    expect(struck?.getAttribute("width")).toBe("24");
-    // ONE, not two. The second arm was what crowded the day number.
-    expect(struck?.querySelectorAll("polygon")).toHaveLength(1);
 
-    const points = (struck?.querySelector("polygon")?.getAttribute("points") ?? "")
-      .trim()
-      .split(/\s+/)
-      .map((pt) => pt.split(",").map(Number));
+    // A stroked line, and nothing filled. The tapered polygons are gone.
+    expect(struck?.querySelectorAll("polygon")).toHaveLength(0);
+    const line = struck?.querySelector("line");
+    expect(line).not.toBeNull();
+    expect(line?.getAttribute("stroke")).toBe("currentColor");
 
-    // A blade rather than a rhombus: a rhombus needs four points, so anything
-    // this shaped carries more. Stops it collapsing back to a plain diamond.
-    expect(points.length).toBeGreaterThanOrEqual(8);
+    // TOP RIGHT TO BOTTOM LEFT, AND ALL THE WAY TO BOTH CORNERS. Anything less
+    // than the full box leaves the line floating inside the square instead of
+    // crossing it, and drawn the other way it would cut through the day number
+    // in the top left.
+    expect(line?.getAttribute("x1")).toBe("24");
+    expect(line?.getAttribute("y1")).toBe("0");
+    expect(line?.getAttribute("x2")).toBe("0");
+    expect(line?.getAttribute("y2")).toBe("24");
 
-    // IT RUNS TOP RIGHT TO BOTTOM LEFT, and the direction is the whole reason
-    // it clears the number. Drawn the other way it would run straight through
-    // the top left corner the number now occupies, so this asserts the highest
-    // point sits on the right and the lowest on the left.
-    const highest = points.reduce((a, b) => (b[1] < a[1] ? b : a));
-    const lowest = points.reduce((a, b) => (b[1] > a[1] ? b : a));
-    expect(highest[0]).toBeGreaterThan(12);
-    expect(lowest[0]).toBeLessThan(12);
-
-    expect(struck?.getAttribute("stroke-linecap")).toBeNull();
+    // The box is the whole cell rather than a fixed size centred in it, or
+    // "corner to corner" would mean the corners of a smaller square.
+    expect(struck?.getAttribute("width")).toBe("100%");
     expect((struck as HTMLElement | null)?.style.color).toBe("var(--text)");
   });
 

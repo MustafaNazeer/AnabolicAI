@@ -38,46 +38,38 @@ function PointedStar() {
   );
 }
 
-// The mark on a day already gone: one blade running from the top right corner
-// to the bottom left, drawn after `design/x-inspo.jpg`.
+// The mark on a day already gone: one plain line, corner to corner.
 //
-// ONE STROKE, NOT A CROSS, AND THE DIRECTION IS LOAD BEARING. The cross was two
-// blades and its top right tip landed on the day number. Rather than shrink the
-// mark, the number moved to the top left and the second arm went; a line
-// running top right to bottom left never passes through the corner the number
-// now occupies. Drawn the other way it would cut straight through it, so the
-// direction is asserted in the tests rather than left to whoever edits next.
+// A STROKE, NOT A TAPERED FILL. It was drawn as a filled blade with pointed
+// ends, after `design/x-inspo.jpg`, and at cell size that read as a blade
+// rather than as a day struck off. An ordinary line says the plainer thing.
 //
-// NOT A STROKED LINE, AND IT CANNOT BE. An SVG stroke ends flat, flat with an
-// overhang, or rounded, so no cap setting produces a point. This is a filled
-// polygon whose two tips are the line's own endpoints.
+// IT SPANS THE WHOLE CELL, which is why this fills its parent instead of being
+// a fixed size box centred in it. At 24px centred, "corner to corner" would
+// have meant the corners of a smaller square floating inside the day, with a
+// margin of dead space around it. The parent carries `relative`, so absolute
+// inset 0 makes the drawing box exactly the square the reader sees. The inset
+// is an inline style rather than Tailwind's `inset-0`, which is not used
+// anywhere else in this codebase and would have made the deploy a forced one.
 //
-// THE REFERENCE'S BRUSH TEXTURE IS DELIBERATELY NOT REPRODUCED, and this is the
-// honest part. That artwork carries its streaks at several hundred pixels; this
-// renders at 24, where a notch fine enough to read as texture there is under a
-// pixel here and would only turn the shape to mush. What survives at this size
-// is the silhouette, so that is what was taken: a long blade reaching most of
-// the cell, an asymmetric swell rather than a symmetric lozenge, and two fine
-// points. The two side profiles differ on purpose, which is what keeps it from
-// reading as machined; the points are generated from those profiles rather than
-// hand placed.
-function PointedSlash() {
+// TOP RIGHT TO BOTTOM LEFT, AND THE DIRECTION IS LOAD BEARING. The day number
+// sits in the top left corner, so a line on the other diagonal would run
+// straight through it. The tests assert the endpoints rather than trusting
+// whoever edits next.
+function StruckLine() {
   return (
     <svg
       data-struck
-      width={24}
-      height={24}
+      width="100%"
+      height="100%"
       viewBox="0 0 24 24"
       aria-hidden
       // Full strength rather than the dim token. It was dim so it would not
       // compete with the accent on a trained day, and on a real screen it
       // simply read as faint.
-      style={{ color: "var(--text)" }}
+      style={{ position: "absolute", inset: 0, color: "var(--text)" }}
     >
-      <polygon
-        points="20.80,2.80 14.66,7.50 10.09,11.93 6.13,16.96 3.20,21.20 8.34,17.31 13.01,12.96 17.04,8.01"
-        fill="currentColor"
-      />
+      <line x1="24" y1="0" x2="0" y2="24" stroke="currentColor" strokeWidth={1.5} />
     </svg>
   );
 }
@@ -185,7 +177,7 @@ export function Heatmap({
                 choice of comparison operator two lines up.
               */}
               {isPast && !isToday ? (
-                <PointedSlash />
+                <StruckLine />
               ) : null}
             </span>
           );

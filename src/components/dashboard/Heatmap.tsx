@@ -69,7 +69,7 @@ function StruckLine() {
       // simply read as faint.
       style={{ position: "absolute", inset: 0, color: "var(--text)" }}
     >
-      <line x1="24" y1="0" x2="0" y2="24" stroke="currentColor" strokeWidth={1.5} />
+      <line x1="24" y1="0" x2="0" y2="24" stroke="currentColor" strokeWidth={1} />
     </svg>
   );
 }

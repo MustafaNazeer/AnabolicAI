@@ -17,7 +17,7 @@ function dayNumber(key: string): string {
 }
 
 
-// A five pointed star with points sharp enough to read at 15px.
+// A five pointed star with points sharp enough to read at this size.
 //
 // SHARPNESS IS THE INNER RADIUS OVER THE OUTER ONE, and nothing else. Lucide's
 // Star sits near 0.5, which is a fine shape at 40px and reads stubby at this
@@ -29,7 +29,7 @@ function dayNumber(key: string): string {
 // the cross below it.
 function PointedStar() {
   return (
-    <svg data-star width={15} height={15} viewBox="0 0 24 24" aria-hidden>
+    <svg data-star width={24} height={24} viewBox="0 0 24 24" aria-hidden>
       <polygon
         points="12.00,1.00 14.33,8.80 22.46,8.60 15.77,13.22 18.47,20.90 12.00,15.96 5.53,20.90 8.23,13.22 1.54,8.60 9.67,8.80"
         fill="currentColor"
@@ -58,12 +58,20 @@ function PointedStar() {
 // The two side profiles differ on purpose, which is what keeps it from reading
 // as a machined lozenge. Points are generated from those profiles rather than
 // hand placed; the profiles are in the commit that added them.
+//
+// AT 24 THIS CROWDS THE DAY NUMBER, and it is worth knowing before it is
+// rediscovered. The number sits at top 3, right 4, so in a cell of roughly 43
+// the arm tip at viewBox (20.8, 2.8) lands about where the number's lower left
+// corner is. Both were asked for at this size, so it ships this way; if it
+// reads cluttered on a real screen the two levers are pulling the arm
+// endpoints in from 3.2 and 20.8, or moving the number to the opposite corner
+// from the tip.
 function PointedCross() {
   return (
     <svg
       data-x
-      width={20}
-      height={20}
+      width={24}
+      height={24}
       viewBox="0 0 24 24"
       aria-hidden
       // Full strength rather than the dim token. It was dim so it would not

@@ -235,6 +235,10 @@ describe("Heatmap, the cross", () => {
     const line = struck?.querySelector("line");
     expect(line).not.toBeNull();
     expect(line?.getAttribute("stroke")).toBe("currentColor");
+    // Pinned, because the weight is the whole character of this mark now that
+    // it is a plain line, and 24 viewBox units span the cell so this scales
+    // with it rather than being a fixed pixel count.
+    expect(line?.getAttribute("stroke-width")).toBe("1");
 
     // TOP RIGHT TO BOTTOM LEFT, AND ALL THE WAY TO BOTH CORNERS. Anything less
     // than the full box leaves the line floating inside the square instead of

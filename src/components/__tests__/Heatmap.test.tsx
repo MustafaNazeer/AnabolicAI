@@ -154,8 +154,27 @@ describe("Heatmap, telling past from future", () => {
     const { container } = render(
       <Heatmap days={august()} metric="gym" today="2026-08-16" />,
     );
-    const star = container.querySelector("[data-star]");
+    const star = container.querySelector("[data-star] polygon");
     expect(star?.getAttribute("fill")).toBe("currentColor");
+  });
+
+  // SHARPNESS IS A RATIO, NOT A LOOK. A five pointed star's points are as sharp
+  // as its inner radius is small next to its outer one. Lucide's sits near 0.5,
+  // which reads stubby at this size, so this asserts the shape is genuinely
+  // narrower than that rather than asserting it "looks sharp", which no test
+  // can do.
+  it("draws the star with points sharper than a stock one", () => {
+    const { container } = render(
+      <Heatmap days={august()} metric="gym" today="2026-08-16" />,
+    );
+    const raw = container.querySelector("[data-star] polygon")?.getAttribute("points") ?? "";
+    const pts = raw.trim().split(/\s+/).map((p) => p.split(",").map(Number));
+    expect(pts).toHaveLength(10);
+
+    const radii = pts.map(([x, y]) => Math.hypot(x - 12, y - 12));
+    const outer = Math.max(...radii);
+    const inner = Math.min(...radii);
+    expect(inner / outer).toBeLessThan(0.42);
   });
 
   // Today is the one cell a reader is hunting for, so its mark is the largest

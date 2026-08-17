@@ -1,4 +1,3 @@
-import { Star } from "lucide-react";
 import {
   cellIntensity,
   leadingBlanks,
@@ -17,6 +16,27 @@ function dayNumber(key: string): string {
   return String(Number(key.slice(8, 10)));
 }
 
+
+// A five pointed star with points sharp enough to read at 15px.
+//
+// SHARPNESS IS THE INNER RADIUS OVER THE OUTER ONE, and nothing else. Lucide's
+// Star sits near 0.5, which is a fine shape at 40px and reads stubby at this
+// one, so this uses 0.36: the same five points, drawn narrower, so each comes
+// to an actual spike rather than a wedge. Filled and unstroked, since a stroke
+// would round the tips back off and undo the whole point.
+//
+// Generated from the ratio rather than hand placed, on the same reasoning as
+// the cross below it.
+function PointedStar() {
+  return (
+    <svg data-star width={15} height={15} viewBox="0 0 24 24" aria-hidden>
+      <polygon
+        points="12.00,1.00 14.33,8.80 22.46,8.60 15.77,13.22 18.47,20.90 12.00,15.96 5.53,20.90 8.23,13.22 1.54,8.60 9.67,8.80"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 
 // A cross drawn after `design/x-inspo.jpg`: two long blades crossing, each
 // swelling past its middle and closing to a point at both ends.
@@ -52,11 +72,11 @@ function PointedCross() {
       style={{ color: "var(--text)" }}
     >
       <polygon
-        points="3.20,2.80 7.22,9.53 11.36,14.37 16.41,18.35 20.80,21.20 17.48,15.56 13.48,10.58 8.54,6.50"
+        points="3.20,2.80 7.62,9.14 11.85,13.91 16.69,18.08 20.80,21.20 17.14,15.89 13.01,11.04 8.24,6.79"
         fill="currentColor"
       />
       <polygon
-        points="20.80,2.80 14.26,7.11 9.60,11.47 5.85,16.69 3.20,21.20 8.68,17.64 13.48,13.42 17.34,8.30"
+        points="20.80,2.80 14.66,7.50 10.09,11.93 6.13,16.96 3.20,21.20 8.34,17.31 13.01,12.96 17.04,8.01"
         fill="currentColor"
       />
     </svg>
@@ -147,13 +167,9 @@ export function Heatmap({
                 outline, because an 11px outline star is mostly background.
               */}
               {isToday ? (
-                <Star
-                  size={15}
-                  data-star
-                  fill="currentColor"
-                  aria-hidden
-                  style={{ color: "var(--accent)" }}
-                />
+                <span aria-hidden style={{ color: "var(--accent)", lineHeight: 0 }}>
+                  <PointedStar />
+                </span>
               ) : null}
               {/*
                 THE CROSS IS AN OVERLAY, NOT A REPLACEMENT. A past day that was

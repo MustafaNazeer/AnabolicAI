@@ -158,6 +158,16 @@ describe("Heatmap, telling past from future", () => {
     expect(star?.getAttribute("fill")).toBe("currentColor");
   });
 
+  // Today is the one cell a reader is hunting for, so its mark is the largest
+  // thing in the grid rather than the smallest.
+  it("draws the star larger than the cross that marks a past day", () => {
+    const { container } = render(
+      <Heatmap days={august()} metric="gym" today="2026-08-16" />,
+    );
+    const star = container.querySelector("[data-star]");
+    expect(star?.getAttribute("width")).toBe("15");
+  });
+
   // Nothing is crossed when the grid is drawing a month today is not in and
   // no key matches, rather than the whole month reading as gone.
   it("crosses a whole month that is entirely in the past", () => {
@@ -197,8 +207,16 @@ describe("Heatmap, the cross", () => {
     );
     const cross = container.querySelector("[data-x]");
     expect(cross).not.toBeNull();
-    expect(cross?.getAttribute("width")).toBe("17");
+    expect(cross?.getAttribute("width")).toBe("20");
     expect(cross?.querySelectorAll("polygon")).toHaveLength(2);
+
+    // Each arm is a blade rather than a rhombus: a rhombus needs four points,
+    // so anything this shaped carries more. This is what stops it collapsing
+    // back to the plain diamond it started as.
+    for (const arm of Array.from(cross?.querySelectorAll("polygon") ?? [])) {
+      const points = (arm.getAttribute("points") ?? "").trim().split(/\s+/);
+      expect(points.length).toBeGreaterThanOrEqual(8);
+    }
     expect(cross?.getAttribute("stroke-linecap")).toBeNull();
     expect((cross as HTMLElement | null)?.style.color).toBe("var(--text)");
   });

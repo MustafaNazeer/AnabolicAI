@@ -18,34 +18,47 @@ function dayNumber(key: string): string {
 }
 
 
-// A cross whose four ends come to a point.
+// A cross drawn after `design/x-inspo.jpg`: two long blades crossing, each
+// swelling past its middle and closing to a point at both ends.
 //
 // NOT A STROKED LINE, AND IT CANNOT BE. An SVG stroke ends flat, flat with an
 // overhang, or rounded, so no cap setting produces a point; lucide's X was
-// tried at round and at square and reads blunt either way at this size. Each
-// arm is instead a filled quadrilateral: the two tips are the arm's endpoints
-// and the two side vertices sit either side of its midpoint, so the shape is
-// widest in the middle and converges to nothing at each end.
+// tried at round and at square and read blunt both times. Each arm is a filled
+// polygon instead, with its two tips on the arm's own endpoints.
 //
-// The geometry is written out rather than computed. In a 16 by 16 box an arm
-// runs corner to corner from (3,3) to (13,13); its midpoint is (8,8) and the
-// perpendicular offset of half the mid width is about 1.41 in each axis, giving
-// the side vertices 6.59 and 9.41.
+// THE REFERENCE'S BRUSH TEXTURE IS DELIBERATELY NOT REPRODUCED, and this is the
+// honest part. That artwork carries its streaks and broken edges at several
+// hundred pixels; this renders at 20, where one unit of the 24 wide box is
+// under a pixel, so a notch fine enough to read as texture there is smaller
+// than a pixel here and would only turn the shape to mush. What survives at
+// this size is the silhouette, so that is what was taken: long arms reaching
+// most of the cell, an asymmetric swell rather than a symmetric diamond, and
+// four fine points.
+//
+// The two side profiles differ on purpose, which is what keeps it from reading
+// as a machined lozenge. Points are generated from those profiles rather than
+// hand placed; the profiles are in the commit that added them.
 function PointedCross() {
   return (
     <svg
       data-x
-      width={17}
-      height={17}
-      viewBox="0 0 16 16"
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
       aria-hidden
       // Full strength rather than the dim token. It was dim so it would not
       // compete with the accent on a trained day, and on a real screen it
       // simply read as faint.
       style={{ color: "var(--text)" }}
     >
-      <polygon points="3,3 9.41,6.59 13,13 6.59,9.41" fill="currentColor" />
-      <polygon points="13,3 9.41,9.41 3,13 6.59,6.59" fill="currentColor" />
+      <polygon
+        points="3.20,2.80 7.22,9.53 11.36,14.37 16.41,18.35 20.80,21.20 17.48,15.56 13.48,10.58 8.54,6.50"
+        fill="currentColor"
+      />
+      <polygon
+        points="20.80,2.80 14.26,7.11 9.60,11.47 5.85,16.69 3.20,21.20 8.68,17.64 13.48,13.42 17.34,8.30"
+        fill="currentColor"
+      />
     </svg>
   );
 }
@@ -135,7 +148,7 @@ export function Heatmap({
               */}
               {isToday ? (
                 <Star
-                  size={11}
+                  size={15}
                   data-star
                   fill="currentColor"
                   aria-hidden

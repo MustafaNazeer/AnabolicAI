@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { savePlannerDay } from "@/lib/planner/dayActions";
+import { hidePlannerCategory } from "@/lib/planner/categoryActions";
 import { PlannerCategoryAdd } from "@/components/PlannerCategoryAdd";
 import type { PlannerDay } from "@/lib/planner/week";
 import type { PlannerCategory } from "@/lib/planner/dayQueries";
@@ -32,11 +33,29 @@ export function PlannerDaySheet({
   const [picked, setPicked] = useState<string[]>(initial?.categories ?? []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Removing is behind a mode rather than a control on every chip. These are
+  // tap targets used on every save, so a permanent remove button would sit a
+  // destructive action a few pixels from an ordinary one.
+  const [editing, setEditing] = useState(false);
 
   function toggle(id: string) {
     setPicked((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
     );
+  }
+
+  // Also drops it from the current selection, so a chip removed while it was
+  // picked cannot be saved onto the day it was just taken off.
+  async function remove(id: string) {
+    setBusy(true);
+    setError(null);
+    const result = await hidePlannerCategory(id);
+    setBusy(false);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    setPicked((prev) => prev.filter((p) => p !== id));
   }
 
   async function save() {
@@ -55,25 +74,50 @@ export function PlannerDaySheet({
 
   return (
     <Card className="px-4 py-4" style={{ borderRadius: "var(--radius-tile)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10.5px] uppercase tracking-[.11em]" style={{ color: "var(--text-dim)" }}>
+          {editing ? "Tap a label to remove it" : "Labels"}
+        </span>
+        <button
+          type="button"
+          onClick={() => setEditing((e) => !e)}
+          className="px-2 text-[13px]"
+          style={{ minHeight: 44, color: "var(--accent)" }}
+        >
+          {editing ? "Done" : "Edit"}
+        </button>
+      </div>
+
       <div className="flex flex-wrap gap-2">
         {categories.map((c) => {
           const on = picked.includes(c.id);
+          // ONE BUTTON WITH TWO MODES, NOT A BUTTON INSIDE A BUTTON. A remove
+          // control nested in the chip would be invalid HTML and unreachable by
+          // keyboard, so the chip itself becomes the remove control while
+          // editing. The accessible name changes with it, because "Rest" and
+          // "Remove Rest" are different actions and must not share a label.
           return (
             <button
               key={c.id}
               type="button"
-              aria-pressed={on}
-              onClick={() => toggle(c.id)}
+              aria-pressed={editing ? undefined : on}
+              aria-label={editing ? `Remove ${c.name}` : undefined}
+              disabled={busy}
+              onClick={() => (editing ? void remove(c.id) : toggle(c.id))}
               className="px-3.5 border text-[13px]"
               style={{
                 minHeight: 44,
                 borderRadius: "var(--radius-square)",
-                background: on ? "var(--accent-dim)" : "var(--surface)",
-                borderColor: on ? "var(--accent)" : "var(--surface-border)",
-                color: on ? "var(--accent)" : "var(--text)",
+                background: editing ? "var(--surface)" : on ? "var(--accent-dim)" : "var(--surface)",
+                borderColor: editing
+                  ? "var(--trend-down)"
+                  : on
+                    ? "var(--accent)"
+                    : "var(--surface-border)",
+                color: editing ? "var(--trend-down)" : on ? "var(--accent)" : "var(--text)",
               }}
             >
-              {c.name}
+              {editing ? `${c.name} ×` : c.name}
             </button>
           );
         })}

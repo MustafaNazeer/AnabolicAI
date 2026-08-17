@@ -13,6 +13,10 @@ vi.mock("@/lib/ai/insights/actions", () => ({
   setAiInsights: setAiInsightsMock,
 }));
 vi.mock("@/lib/planner/dayActions", () => ({ savePlannerDay: saveDayMock }));
+vi.mock("@/lib/planner/categoryActions", () => ({
+  addPlannerCategory: vi.fn(async () => ({ ok: true as const })),
+  hidePlannerCategory: vi.fn(async () => ({ ok: true as const })),
+}));
 
 import { DashboardView } from "@/app/DashboardView";
 
@@ -35,8 +39,8 @@ const BASE = {
 };
 
 const CATEGORIES = [
-  { id: "c1", name: "Lower Body" },
-  { id: "c2", name: "Abs" },
+  { id: "c1", name: "Lower Body", hidden: false },
+  { id: "c2", name: "Abs", hidden: false },
 ];
 
 beforeEach(() => {
@@ -132,5 +136,46 @@ describe("DashboardView planner gate", () => {
     expect(screen.getByTestId("day-2026-08-10")).toHaveTextContent(
       "Lower Body, Abs",
     );
+  });
+});
+
+// A hide takes a label out of the picker and out of nothing else. This is the
+// pair of assertions that keeps those two apart, and getting it wrong in either
+// direction is silent: a hidden chip still offered, or a past day whose label
+// suddenly renders blank.
+describe("DashboardView, hidden categories", () => {
+  const WITH_HIDDEN = [
+    { id: "c1", name: "Lower Body", hidden: false },
+    { id: "c2", name: "Abs", hidden: true },
+  ];
+
+  it("keeps a hidden label off the picker", async () => {
+    render(
+      <DashboardView
+        {...BASE}
+        plannerOn
+        plannerDays={[]}
+        plannerCategories={WITH_HIDDEN}
+      />,
+    );
+    await userEvent.click(screen.getByTestId("day-2026-08-13"));
+
+    expect(screen.getByRole("button", { name: "Lower Body" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Abs" })).toBeNull();
+  });
+
+  // THE COUNTERPART, AND THE REASON NOTHING IS EVER REALLY DELETED. A day
+  // logged before the label was hidden still carries it, so the name has to
+  // keep resolving or a past week silently loses what it recorded.
+  it("still names a hidden label on a day that already carries it", () => {
+    render(
+      <DashboardView
+        {...BASE}
+        plannerOn
+        plannerDays={[{ day: "2026-08-10", done: true, categories: ["c2"] }]}
+        plannerCategories={WITH_HIDDEN}
+      />,
+    );
+    expect(screen.getByTestId("day-2026-08-10")).toHaveTextContent("Abs");
   });
 });

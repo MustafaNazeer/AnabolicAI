@@ -1,6 +1,7 @@
 import { Star } from "lucide-react";
 import {
   cellIntensity,
+  leadingBlanks,
   maxVolume,
   type MatrixDay,
   type MatrixMetric,
@@ -16,10 +17,6 @@ function dayNumber(key: string): string {
   return String(Number(key.slice(8, 10)));
 }
 
-function monthOf(key: string): string {
-  return key.slice(0, 7);
-}
-
 export function Heatmap({
   days,
   metric,
@@ -27,22 +24,15 @@ export function Heatmap({
 }: {
   days: MatrixDay[];
   metric: MatrixMetric;
-  // Optional, because the window is five weeks and today is not guaranteed to
-  // be inside it. A key that matches nothing simply marks nothing.
+  // Optional, because the grid draws one month and today is not guaranteed to
+  // be in the month being drawn. A key that matches nothing marks nothing.
   today?: string;
 }) {
   const max = maxVolume(days);
-  // ONE MONTH IS NUMBERED, NOT BOTH. The window is five weeks ending on the
-  // current week's Sunday, so it always runs back into the month before it.
-  // Numbering that one too puts a second 1 through 31 in the same grid with
-  // nothing to say which month a number belongs to.
-  //
-  // Taken from today when it is known, because on the 31st the window can end
-  // in the following month while the month being read is still this one. The
-  // last cell is the fallback for a caller that passes no today at all.
-  const shownMonth = today
-    ? monthOf(today)
-    : monthOf(days[days.length - 1]?.dateKey ?? "");
+  // A month rarely begins on a Monday, so the grid opens with empty places to
+  // keep every column under its own weekday. They are gaps rather than squares:
+  // no date, no background, nothing to read.
+  const blanks = days.length > 0 ? leadingBlanks(days[0].dateKey) : 0;
 
   return (
     <div>
@@ -55,11 +45,13 @@ export function Heatmap({
         ))}
       </div>
       <div className="grid grid-cols-7 gap-[5px]">
+        {Array.from({ length: blanks }, (_, i) => (
+          <span key={`blank-${i}`} data-blank="1" aria-hidden style={{ aspectRatio: "1" }} />
+        ))}
         {days.map((day) => {
           const intensity = cellIntensity(day, metric, max);
           const on = intensity > 0;
           const isToday = day.dateKey === today;
-          const numbered = monthOf(day.dateKey) === shownMonth;
           return (
             <span
               key={day.dateKey}
@@ -75,26 +67,24 @@ export function Heatmap({
                   : "rgba(255,255,255,0.07)",
               }}
             >
-              {numbered ? (
-                <span
-                  className="absolute leading-none"
-                  style={{
-                    top: 3,
-                    right: 4,
-                    // The same face as the hero number above this grid, so the
-                    // two read as one card rather than as two typefaces.
-                    fontFamily: "var(--font-spectral)",
-                    fontSize: 9,
-                    // Full strength foreground rather than the dim token. A
-                    // dimmed number on a faint tile is the same mistake that
-                    // made a planned day's label invisible on a real phone; the
-                    // tile's colour already carries the intensity.
-                    color: "var(--text)",
-                  }}
-                >
-                  {dayNumber(day.dateKey)}
-                </span>
-              ) : null}
+              <span
+                className="absolute leading-none"
+                style={{
+                  top: 3,
+                  right: 4,
+                  // The same face as the hero number above this grid, so the
+                  // two read as one card rather than as two typefaces.
+                  fontFamily: "var(--font-spectral)",
+                  fontSize: 9,
+                  // Full strength foreground rather than the dim token. A
+                  // dimmed number on a faint tile is the same mistake that made
+                  // a planned day's label invisible on a real phone; the tile's
+                  // colour already carries the intensity.
+                  color: "var(--text)",
+                }}
+              >
+                {dayNumber(day.dateKey)}
+              </span>
               {isToday ? (
                 <Star size={11} aria-hidden style={{ color: "var(--accent)" }} />
               ) : null}

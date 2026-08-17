@@ -3,22 +3,12 @@ import { render } from "@testing-library/react";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import type { MatrixDay } from "@/lib/progress/matrix";
 
-function makeDays(): MatrixDay[] {
-  return Array.from({ length: 35 }, (_, i) => ({
-    dateKey: `2026-05-${String(i + 1).padStart(2, "0")}`,
-    trained: i === 30,
-    volume: i === 30 ? 5000 : 0,
-    prCount: 0,
-  }));
-}
 
-// The real window is five weeks ending on the current week's Sunday, so it
-// always straddles two months. This is that shape: 2026-07-13 to 2026-08-16.
-function spanTwoMonths(): MatrixDay[] {
-  const july = Array.from({ length: 19 }, (_, i) => `2026-07-${String(i + 13).padStart(2, "0")}`);
-  const august = Array.from({ length: 16 }, (_, i) => `2026-08-${String(i + 1).padStart(2, "0")}`);
-  return [...july, ...august].map((dateKey) => ({
-    dateKey,
+// The window is now one month, first day to last. August 2026 has 31 days and
+// starts on a Saturday, so it needs five empty places before the 1st.
+function august(): MatrixDay[] {
+  return Array.from({ length: 31 }, (_, i) => ({
+    dateKey: `2026-08-${String(i + 1).padStart(2, "0")}`,
     trained: false,
     volume: 0,
     prCount: 0,
@@ -26,34 +16,56 @@ function spanTwoMonths(): MatrixDay[] {
 }
 
 describe("Heatmap", () => {
-  it("renders 35 cells and lights trained days under the gym metric", () => {
-    const { container } = render(<Heatmap days={makeDays()} metric="gym" />);
-    const cells = container.querySelectorAll("[data-cell]");
-    expect(cells).toHaveLength(35);
-    const on = container.querySelectorAll('[data-on="1"]');
-    expect(on).toHaveLength(1);
+  // ONE SQUARE PER DAY OF THE MONTH AND NOT ONE MORE. A 31 day month draws 31.
+  it("renders one cell per day of the month and lights trained days", () => {
+    const days = august();
+    days[30] = { ...days[30], trained: true };
+    const { container } = render(<Heatmap days={days} metric="gym" />);
+    expect(container.querySelectorAll("[data-cell]")).toHaveLength(31);
+    expect(container.querySelectorAll('[data-on="1"]')).toHaveLength(1);
+  });
+
+  it("draws 30 for a 30 day month", () => {
+    const june = Array.from({ length: 30 }, (_, i) => ({
+      dateKey: `2026-06-${String(i + 1).padStart(2, "0")}`,
+      trained: false,
+      volume: 0,
+      prCount: 0,
+    }));
+    const { container } = render(<Heatmap days={june} metric="gym" />);
+    expect(container.querySelectorAll("[data-cell]")).toHaveLength(30);
+  });
+
+  // A month that does not begin on a Monday needs empty places before its 1st,
+  // or every column names the wrong weekday. They are gaps rather than squares,
+  // so they carry no date and are not cells.
+  it("pads the first row so the columns still mean weekdays", () => {
+    const { container } = render(<Heatmap days={august()} metric="gym" />);
+    // 2026-08-01 is a Saturday, which is the sixth column in a Monday first
+    // grid, so five places come before it.
+    expect(container.querySelectorAll("[data-blank]")).toHaveLength(5);
+    expect(container.querySelectorAll("[data-blank][data-cell]")).toHaveLength(0);
+  });
+
+  it("needs no padding for a month that starts on a Monday", () => {
+    const june = Array.from({ length: 30 }, (_, i) => ({
+      dateKey: `2026-06-${String(i + 1).padStart(2, "0")}`,
+      trained: false,
+      volume: 0,
+      prCount: 0,
+    }));
+    const { container } = render(<Heatmap days={june} metric="gym" />);
+    expect(container.querySelectorAll("[data-blank]")).toHaveLength(0);
   });
 
   // This is the month calendar, so a cell has to say which day of the month it
   // is. Without a number the grid shows a shape and leaves the reader counting
   // squares to work out which day lit up.
-  it("numbers the cells of the month it is showing", () => {
-    const { container } = render(
-      <Heatmap days={spanTwoMonths()} metric="gym" today="2026-08-16" />,
-    );
+  it("numbers every cell with its day of the month", () => {
+    const { container } = render(<Heatmap days={august()} metric="gym" />);
     expect(container.querySelector('[data-cell="2026-08-01"]')).toHaveTextContent("1");
     expect(container.querySelector('[data-cell="2026-08-09"]')).toHaveTextContent("9");
-  });
-
-  // The window is five weeks, so it always runs back into the month before it.
-  // Numbering those too puts a second 1 through 31 in the same grid and the
-  // reader cannot tell which month a number belongs to.
-  it("leaves the neighbouring month's cells unnumbered", () => {
-    const { container } = render(
-      <Heatmap days={spanTwoMonths()} metric="gym" today="2026-08-16" />,
-    );
-    expect(container.querySelector('[data-cell="2026-07-20"]')?.textContent).toBe("");
-    expect(container.querySelector('[data-cell="2026-07-31"]')?.textContent).toBe("");
+    expect(container.querySelector('[data-cell="2026-08-31"]')).toHaveTextContent("31");
   });
 
   // The number comes out of the key rather than through a Date, because
@@ -61,14 +73,14 @@ describe("Heatmap", () => {
   // app's own timezone.
   it("drops the leading zero rather than printing 01", () => {
     const { container } = render(
-      <Heatmap days={spanTwoMonths()} metric="gym" today="2026-08-16" />,
+      <Heatmap days={august()} metric="gym" today="2026-08-16" />,
     );
     expect(container.querySelector('[data-cell="2026-08-01"]')?.textContent).toBe("1");
   });
 
   it("marks today with a star and marks nothing else", () => {
     const { container } = render(
-      <Heatmap days={spanTwoMonths()} metric="gym" today="2026-08-12" />,
+      <Heatmap days={august()} metric="gym" today="2026-08-12" />,
     );
     const todayCell = container.querySelector('[data-today="1"]');
     expect(todayCell).toHaveAttribute("data-cell", "2026-08-12");
@@ -83,7 +95,7 @@ describe("Heatmap", () => {
   // must not invent one.
   it("marks no cell when today falls outside the window", () => {
     const { container } = render(
-      <Heatmap days={spanTwoMonths()} metric="gym" today="2026-09-09" />,
+      <Heatmap days={august()} metric="gym" today="2026-09-09" />,
     );
     expect(container.querySelectorAll('[data-today="1"]')).toHaveLength(0);
   });

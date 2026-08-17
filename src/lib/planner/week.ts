@@ -11,9 +11,9 @@ export type PlannerDay = {
 // Monday first, matching startOfWeek and matching how she writes her own week
 // out. Reuses the dashboard's helpers rather than adding a second definition of
 // what a week is, which is how the app would end up disagreeing with itself
-// about which days are in it. matrixWindow in progress/matrix.ts builds its own
-// window the same way, so this is the established composition rather than a new
-// one.
+// about which days are in it. monthWindow in progress/matrix.ts resolves its own
+// span through zonedNow the same way, so this is the established composition
+// rather than a new one.
 export function plannerWeek(now: Date, timeZone: string): string[] {
   const monday = startOfWeek(zonedNow(now, timeZone));
   const out: string[] = [];

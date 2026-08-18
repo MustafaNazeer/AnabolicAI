@@ -91,16 +91,40 @@ describe("savePlannerDay", () => {
 // trained, and so there is one definition of "has it happened" rather than one
 // per surface.
 describe("savePlannerDay, done derived from the date", () => {
-  const REAL_NOW = Date.now;
   afterEach(() => {
-    Date.now = REAL_NOW;
+    vi.useRealTimers();
   });
 
+  // vi.setSystemTime, NOT an assignment to Date.now, and that difference is the
+  // reason this entire block was inert.
+  //
+  // savePlannerDay reads the clock with `new Date()`, which goes straight to the
+  // system clock and never consults Date.now, so overriding Date.now alone froze
+  // nothing. Every case below was really comparing its hardcoded day against the
+  // REAL date, and three of them passed only because that day happened to fall
+  // on the right side of it. The boundary case started failing the moment the
+  // real date reached the 17th, and CI had gone green eighteen minutes earlier.
+  //
+  // toFake is narrowed to Date deliberately. Faking the timers as well would
+  // stop the awaited supabase mocks settling without a manual tick, which is a
+  // second problem this block does not have and does not need.
+  //
   // 2026-08-16 17:00Z is 12:00 in Chicago on the 16th.
   function freezeAt(iso: string) {
-    const fixed = new Date(iso).getTime();
-    Date.now = () => fixed;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(iso));
   }
+
+  // Pins the MECHANISM rather than a behaviour, because the mechanism is what
+  // failed. Every other assertion here is worthless if the freeze does not reach
+  // `new Date()`, and nothing said so: the block just quietly read the wall
+  // clock for two days until a date rolled over and one expectation stopped
+  // matching by luck.
+  it("freezes the clock the action actually reads, not only Date.now", () => {
+    freezeAt("2026-08-17T02:00:00Z");
+    expect(new Date().toISOString()).toBe("2026-08-17T02:00:00.000Z");
+    expect(Date.now()).toBe(new Date("2026-08-17T02:00:00Z").getTime());
+  });
 
   it("writes today as done", async () => {
     freezeAt("2026-08-16T17:00:00Z");
